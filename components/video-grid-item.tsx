@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     overflow: "hidden",
     backgroundColor: "#1C1C1E",
-    shadowColor: "#000",
+    shadowColor: "#fff",
     shadowOffset: {
       width: 0,
       height: 8
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#2C2C2E"
+    backgroundColor: "#1C1C1E"
   },
   placeholderText: {
     color: "#98989D",

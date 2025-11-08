@@ -3,7 +3,17 @@ import {Host, SecureField, TextField, TextFieldRef} from "@expo/ui/swift-ui"
 import {Ionicons} from "@expo/vector-icons"
 import * as SecureStore from "expo-secure-store"
 import React, {useEffect, useRef, useState} from "react"
-import {ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View} from "react-native"
+import {
+  ActivityIndicator,
+  Alert,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native"
 import {SafeAreaView} from "react-native-safe-area-context"
 
 const STORAGE_KEYS = {
@@ -15,10 +25,10 @@ const STORAGE_KEYS = {
 
 // Video quality presets (bitrate in kbps)
 const QUALITY_PRESETS = [
-  {label: "480p", value: 0, bitrate: 1500, resolution: "854x480", description: "Fast - Lower Quality"},
-  {label: "540p", value: 1, bitrate: 2500, resolution: "960x540", description: "Balanced - Good Quality"},
-  {label: "720p", value: 2, bitrate: 4000, resolution: "1280x720", description: "Smooth - High Quality"},
-  {label: "1080p", value: 3, bitrate: 8000, resolution: "1920x1080", description: "Best - Highest Quality"}
+  {label: "480p", value: 0, bitrate: 1500, resolution: "854x480", description: "Fast - Lower"},
+  {label: "540p", value: 1, bitrate: 2500, resolution: "960x540", description: "Balanced - Good"},
+  {label: "720p", value: 2, bitrate: 4000, resolution: "1280x720", description: "Smooth - High"},
+  {label: "1080p", value: 3, bitrate: 8000, resolution: "1920x1080", description: "Best - Highest"}
 ]
 
 export default function SettingsScreen() {
@@ -219,96 +229,77 @@ export default function SettingsScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
-        <View style={styles.contentWrapper}>
-          {/* Jellyfin Settings Card */}
-
-          <View style={styles.card}>
-            {/* Video Quality Header */}
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderIcon}>
-                <Ionicons name="videocam-outline" size={Platform.isTV ? 32 : 28} color="#FFC312" />
-              </View>
-              <View style={styles.cardHeaderText}>
-                <Text style={styles.cardTitle}>Video Quality</Text>
-                <Text style={styles.cardSubtitle}>
-                  Currently: {QUALITY_PRESETS[videoQuality]?.label} - {QUALITY_PRESETS[videoQuality]?.description}
-                </Text>
-              </View>
-            </View>
-
-            {/* Quality Control - Buttons for all platforms */}
-            <View style={styles.qualityButtonsContainer}>
-              {QUALITY_PRESETS.map(preset => (
-                <TouchableOpacity
-                  key={preset.value}
-                  style={[styles.qualityButton, videoQuality === preset.value && styles.qualityButtonActive]}
-                  onPress={() => setVideoQuality(preset.value)}
-                  activeOpacity={0.7}
-                  isTVSelectable={true}
-                >
-                  <Text
-                    style={[styles.qualityButtonText, videoQuality === preset.value && styles.qualityButtonTextActive]}
-                  >
-                    {preset.label}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.qualityButtonSubtext,
-                      videoQuality === preset.value && styles.qualityButtonSubtextActive
-                    ]}
-                  >
-                    {preset.description}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* App Action Buttons */}
-            <View style={styles.cardActions}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.saveButton]}
-                onPress={saveAppSettings}
-                disabled={isSaving}
-                activeOpacity={0.7}
-                isTVSelectable={true}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="save-outline" size={Platform.isTV ? 24 : 20} color="#000000FF" />
-                    <Text style={styles.saveButtonText}>Save Quality Setting</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-            </View>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentInsetAdjustmentBehavior="automatic"
+      >
+        <View style={styles.contentContainer}>
+          {/* Section Header */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>VIDEO QUALITY</Text>
           </View>
 
-          <View style={styles.card}>
-            {/* Header inside card */}
-            <View style={styles.cardHeader}>
-              <View style={styles.cardHeaderIcon}>
-                <Ionicons name="server-outline" size={Platform.isTV ? 32 : 28} color="#FFC312" />
-              </View>
-              <View style={styles.cardHeaderText}>
-                <Text style={styles.cardTitle}>Jellyfin Server</Text>
-                <Text style={styles.cardSubtitle}>Connect to your media server</Text>
-              </View>
-            </View>
-
-            {/* Server IP Address and User ID Row */}
-            <View style={styles.formRow}>
-              {/* Server IP Address */}
-              <View style={styles.formGroupHalf}>
-                <View style={styles.labelContainer}>
-                  <Ionicons name="globe-outline" size={Platform.isTV ? 20 : 18} color="#FFC312" />
-                  <View style={styles.labelTextContainer}>
-                    <Text style={styles.label}>Server IP Address</Text>
-                    <Text style={styles.labelHint}>Local IP (port 8096 added automatically)</Text>
+          {/* Quality Buttons */}
+          <View style={styles.section}>
+            {QUALITY_PRESETS.map((preset, index) => (
+              <Pressable
+                key={preset.value}
+                style={({focused}) => [
+                  styles.listItem,
+                  index === 0 && styles.listItemFirst,
+                  index === QUALITY_PRESETS.length - 1 && styles.listItemLast,
+                  focused && {backgroundColor: "rgba(255, 255, 255, 0.1)"}
+                ]}
+                onPress={() => setVideoQuality(preset.value)}
+                tvParallaxProperties={{magnification: 1.01}}
+                isTVSelectable={true}
+              >
+                <View style={styles.listItemContent}>
+                  <View style={styles.listItemLeft}>
+                    <Text style={styles.listItemTitle}>{preset.label}</Text>
+                    <Text style={styles.listItemSubtitle}>{preset.description}</Text>
                   </View>
+                  {videoQuality === preset.value && (
+                    <Ionicons name="checkmark" size={Platform.isTV ? 28 : 24} color="#FFC312" />
+                  )}
                 </View>
+              </Pressable>
+            ))}
+          </View>
+
+          {/* Save Quality Button */}
+          <TouchableOpacity
+            style={styles.primaryButton}
+            onPress={saveAppSettings}
+            disabled={isSaving}
+            activeOpacity={0.2}
+            isTVSelectable={true}
+          >
+            {isSaving ? <ActivityIndicator color="#000" /> : <Text style={styles.primaryButtonText}>Save Quality</Text>}
+          </TouchableOpacity>
+
+          {/* Jellyfin Server Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>JELLYFIN SERVER</Text>
+          </View>
+
+          {/* Server Settings Group */}
+          <View
+            style={[
+              styles.section,
+              {
+                paddingBottom: Platform.isTV ? 30 : 24
+              }
+            ]}
+          >
+            {/* Server IP */}
+            <View style={[styles.listItem, styles.listItemFirst]}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Server IP</Text>
                 <Host style={styles.inputHost}>
                   <TextField
                     ref={serverIpRef}
@@ -318,16 +309,12 @@ export default function SettingsScreen() {
                   />
                 </Host>
               </View>
+            </View>
 
-              {/* User ID */}
-              <View style={styles.formGroupHalf}>
-                <View style={styles.labelContainer}>
-                  <Ionicons name="person-outline" size={Platform.isTV ? 20 : 18} color="#FFC312" />
-                  <View style={styles.labelTextContainer}>
-                    <Text style={styles.label}>User ID</Text>
-                    <Text style={styles.labelHint}>Found in user profile settings</Text>
-                  </View>
-                </View>
+            {/* User ID */}
+            <View style={styles.listItem}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>User ID</Text>
                 <Host style={styles.inputHost}>
                   <TextField
                     ref={userIdRef}
@@ -339,82 +326,67 @@ export default function SettingsScreen() {
               </View>
             </View>
 
-            <View style={styles.divider} />
-
             {/* API Key */}
-            <View style={styles.formGroup}>
-              <View style={styles.labelContainer}>
-                <Ionicons name="key-outline" size={Platform.isTV ? 20 : 18} color="#FFC312" />
-                <View style={styles.labelTextContainer}>
-                  <Text style={styles.label}>API Key</Text>
-                  <Text style={styles.labelHint}>Dashboard → API Keys → Create new key</Text>
-                </View>
+            <View style={[styles.listItem, styles.listItemLast]}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>API Key</Text>
+                <Host style={styles.inputHost}>
+                  {Platform.isTV ? (
+                    <TextField
+                      ref={apiKeyRef}
+                      placeholder="Enter your API key"
+                      autocorrection={false}
+                      onChangeText={setApiKey}
+                    />
+                  ) : (
+                    <SecureField ref={apiKeyRef} placeholder="Enter your API key" onChangeText={setApiKey} />
+                  )}
+                </Host>
               </View>
-              <Host style={styles.inputHost}>
-                {Platform.isTV ? (
-                  <TextField
-                    ref={apiKeyRef}
-                    placeholder="Enter your API key"
-                    autocorrection={false}
-                    onChangeText={setApiKey}
-                  />
-                ) : (
-                  <SecureField ref={apiKeyRef} placeholder="Enter your API key" onChangeText={setApiKey} />
-                )}
-              </Host>
-            </View>
-
-            {/* Jellyfin Action Buttons */}
-            <View style={styles.cardActions}>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.testButton]}
-                onPress={testConnection}
-                disabled={isTesting || isSaving}
-                activeOpacity={0.7}
-                isTVSelectable={true}
-              >
-                {isTesting ? (
-                  <ActivityIndicator color="#FFC312" />
-                ) : (
-                  <>
-                    <Ionicons name="flash-outline" size={Platform.isTV ? 24 : 20} color="#FFC312" />
-                    <Text style={styles.testButtonText}>Test Connection</Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.actionButton, styles.saveButton]}
-                onPress={saveJellyfinSettings}
-                disabled={isSaving || isTesting}
-                activeOpacity={0.7}
-                isTVSelectable={true}
-              >
-                {isSaving ? (
-                  <ActivityIndicator color="#FFFFFF" />
-                ) : (
-                  <>
-                    <Ionicons name="save-outline" size={Platform.isTV ? 24 : 20} color="#000000FF" />
-                    <Text style={styles.saveButtonText}>Save Server Settings</Text>
-                  </>
-                )}
-              </TouchableOpacity>
             </View>
           </View>
 
-          {/* Danger Zone */}
-          <View style={styles.dangerZone}>
+          {/* Action Buttons */}
+          <View style={styles.buttonGroup}>
             <TouchableOpacity
-              style={styles.clearButton}
-              onPress={clearSettings}
-              disabled={isSaving || isTesting}
-              activeOpacity={0.7}
+              style={styles.secondaryButton}
+              onPress={testConnection}
+              disabled={isTesting || isSaving}
+              activeOpacity={0.6}
               isTVSelectable={true}
             >
-              <Ionicons name="trash-outline" size={Platform.isTV ? 22 : 20} color="#FF3B30" />
-              <Text style={styles.clearButtonText}>Clear All Settings</Text>
+              {isTesting ? (
+                <ActivityIndicator color="#FFC312" />
+              ) : (
+                <Text style={styles.secondaryButtonText}>Test Connection</Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={saveJellyfinSettings}
+              disabled={isSaving || isTesting}
+              activeOpacity={0.6}
+              isTVSelectable={true}
+            >
+              {isSaving ? (
+                <ActivityIndicator color="#000" />
+              ) : (
+                <Text style={styles.primaryButtonText}>Save Server Settings</Text>
+              )}
             </TouchableOpacity>
           </View>
+
+          {/* Clear Settings */}
+          <TouchableOpacity
+            style={styles.destructiveButton}
+            onPress={clearSettings}
+            disabled={isSaving || isTesting}
+            activeOpacity={0.6}
+            isTVSelectable={true}
+          >
+            <Text style={styles.destructiveButtonText}>Clear All Settings</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -426,15 +398,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000000"
   },
+  scrollView: {
+    flex: 1
+  },
   scrollContent: {
-    paddingTop: 60,
-    paddingBottom: 60,
+    paddingTop: Platform.isTV ? 20 : 16,
+    paddingBottom: Platform.isTV ? 60 : 40,
     alignItems: "center"
   },
-  contentWrapper: {
-    width: "60%",
-    maxWidth: 1200,
-    minWidth: Platform.isTV ? 800 : 300
+  contentContainer: {
+    width: "100%",
+    maxWidth: Platform.isTV ? 1000 : 600,
+    paddingHorizontal: Platform.isTV ? 60 : 16
   },
   loadingContainer: {
     flex: 1,
@@ -443,201 +418,135 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: Platform.isTV ? 22 : 18,
+    fontSize: Platform.isTV ? 20 : 17,
     color: "#8E8E93"
   },
-  card: {
+  // Section Headers (iOS style)
+  sectionHeader: {
+    paddingHorizontal: Platform.isTV ? 16 : 16,
+    paddingTop: Platform.isTV ? 32 : 24,
+    paddingBottom: Platform.isTV ? 12 : 8
+  },
+  sectionHeaderText: {
+    fontSize: Platform.isTV ? 16 : 13,
+    fontWeight: "600",
+    color: "#8E8E93",
+    letterSpacing: -0.08
+  },
+  // Section (Grouped List)
+  section: {
     backgroundColor: "#1C1C1E",
-    borderRadius: 32,
-    padding: Platform.isTV ? 32 : 24,
-    borderWidth: 1,
-    borderColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: Platform.isTV ? 32 : 10,
+    overflow: "hidden",
+    // paddingVertical: Platform.isTV ? 8 : 6,
     marginBottom: Platform.isTV ? 32 : 24
   },
-  cardHeader: {
+  // List Items
+  listItem: {
+    backgroundColor: "#1C1C1E",
+    paddingHorizontal: Platform.isTV ? 28 : 16,
+    paddingVertical: Platform.isTV ? 24 : 16,
+    // borderBottomWidth: 0.5,
+    // borderBottomColor: "rgba(84, 84, 88, 0.6)",
+    // Add margin for TV focus scaling (10% scale = need 5% margin on each side)
+    marginHorizontal: Platform.isTV ? 4 : 0
+  },
+  listItemFirst: {
+    borderTopLeftRadius: Platform.isTV ? 16 : 10,
+    borderTopRightRadius: Platform.isTV ? 16 : 10
+  },
+  listItemLast: {
+    borderBottomWidth: 0,
+    borderBottomLeftRadius: Platform.isTV ? 16 : 10,
+    borderBottomRightRadius: Platform.isTV ? 16 : 10
+  },
+  listItemContent: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: Platform.isTV ? 32 : 28,
-    paddingBottom: Platform.isTV ? 24 : 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
-    gap: 16
+    justifyContent: "space-between",
+    gap: Platform.isTV ? 16 : 12
   },
-  cardHeaderIcon: {
-    width: Platform.isTV ? 56 : 48,
-    height: Platform.isTV ? 56 : 48,
-    borderRadius: Platform.isTV ? 28 : 24,
-    backgroundColor: "rgba(255, 195, 18, 0.15)",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  cardHeaderText: {
+  listItemLeft: {
     flex: 1
   },
-  cardTitle: {
-    fontSize: Platform.isTV ? 28 : 24,
-    fontWeight: "700",
+  listItemTitle: {
+    fontSize: Platform.isTV ? 25 : 20,
+    fontWeight: "400",
     color: "#FFFFFF",
-    marginBottom: 4
+    marginBottom: 2
   },
-  cardSubtitle: {
-    fontSize: Platform.isTV ? 16 : 14,
-    color: "#8E8E93"
-  },
-  formGroup: {
-    marginBottom: Platform.isTV ? 28 : 24
-  },
-  formRow: {
-    flexDirection: "row",
-    gap: Platform.isTV ? 20 : 16,
-    marginBottom: Platform.isTV ? 28 : 24
-  },
-  formGroupHalf: {
-    flex: 1
-  },
-  labelContainer: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 12,
-    gap: 12
-  },
-  labelTextContainer: {
-    flex: 1
-  },
-  label: {
-    fontSize: Platform.isTV ? 18 : 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: 4
-  },
-  labelHint: {
-    fontSize: Platform.isTV ? 14 : 12,
+  listItemSubtitle: {
     color: "#8E8E93",
-    lineHeight: Platform.isTV ? 18 : 16
+    fontSize: Platform.isTV ? 20 : 17
+  },
+  // Input Fields
+  inputContainer: {
+    gap: Platform.isTV ? 20 : 12
+  },
+  inputLabel: {
+    fontSize: Platform.isTV ? 18 : 15,
+    fontWeight: "500",
+    color: "#8E8E93",
+    marginBottom: 15
   },
   inputHost: {
     width: "100%",
-    minHeight: Platform.isTV ? 60 : 50
+    minHeight: Platform.isTV ? 52 : 44
   },
-  divider: {
-    height: 1,
-    backgroundColor: "rgba(255, 255, 255, 0.1)",
-    marginVertical: Platform.isTV ? 24 : 20
-  },
-  cardActions: {
-    flexDirection: "row",
+  // Buttons
+  buttonGroup: {
     gap: Platform.isTV ? 16 : 12,
-    marginTop: Platform.isTV ? 28 : 24,
-    paddingTop: Platform.isTV ? 24 : 20,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255, 255, 255, 0.1)"
+    marginTop: Platform.isTV ? 24 : 16
   },
-  actionButton: {
-    flex: 1,
-    flexDirection: "row",
-    paddingVertical: Platform.isTV ? 18 : 16,
-    paddingHorizontal: Platform.isTV ? 24 : 20,
-    borderRadius: 50,
+  primaryButton: {
+    backgroundColor: "#FFC312",
+    paddingVertical: Platform.isTV ? 20 : 14,
+    borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    gap: 10,
+    marginTop: Platform.isTV ? 24 : 16,
+    minHeight: Platform.isTV ? 60 : 50,
+    maxWidth: 400,
     width: "100%",
-    maxWidth: 350,
     marginHorizontal: "auto"
   },
-  testButton: {
-    backgroundColor: "rgba(255, 195, 18, 0.15)",
-    borderWidth: 2,
-    borderColor: "#FFC312"
+  primaryButtonText: {
+    fontSize: Platform.isTV ? 25 : 17,
+    fontWeight: "600",
+    color: "#000000"
   },
-  testButtonText: {
-    fontSize: Platform.isTV ? 22 : 16,
-    fontWeight: "700",
+  secondaryButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1.5,
+    borderColor: "#FFC312",
+    paddingVertical: Platform.isTV ? 20 : 14,
+    paddingHorizontal: Platform.isTV ? 28 : 20,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: Platform.isTV ? 60 : 50,
+    maxWidth: 400,
+    width: "100%",
+    marginHorizontal: "auto"
+  },
+  secondaryButtonText: {
+    fontSize: Platform.isTV ? 24 : 17,
+    fontWeight: "600",
     color: "#FFC312"
   },
-  saveButton: {
-    backgroundColor: "#FFC312",
-    borderWidth: 2,
-    borderColor: "#FFC312"
-  },
-  saveButtonText: {
-    fontSize: Platform.isTV ? 22 : 16,
-    fontWeight: "700",
-    color: "#000000FF"
-  },
-  sectionDivider: {
-    flexDirection: "row",
+  destructiveButton: {
+    backgroundColor: "transparent",
+    paddingVertical: Platform.isTV ? 20 : 14,
+    paddingHorizontal: Platform.isTV ? 28 : 20,
+    borderRadius: 999,
     alignItems: "center",
-    marginVertical: Platform.isTV ? 48 : 40,
-    gap: 20
+    justifyContent: "center",
+    marginTop: Platform.isTV ? 40 : 32,
+    minHeight: Platform.isTV ? 60 : 50
   },
-  sectionDividerLine: {
-    flex: 1,
-    height: 2,
-    backgroundColor: "rgba(255, 255, 255, 0.15)"
-  },
-  sectionDividerText: {
-    fontSize: Platform.isTV ? 22 : 15,
-    fontWeight: "700",
-    color: "#8E8E93",
-    textTransform: "uppercase",
-    letterSpacing: 2
-  },
-  qualityButtonsContainer: {
-    flexDirection: "row",
-    gap: Platform.isTV ? 14 : 10,
-    marginBottom: Platform.isTV ? 24 : 20
-  },
-  qualityButton: {
-    flex: 1,
-    paddingVertical: Platform.isTV ? 28 : 24,
-    paddingHorizontal: Platform.isTV ? 16 : 12,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 255, 255, 0.05)",
-    borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.1)",
-    alignItems: "center",
-    justifyContent: "center"
-  },
-  qualityButtonActive: {
-    backgroundColor: "rgba(255, 195, 18, 0.2)",
-    borderColor: "#FFC312"
-  },
-  qualityButtonText: {
-    fontSize: Platform.isTV ? 24 : 20,
-    fontWeight: "800",
-    color: "#FFFFFF",
-    marginBottom: 6
-  },
-  qualityButtonTextActive: {
-    color: "#FFC312"
-  },
-  qualityButtonSubtext: {
-    fontSize: Platform.isTV ? 14 : 12,
-    color: "#8E8E93",
-    textAlign: "center"
-  },
-  qualityButtonSubtextActive: {
-    color: "rgba(255, 195, 18, 0.8)"
-  },
-  dangerZone: {
-    marginTop: Platform.isTV ? 48 : 40,
-    alignItems: "center"
-  },
-  clearButton: {
-    flexDirection: "row",
-    paddingVertical: Platform.isTV ? 16 : 14,
-    paddingHorizontal: Platform.isTV ? 32 : 28,
-    borderRadius: 50,
-    backgroundColor: "rgba(255, 59, 48, 0.1)",
-    borderWidth: 2,
-    borderColor: "rgba(255, 59, 48, 0.3)",
-    alignItems: "center",
-    gap: 10
-  },
-  clearButtonText: {
-    fontSize: Platform.isTV ? 16 : 14,
-    fontWeight: "700",
+  destructiveButtonText: {
+    fontSize: Platform.isTV ? 20 : 17,
+    fontWeight: "600",
     color: "#FF3B30"
   }
 })

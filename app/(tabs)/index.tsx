@@ -115,6 +115,7 @@ export default function VideoLibraryScreen() {
             initialNumToRender={Platform.isTV ? 15 : 12}
             maxToRenderPerBatch={Platform.isTV ? 15 : 12}
             windowSize={5}
+            contentInsetAdjustmentBehavior="automatic"
             // removeClippedSubviews={false}
           />
         </>
@@ -126,10 +127,10 @@ export default function VideoLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3d3d3d"
+    backgroundColor: "#000"
   },
   gridContent: {
-    paddingTop: 60,
+    paddingTop: Platform.isTV ? 40 : 20,
     paddingBottom: 60
   },
   columnWrapper: {
