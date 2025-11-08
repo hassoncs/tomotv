@@ -1,7 +1,7 @@
 import {formatDuration, getPosterUrl, hasPoster} from "@/services/jellyfinApi"
 import {JellyfinVideoItem} from "@/types/jellyfin"
 import {Image} from "expo-image"
-import React, {useState} from "react"
+import React, {useCallback, useMemo, useState} from "react"
 import {Animated, Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native"
 
 interface VideoGridItemProps {
@@ -10,12 +10,34 @@ interface VideoGridItemProps {
   index: number
 }
 
-export function VideoGridItem({video, onPress, index}: VideoGridItemProps) {
+/**
+ * VideoGridItem Component
+ *
+ * Performance optimizations:
+ * - Memoized with React.memo() to prevent unnecessary re-renders
+ * - Only re-renders when video.Id or index changes
+ * - Computed values (posterUrl, duration) are memoized with useMemo
+ * - Callbacks (handleFocus, handleBlur, handlePress) are memoized with useCallback
+ * - Animated values use lazy initialization pattern for efficiency
+ */
+function VideoGridItemComponent({video, onPress, index}: VideoGridItemProps) {
   const [focused, setFocused] = useState(false)
   const scaleAnim = useState(() => new Animated.Value(1))[0]
   const shadowAnim = useState(() => new Animated.Value(0))[0]
 
-  const handleFocus = () => {
+  // Memoize computed values to avoid recalculation on every render
+  const posterUrl = useMemo(
+    () => (hasPoster(video) ? getPosterUrl(video.Id, 600) : undefined),
+    [video.Id]
+  )
+
+  const duration = useMemo(
+    () => formatDuration(video.RunTimeTicks),
+    [video.RunTimeTicks]
+  )
+
+  // Memoize callbacks to maintain referential stability
+  const handleFocus = useCallback(() => {
     setFocused(true)
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -30,9 +52,9 @@ export function VideoGridItem({video, onPress, index}: VideoGridItemProps) {
         useNativeDriver: true
       })
     ]).start()
-  }
+  }, [scaleAnim, shadowAnim])
 
-  const handleBlur = () => {
+  const handleBlur = useCallback(() => {
     setFocused(false)
     Animated.parallel([
       Animated.spring(scaleAnim, {
@@ -47,14 +69,15 @@ export function VideoGridItem({video, onPress, index}: VideoGridItemProps) {
         useNativeDriver: true
       })
     ]).start()
-  }
+  }, [scaleAnim, shadowAnim])
 
-  const posterUrl = hasPoster(video) ? getPosterUrl(video.Id, 600) : undefined
-  const duration = formatDuration(video.RunTimeTicks)
+  const handlePress = useCallback(() => {
+    onPress(video)
+  }, [onPress, video])
 
   return (
     <TouchableOpacity
-      onPress={() => onPress(video)}
+      onPress={handlePress}
       onFocus={handleFocus}
       onBlur={handleBlur}
       activeOpacity={0.95}
@@ -128,6 +151,29 @@ export function VideoGridItem({video, onPress, index}: VideoGridItemProps) {
     </TouchableOpacity>
   )
 }
+
+/**
+ * Custom comparison function for React.memo
+ * Only re-render when:
+ * - video.Id changes (primary key)
+ * - video.RunTimeTicks changes (duration display)
+ * - index changes (affects hasTVPreferredFocus)
+ * - onPress reference changes (should be stable if parent memoizes)
+ */
+function arePropsEqual(
+  prevProps: VideoGridItemProps,
+  nextProps: VideoGridItemProps
+): boolean {
+  return (
+    prevProps.video.Id === nextProps.video.Id &&
+    prevProps.video.RunTimeTicks === nextProps.video.RunTimeTicks &&
+    prevProps.index === nextProps.index &&
+    prevProps.onPress === nextProps.onPress
+  )
+}
+
+// Export memoized component
+export const VideoGridItem = React.memo(VideoGridItemComponent, arePropsEqual)
 
 const styles = StyleSheet.create({
   container: {

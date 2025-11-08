@@ -279,6 +279,17 @@ export default function SettingsScreen() {
         contentInsetAdjustmentBehavior="automatic"
       >
         <View style={styles.contentContainer}>
+          {/* About Section */}
+          <View style={styles.aboutSection}>
+            <View style={styles.aboutHeader}>
+              <Ionicons name="information-circle" size={Platform.isTV ? 32 : 24} color="#FFC312" />
+              <Text style={styles.aboutHeaderText}>About TomoTV</Text>
+            </View>
+            <Text style={styles.aboutText}>
+              TomoTV streams video content from your Jellyfin media server. Connect to your server to browse and play your movie library with automatic codec detection and intelligent transcoding for smooth playback across all devices.
+            </Text>
+          </View>
+
           {/* Section Header */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderText}>VIDEO QUALITY</Text>
@@ -326,6 +337,28 @@ export default function SettingsScreen() {
           {/* Jellyfin Server Section */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderText}>JELLYFIN SERVER</Text>
+          </View>
+
+          {/* Help Information */}
+          <View style={styles.helpSection}>
+            <View style={styles.helpItem}>
+              <Ionicons name="desktop-outline" size={Platform.isTV ? 20 : 16} color="#8E8E93" />
+              <Text style={styles.helpText}>
+                <Text style={styles.helpBold}>Server IP: </Text>Local network address of your Jellyfin server (e.g., 192.168.1.100 or jellyfin.local)
+              </Text>
+            </View>
+            <View style={styles.helpItem}>
+              <Ionicons name="person-outline" size={Platform.isTV ? 20 : 16} color="#8E8E93" />
+              <Text style={styles.helpText}>
+                <Text style={styles.helpBold}>User ID: </Text>Find in Jellyfin Dashboard → Users → Select your user → Copy the ID from the URL
+              </Text>
+            </View>
+            <View style={styles.helpItem}>
+              <Ionicons name="key-outline" size={Platform.isTV ? 20 : 16} color="#8E8E93" />
+              <Text style={styles.helpText}>
+                <Text style={styles.helpBold}>API Key: </Text>Create in Jellyfin Dashboard → API Keys → New Key
+              </Text>
+            </View>
           </View>
 
           {/* Server Settings Group */}
@@ -461,6 +494,55 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: Platform.isTV ? 20 : 17,
     color: "#8E8E93"
+  },
+  // About Section
+  aboutSection: {
+    backgroundColor: "#1C1C1E",
+    borderRadius: Platform.isTV ? 32 : 12,
+    padding: Platform.isTV ? 32 : 20,
+    marginBottom: Platform.isTV ? 24 : 16,
+    borderWidth: 1,
+    borderColor: "rgba(255, 195, 18, 0.2)"
+  },
+  aboutHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Platform.isTV ? 16 : 12,
+    marginBottom: Platform.isTV ? 16 : 12
+  },
+  aboutHeaderText: {
+    fontSize: Platform.isTV ? 28 : 20,
+    fontWeight: "600",
+    color: "#FFFFFF"
+  },
+  aboutText: {
+    fontSize: Platform.isTV ? 20 : 15,
+    lineHeight: Platform.isTV ? 32 : 22,
+    color: "#AEAEB2",
+    fontWeight: "400"
+  },
+  // Help Section
+  helpSection: {
+    backgroundColor: "#1C1C1E",
+    borderRadius: Platform.isTV ? 16 : 10,
+    padding: Platform.isTV ? 24 : 16,
+    marginBottom: Platform.isTV ? 16 : 12,
+    gap: Platform.isTV ? 16 : 12
+  },
+  helpItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: Platform.isTV ? 12 : 8
+  },
+  helpText: {
+    flex: 1,
+    fontSize: Platform.isTV ? 18 : 14,
+    lineHeight: Platform.isTV ? 26 : 20,
+    color: "#8E8E93"
+  },
+  helpBold: {
+    fontWeight: "600",
+    color: "#AEAEB2"
   },
   // Section Headers (iOS style)
   sectionHeader: {

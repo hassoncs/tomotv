@@ -11,7 +11,7 @@
     "preios": "node scripts/update-dev-ip.js",
     "ios": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint",
+    "lint": "npx expo lint",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",

@@ -63,6 +63,7 @@ export default function VideoLibraryScreen() {
           <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
           <Text style={styles.errorTitle}>Unable to Load Videos</Text>
           <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorText}>Check Settings</Text>
           {isConfigError ? (
             <TouchableOpacity
               style={[styles.retryButton, styles.settingsButton]}
@@ -174,7 +175,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     paddingVertical: 14,
     backgroundColor: "#007AFF",
-    borderRadius: 12,
+    borderRadius: 32,
     flexDirection: "row",
     alignItems: "center",
     gap: 8
