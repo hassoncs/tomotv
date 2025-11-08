@@ -4,8 +4,11 @@
   "version": "1.0.0",
   "scripts": {
     "postinstall": "patch-package",
+    "prestart": "node scripts/update-dev-ip.js",
     "start": "expo start",
+    "preandroid": "node scripts/update-dev-ip.js",
     "android": "expo run:android",
+    "preios": "node scripts/update-dev-ip.js",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "reset-project": "./scripts/reset-project.js",

@@ -380,6 +380,23 @@ export function isCodecSupported(codec: string): boolean {
 }
 
 /**
+ * Check if item is audio-only (no video stream)
+ * Audio-only files should be handled differently or filtered out
+ */
+export function isAudioOnly(videoItem: JellyfinVideoItem | null): boolean {
+  if (!videoItem || !videoItem.MediaStreams) {
+    return false
+  }
+
+  // Check if there's a video stream
+  const hasVideo = videoItem.MediaStreams.some(stream => stream.Type === "Video")
+  const hasAudio = videoItem.MediaStreams.some(stream => stream.Type === "Audio")
+
+  // Audio-only: has audio but no video
+  return !hasVideo && hasAudio
+}
+
+/**
  * Check if video needs transcoding based on its codec
  * Returns true if transcoding is required, false if direct play is supported
  */

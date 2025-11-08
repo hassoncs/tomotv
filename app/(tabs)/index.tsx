@@ -152,7 +152,7 @@ export default function VideoLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000000"
+    backgroundColor: "#FFA600FF"
   },
   header: {
     paddingHorizontal: 45,

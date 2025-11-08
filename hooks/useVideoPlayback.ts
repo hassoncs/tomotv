@@ -3,6 +3,7 @@ import { useVideoPlayer, VideoSource } from 'expo-video';
 import {
   fetchVideoDetails,
   needsTranscoding,
+  isAudioOnly,
   getSubtitleTracks,
   getVideoStreamUrl,
   getTranscodingStreamUrl,
@@ -51,6 +52,9 @@ export interface VideoPlaybackResult {
 
   // Video details
   videoDetails: JellyfinVideoItem | null;
+
+  // Media type
+  isAudioOnly: boolean;
 
   // UI helpers
   isLoading: boolean;
@@ -160,8 +164,14 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
       setVideoDetails(details);
 
-      // Check codec compatibility
-      const requiresTranscoding = needsTranscoding(details);
+      // Check if this is an audio-only file
+      const audioOnly = isAudioOnly(details);
+      if (audioOnly) {
+        console.log('[useVideoPlayback] Audio-only file detected - will use direct play');
+      }
+
+      // Check codec compatibility (skip for audio-only files)
+      const requiresTranscoding = audioOnly ? false : needsTranscoding(details);
 
       // Check for external subtitles
       const subtitles = getSubtitleTracks(details);
@@ -217,62 +227,6 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       });
     }
   }, [videoId, hasTriedTranscoding]);
-
-  /**
-   * Setup and cleanup on mount/unmount
-   */
-  useEffect(() => {
-    isMountedRef.current = true;
-
-    return () => {
-      console.log('[useVideoPlayback] Component unmounting, cleaning up...');
-      isMountedRef.current = false;
-      if (autoPlayTimerRef.current) {
-        clearTimeout(autoPlayTimerRef.current);
-        autoPlayTimerRef.current = null;
-      }
-      if (stablePlaybackTimerRef.current) {
-        clearTimeout(stablePlaybackTimerRef.current);
-        stablePlaybackTimerRef.current = null;
-      }
-    };
-  }, []);
-
-  /**
-   * Reset state when video ID changes
-   */
-  useEffect(() => {
-    console.log('[useVideoPlayback] Video changed, resetting state');
-
-    // Clear any pending timers
-    if (autoPlayTimerRef.current) {
-      clearTimeout(autoPlayTimerRef.current);
-      autoPlayTimerRef.current = null;
-    }
-    if (stablePlaybackTimerRef.current) {
-      clearTimeout(stablePlaybackTimerRef.current);
-      stablePlaybackTimerRef.current = null;
-    }
-
-    dispatch({ type: 'RETRY' });
-    setVideoDetails(null);
-    setStreamUrl(null);
-    setHasTriedTranscoding(false);
-    setHasStablePlayback(false);
-    hasStablePlaybackRef.current = false;
-    autoPlayTriggeredRef.current = false;
-  }, [videoId]);
-
-  /**
-   * Start metadata fetch when in IDLE or FETCHING_METADATA state
-   */
-  useEffect(() => {
-    if (state.type === 'IDLE') {
-      dispatch({ type: 'FETCH_METADATA' });
-    } else if (state.type === 'FETCHING_METADATA') {
-      fetchMetadata();
-    }
-  }, [state.type, fetchMetadata]);
 
   /**
    * Store streamUrl in state to keep it stable across state transitions
@@ -348,6 +302,70 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   });
 
   /**
+   * Setup and cleanup on mount/unmount
+   */
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      // Clear timers
+      if (autoPlayTimerRef.current) {
+        clearTimeout(autoPlayTimerRef.current);
+        autoPlayTimerRef.current = null;
+      }
+      if (stablePlaybackTimerRef.current) {
+        clearTimeout(stablePlaybackTimerRef.current);
+        stablePlaybackTimerRef.current = null;
+      }
+
+      // Stop playback on unmount - useVideoPlayer handles cleanup automatically
+      if (player) {
+        try {
+          player.pause();
+        } catch (error) {
+          // Silently ignore - player may already be deallocated by native side
+        }
+      }
+    };
+  }, [player]);
+
+  /**
+   * Reset state when video ID changes
+   */
+  useEffect(() => {
+    // Clear any pending timers
+    if (autoPlayTimerRef.current) {
+      clearTimeout(autoPlayTimerRef.current);
+      autoPlayTimerRef.current = null;
+    }
+    if (stablePlaybackTimerRef.current) {
+      clearTimeout(stablePlaybackTimerRef.current);
+      stablePlaybackTimerRef.current = null;
+    }
+
+    dispatch({ type: 'RETRY' });
+    setVideoDetails(null);
+    setStreamUrl(null);
+    setHasTriedTranscoding(false);
+    setHasStablePlayback(false);
+    hasStablePlaybackRef.current = false;
+    autoPlayTriggeredRef.current = false;
+  }, [videoId]);
+
+  /**
+   * Start metadata fetch when in IDLE or FETCHING_METADATA state
+   */
+  useEffect(() => {
+    if (state.type === 'IDLE') {
+      dispatch({ type: 'FETCH_METADATA' });
+    } else if (state.type === 'FETCHING_METADATA') {
+      fetchMetadata();
+    }
+  }, [state.type, fetchMetadata]);
+
+  /**
    * Step 5: Handle player events and auto-play
    * Note: Attach listeners once when player and videoSource are ready, keep them throughout lifecycle
    */
@@ -372,8 +390,11 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       if (payload.status === 'readyToPlay') {
         dispatch({ type: 'PLAYER_READY' });
 
-        // Auto-play on first ready
-        if (!autoPlayTriggeredRef.current && isMountedRef.current) {
+        // Check if this is audio-only (skip auto-play for audio to avoid threading issues)
+        const isAudio = videoDetails ? isAudioOnly(videoDetails) : false;
+
+        // Auto-play on first ready (but skip for audio-only files)
+        if (!autoPlayTriggeredRef.current && isMountedRef.current && !isAudio) {
           autoPlayTriggeredRef.current = true;
           console.log('[useVideoPlayback] Scheduling auto-play...');
 
@@ -382,34 +403,38 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
             clearTimeout(autoPlayTimerRef.current);
           }
 
-          // Delay to avoid event listener conflicts
+          // Use requestAnimationFrame to ensure play() is called on main thread
           autoPlayTimerRef.current = setTimeout(() => {
             if (!isMountedRef.current) {
               console.log('[useVideoPlayback] Component unmounted, skipping auto-play');
               return;
             }
 
-            try {
-              if (player.status === 'readyToPlay') {
-                console.log('[useVideoPlayback] Calling play()');
-                player.play();
-              }
-            } catch (error) {
-              console.error('[useVideoPlayback] Error calling play():', error);
+            requestAnimationFrame(() => {
+              if (!isMountedRef.current) return;
 
-              // Dispatch error to state machine
-              dispatch({
-                type: 'PLAYER_ERROR',
-                error: {
-                  message: 'Failed to start video playback. The video file may be corrupted or incompatible.',
-                },
-                mode: getCurrentMode(),
-                hasTriedTranscode: hasTriedTranscoding,
-              });
-            }
+              try {
+                if (player.status === 'readyToPlay') {
+                  console.log('[useVideoPlayback] Calling play()');
+                  player.play();
+                }
+              } catch (error) {
+                console.error('[useVideoPlayback] Error calling play():', error);
+                dispatch({
+                  type: 'PLAYER_ERROR',
+                  error: {
+                    message: 'Failed to start video playback. The video file may be corrupted or incompatible.',
+                  },
+                  mode: getCurrentMode(),
+                  hasTriedTranscode: hasTriedTranscoding,
+                });
+              }
+            });
 
             autoPlayTimerRef.current = null;
           }, 100);
+        } else if (isAudio) {
+          console.log('[useVideoPlayback] Audio-only file - skipping auto-play, user must tap play button');
         }
       } else if (payload.status === 'error') {
         console.error('[useVideoPlayback] Playback error:', payload.error);
@@ -445,43 +470,36 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     const playingSubscription = player.addListener('playingChange', (payload) => {
       if (!isMountedRef.current) return;
 
-      try {
-        if (payload.isPlaying) {
-          dispatch({ type: 'PLAYER_PLAYING' });
+      if (payload.isPlaying) {
+        dispatch({ type: 'PLAYER_PLAYING' });
 
-          // Start stable playback detection after video starts playing
-          // Wait 1.5 seconds of continuous playback before hiding spinner
-          if (!hasStablePlaybackRef.current) {
-            // Clear any existing timer
-            if (stablePlaybackTimerRef.current) {
-              clearTimeout(stablePlaybackTimerRef.current);
-            }
-
-            stablePlaybackTimerRef.current = setTimeout(() => {
-              if (isMountedRef.current && player.playing) {
-                console.log('[useVideoPlayback] Stable playback detected, hiding spinner');
-                hasStablePlaybackRef.current = true;
-                setHasStablePlayback(true);
-                stablePlaybackTimerRef.current = null;
-              }
-            }, 1500);
-          }
-        } else {
-          // Video paused or stopped, clear the stable playback timer
-          if (stablePlaybackTimerRef.current && !hasStablePlaybackRef.current) {
+        // Start stable playback detection after video starts playing
+        // Wait 1.5 seconds of continuous playback before hiding spinner
+        if (!hasStablePlaybackRef.current) {
+          // Clear any existing timer
+          if (stablePlaybackTimerRef.current) {
             clearTimeout(stablePlaybackTimerRef.current);
-            stablePlaybackTimerRef.current = null;
           }
+
+          stablePlaybackTimerRef.current = setTimeout(() => {
+            if (isMountedRef.current && player.playing) {
+              console.log('[useVideoPlayback] Stable playback detected, hiding spinner');
+              hasStablePlaybackRef.current = true;
+              setHasStablePlayback(true);
+              stablePlaybackTimerRef.current = null;
+            }
+          }, 1500);
         }
-      } catch (error) {
-        console.error('[useVideoPlayback] Error in playingChange handler:', error);
-        // Don't crash the app, just log the error
+      } else {
+        // Video paused or stopped, clear the stable playback timer
+        if (stablePlaybackTimerRef.current && !hasStablePlaybackRef.current) {
+          clearTimeout(stablePlaybackTimerRef.current);
+          stablePlaybackTimerRef.current = null;
+        }
       }
     });
 
     return () => {
-      console.log('[useVideoPlayback] Cleaning up event listeners');
-
       // Clear timeouts if pending
       if (autoPlayTimerRef.current) {
         clearTimeout(autoPlayTimerRef.current);
@@ -497,48 +515,46 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         statusSubscription.remove();
         playingSubscription.remove();
       } catch (error) {
-        console.error('[useVideoPlayback] Error removing subscriptions:', error);
+        // Silently ignore subscription cleanup errors
       }
     };
-  }, [player, videoSource, hasTriedTranscoding]); // Keep listeners stable, don't re-attach on hasStablePlayback change
+  }, [player, videoSource, hasTriedTranscoding, videoDetails]); // Keep listeners stable, don't re-attach on hasStablePlayback change
 
   /**
    * Handle retry with transcoding when direct play fails
    */
   useEffect(() => {
-    if (state.type === 'ERROR' && state.canRetryWithTranscode && isMountedRef.current) {
-      // Don't auto-retry if error message suggests file is corrupted
-      const isCorruptedFile = state.error.includes('corrupted') ||
-                              state.error.includes('HostFunction') ||
-                              state.error.includes('invalid');
+    if (state.type !== 'ERROR' || !state.canRetryWithTranscode || !isMountedRef.current) return;
 
-      if (isCorruptedFile) {
-        console.log('[useVideoPlayback] File appears corrupted, skipping auto-retry with transcoding');
-        // Don't auto-retry, let user manually retry or go back
-        return;
-      }
+    // Don't auto-retry if error message suggests file is corrupted
+    const isCorruptedFile = state.error.includes('corrupted') ||
+                            state.error.includes('HostFunction') ||
+                            state.error.includes('invalid');
 
-      console.log('[useVideoPlayback] Direct play failed, will retry with transcoding...');
-      setHasTriedTranscoding(true);
-      autoPlayTriggeredRef.current = false;
-
-      // Auto-retry with transcoding
-      const retryTimer = setTimeout(() => {
-        if (isMountedRef.current) {
-          dispatch({ type: 'RETRY_WITH_TRANSCODE' });
-        }
-      }, 500);
-
-      return () => clearTimeout(retryTimer);
+    if (isCorruptedFile) {
+      console.log('[useVideoPlayback] File appears corrupted, skipping auto-retry with transcoding');
+      // Don't auto-retry, let user manually retry or go back
+      return;
     }
+
+    console.log('[useVideoPlayback] Direct play failed, will retry with transcoding...');
+    setHasTriedTranscoding(true);
+    autoPlayTriggeredRef.current = false;
+
+    // Auto-retry with transcoding
+    const retryTimer = setTimeout(() => {
+      if (isMountedRef.current) {
+        dispatch({ type: 'RETRY_WITH_TRANSCODE' });
+      }
+    }, 500);
+
+    return () => clearTimeout(retryTimer);
   }, [state]);
 
   /**
    * Retry playback from the beginning
    */
   const retry = useCallback(() => {
-    console.log('[useVideoPlayback] Manual retry...');
-
     // Clear any pending timers
     if (autoPlayTimerRef.current) {
       clearTimeout(autoPlayTimerRef.current);
@@ -559,11 +575,16 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   /**
    * Compute UI state from state machine
    */
+  // Check if current video is audio-only
+  const isAudioOnlyFile = videoDetails ? isAudioOnly(videoDetails) : false;
+
   const isLoading =
     state.type === 'FETCHING_METADATA' ||
     state.type === 'CREATING_STREAM' ||
     state.type === 'INITIALIZING_PLAYER' ||
-    state.type === 'READY' ||
+    // For audio files, hide loading once READY (waiting for manual play)
+    // For video files, show loading during READY state (auto-play is starting)
+    (state.type === 'READY' && !isAudioOnlyFile) ||
     (state.type === 'PLAYING' && !hasStablePlayback);
 
   const showLoadingOverlay = isLoading;
@@ -572,6 +593,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     player,
     state,
     videoDetails,
+    isAudioOnly: isAudioOnlyFile,
     isLoading,
     showLoadingOverlay,
     retry,

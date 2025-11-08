@@ -11,10 +11,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Development
 ```bash
 npm start                    # Start Expo dev server
-npm run ios                  # Run on iOS simulator
+npm run ios                  # Run on iOS simulator (or press 'i' in dev server)
 npm run android             # Run on Android emulator
 npm run web                 # Run web version
 ```
+
+**To run on Apple TV:**
+1. `npm start`
+2. Press `i` for iOS
+3. Select an Apple TV simulator from the list
+4. Or run: `npx expo run:ios` and choose Apple TV when prompted
 
 **First-time setup:**
 ```bash

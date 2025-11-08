@@ -9,9 +9,9 @@
    cp .env.example .env.local
    ```
 
-2. **Add your local Jellyfin server credentials to `.env.local`:**
+2. **Add your Jellyfin credentials to `.env.local`:**
    ```bash
-   EXPO_PUBLIC_DEV_JELLYFIN_SERVER=http://YOUR_LOCAL_IP:8096
+   # Server URL is auto-configured! Just add:
    EXPO_PUBLIC_DEV_JELLYFIN_API_KEY=your_api_key_here
    EXPO_PUBLIC_DEV_JELLYFIN_USER_ID=your_user_id_here
    ```
@@ -21,7 +21,10 @@
    npm start
    ```
 
-That's it! The app will automatically use your `.env.local` credentials during development.
+That's it! The app will:
+- ✅ **Auto-detect** your Mac's network IP
+- ✅ Use `localhost` for simulator (default)
+- ✅ Update `.env.local` automatically before each start
 
 ---
 
@@ -57,10 +60,22 @@ DEV_JELLYFIN_SERVER=http://10.81.1.112:8096
 
 ## Getting Jellyfin Credentials
 
-### 1. Server IP
-- Find your Mac's local IP: **System Settings → Network → Wi-Fi → Details**
-- Example: `http://192.168.1.100:8096`
-- Or use: `http://localhost:8096` if running on same machine
+### 1. Server IP (Auto-Configured!)
+Server URL is **automatically set** to `http://localhost:8096`:
+- ✅ Works perfectly for iOS Simulator development
+- ✅ No manual configuration needed
+- ✅ Automatically set before `npm start`
+
+**For Physical Devices (Apple TV, iPhone):**
+Use the Settings screen in the app (just like production users):
+1. Open app on physical device
+2. Go to Settings tab
+3. Enter your Mac's network IP (e.g., `192.168.1.171`)
+4. Add API key and User ID
+5. Test connection
+6. Save
+
+This is exactly how production users will configure the app!
 
 ### 2. API Key
 1. Open Jellyfin web interface
