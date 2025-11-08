@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "tomotv",
+    "slug": "tomotv",
+    "description": "Play videos from your Mac on your Apple TV",
+    "version": "1.0.1",
+    "orientation": "default",
+    "icon": "./assets/images/icon.png",
+    "scheme": "tomotv",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "dev.keiver.tomotv",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSAllowsLocalNetworking": true
+        },
+        "NSLocalNetworkUsageDescription": "TomoTV needs to access your local network to connect to your Jellyfin media server and stream videos to your Apple TV.",
+        "NSBonjourServices": [
+          "_jellyfin._tcp"
+        ]
+      }
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#B33939",
+          "dark": {
+            "backgroundColor": "#B33939"
+          }
+        }
+      ],
+      ["@react-native-tvos/config-tv"],
+      "expo-secure-store",
+      "expo-video",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "android": {
+      "package": "dev.keiver.tomotv"
+    }
+  }
+}
