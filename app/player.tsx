@@ -284,12 +284,6 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.6)",
     textAlign: "center"
   },
-  audioLoadingText: {
-    marginTop: 16,
-    fontSize: Platform.isTV ? 18 : 14,
-    fontWeight: "400",
-    color: "rgba(255, 255, 255, 0.7)"
-  },
   playPauseButton: {
     marginTop: 48,
     width: Platform.isTV ? 120 : 96,

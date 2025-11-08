@@ -256,13 +256,6 @@ export function getPosterUrl(itemId: string, maxHeight: number = 450): string {
 }
 
 /**
- * Get backdrop/thumbnail URL for a specific item (16:9 aspect ratio)
- */
-export function getBackdropUrl(itemId: string, maxWidth: number = 500): string {
-  return `${cachedConfig.server}/Items/${itemId}/Images/Backdrop?api_key=${cachedConfig.apiKey}&maxWidth=${maxWidth}&quality=90`
-}
-
-/**
  * Check if item has a poster image
  */
 export function hasPoster(item: JellyfinVideoItem): boolean {
@@ -286,13 +279,6 @@ export function formatDuration(ticks: number): string {
   } else {
     return `${minutes}m`
   }
-}
-
-/**
- * Format duration from RunTimeTicks to seconds
- */
-export function ticksToSeconds(ticks: number): number {
-  return Math.floor(ticks / 10000000)
 }
 
 /**
