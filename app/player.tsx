@@ -2,7 +2,7 @@ import {useVideoPlayback} from "@/hooks/useVideoPlayback"
 import {Ionicons} from "@expo/vector-icons"
 import {useLocalSearchParams, useRouter} from "expo-router"
 import {VideoView} from "expo-video"
-import React, {useCallback, useEffect, useMemo, useState} from "react"
+import React, {useCallback, useEffect, useState} from "react"
 import {
   ActivityIndicator,
   BackHandler,
@@ -153,7 +153,7 @@ export default function VideoPlayerScreen() {
         <View style={styles.audioContainer}>
           <Ionicons name="musical-notes" size={Platform.isTV ? 120 : 80} color="rgba(255, 255, 255, 0.8)" />
           <Text style={styles.audioTitle}>{params.videoName}</Text>
-          <Text style={styles.audioSubtitle}>Audio Track</Text>
+          <Text style={styles.audioSubtitle}>Audio File</Text>
 
           {/* Play/Pause Button */}
           {!showLoadingOverlay && (
@@ -167,14 +167,6 @@ export default function VideoPlayerScreen() {
             </TouchableOpacity>
           )}
         </View>
-
-        {/* Loading Overlay */}
-        {showLoadingOverlay && (
-          <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
-            <Text style={styles.audioLoadingText}>Loading audio...</Text>
-          </View>
-        )}
 
         {/* Back button */}
         {!Platform.isTV && (
@@ -303,9 +295,9 @@ const styles = StyleSheet.create({
     width: Platform.isTV ? 120 : 96,
     height: Platform.isTV ? 120 : 96,
     borderRadius: Platform.isTV ? 60 : 48,
-    backgroundColor: "rgba(0, 122, 255, 0.2)",
+    // backgroundColor: "rgba(0, 122, 255, 0.2)",
     borderWidth: 3,
-    borderColor: "rgba(0, 122, 255, 0.6)",
+    borderColor: "rgba(0, 122, 255, 1)",
     justifyContent: "center",
     alignItems: "center"
   },
