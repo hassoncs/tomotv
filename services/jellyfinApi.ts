@@ -1,5 +1,7 @@
 import {JellyfinVideoItem, JellyfinVideosResponse} from "@/types/jellyfin"
 import * as SecureStore from "expo-secure-store"
+import {logger} from "@/utils/logger"
+import {retryWithBackoff} from "@/utils/retry"
 
 // Development fallback credentials from .env.local
 // These are ONLY used during local development if user hasn't configured settings
@@ -76,12 +78,12 @@ async function getConfig(): Promise<{server: string; apiKey: string; userId: str
 
     // Log when using dev credentials (helpful for debugging)
     if (!server && DEV_SERVER) {
-      console.log("[JellyfinAPI] Using development credentials from .env.local")
+      logger.debug("Using development credentials from .env.local", {service: "JellyfinAPI"})
     }
 
     return config
   } catch (error) {
-    console.error("Error reading Jellyfin config from SecureStore:", error)
+    logger.error("Error reading Jellyfin config from SecureStore", error, {service: "JellyfinAPI"})
     // Fall back to dev credentials on error
     return {
       server: DEV_SERVER,
@@ -152,23 +154,41 @@ export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
       )
     }
 
-    const url = `${config.server}/Users/${config.userId}/Items?api_key=${config.apiKey}&Recursive=true&IncludeItemTypes=Movie,Video&Fields=Path,MediaStreams,Overview,PremiereDate,CommunityRating,OfficialRating,Genres`
+    // Wrap the fetch operation with retry logic
+    return await retryWithBackoff(async () => {
+      const url = `${config.server}/Users/${config.userId}/Items?Recursive=true&IncludeItemTypes=Movie,Video&Fields=Path,MediaStreams,Overview,PremiereDate,CommunityRating,OfficialRating,Genres`
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json"
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 30000) // 30 second timeout
+
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `MediaBrowser Token="${config.apiKey}"`
+          },
+          signal: controller.signal
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch videos: ${response.status} ${response.statusText}`)
+        }
+
+        const data: JellyfinVideosResponse = await response.json()
+        return data.Items || []
+      } catch (error) {
+        clearTimeout(timeoutId)
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your network connection and Jellyfin server.')
+        }
+        throw error
       }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch videos: ${response.status} ${response.statusText}`)
-    }
-
-    const data: JellyfinVideosResponse = await response.json()
-    return data.Items || []
+    }, {maxAttempts: 3})
   } catch (error) {
-    console.error("Error fetching videos from Jellyfin:", error)
+    logger.error("Error fetching videos from Jellyfin", error, {service: "JellyfinAPI"})
     throw error
   }
 }
@@ -180,9 +200,7 @@ export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
  * @param videoItem - Optional video item (unused)
  */
 export function getVideoStreamUrl(itemId: string, videoItem?: JellyfinVideoItem | null): string {
-  // Use direct download endpoint
-  // HLS with Static=true fails with CoreMediaErrorDomain -12971
-  // This suggests Jellyfin HLS generation has issues with this video
+  // Use direct download endpoint with API key in URL
   return `${cachedConfig.server}/Items/${itemId}/Download?api_key=${cachedConfig.apiKey}`
 }
 
@@ -238,9 +256,18 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
       const firstSubIndex = subtitleStreams[0].Index
       url += `&SubtitleStreamIndex=${firstSubIndex}`
       url += `&SubtitleMethod=Encode` // Burn subtitles into video frames
-      console.log(`[JellyfinAPI] Transcoding with subtitle burn-in (stream ${firstSubIndex}, ${quality.label} @ ${quality.bitrate / 1000000}Mbps)`)
+      logger.info("Transcoding with subtitle burn-in", {
+        service: "JellyfinAPI",
+        streamIndex: firstSubIndex,
+        quality: quality.label,
+        bitrate: `${quality.bitrate / 1000000}Mbps`
+      })
     } else {
-      console.log(`[JellyfinAPI] Transcoding without subtitles (${quality.label} @ ${quality.bitrate / 1000000}Mbps)`)
+      logger.info("Transcoding without subtitles", {
+        service: "JellyfinAPI",
+        quality: quality.label,
+        bitrate: `${quality.bitrate / 1000000}Mbps`
+      })
     }
   }
 
@@ -287,23 +314,42 @@ export function formatDuration(ticks: number): string {
 export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoItem | null> {
   try {
     const config = await getConfig()
-    const url = `${config.server}/Users/${config.userId}/Items/${itemId}?api_key=${config.apiKey}&Fields=Path,MediaStreams,Overview,MediaSources`
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Accept: "application/json"
+    // Wrap the fetch operation with retry logic
+    return await retryWithBackoff(async () => {
+      const url = `${config.server}/Users/${config.userId}/Items/${itemId}?Fields=Path,MediaStreams,Overview,MediaSources`
+
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000) // 15 second timeout
+
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `MediaBrowser Token="${config.apiKey}"`
+          },
+          signal: controller.signal
+        })
+
+        clearTimeout(timeoutId)
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch video details: ${response.status} ${response.statusText}`)
+        }
+
+        const data: JellyfinVideoItem = await response.json()
+        return data
+      } catch (error) {
+        clearTimeout(timeoutId)
+        if (error instanceof Error && error.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your network connection.')
+        }
+        throw error
       }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch video details: ${response.status} ${response.statusText}`)
-    }
-
-    const data: JellyfinVideoItem = await response.json()
-    return data
+    }, {maxAttempts: 3})
   } catch (error) {
-    console.error("Error fetching video details from Jellyfin:", error)
+    logger.error("Error fetching video details from Jellyfin", error, {service: "JellyfinAPI"})
     return null
   }
 }
@@ -361,7 +407,10 @@ export function isCodecSupported(codec: string): boolean {
 
   // Default to unsupported for unknown codecs to be safe
   // Better to transcode unnecessarily than show black screen
-  console.warn(`[CodecCheck] Unknown codec "${codec}", defaulting to transcoding for safety`)
+  logger.warn("Unknown codec, defaulting to transcoding for safety", {
+    service: "CodecCheck",
+    codec
+  })
   return false
 }
 
@@ -400,7 +449,11 @@ export function needsTranscoding(videoItem: JellyfinVideoItem | null): boolean {
 
   const supported = isCodecSupported(videoStream.Codec)
 
-  console.log(`[CodecCheck] Video codec: ${videoStream.Codec}, Supported: ${supported}`)
+  logger.debug("Codec check result", {
+    service: "CodecCheck",
+    codec: videoStream.Codec,
+    supported
+  })
 
   return !supported
 }
@@ -447,7 +500,12 @@ export function getSubtitleTracks(videoItem: JellyfinVideoItem | null): Subtitle
         type: "text/vtt" // Always VTT since we request .vtt format
       }
       tracks.push(track)
-      console.log(`[Subtitles] Found external subtitle: ${track.label} (${track.language}) - ${track.uri}`)
+      logger.debug("Found external subtitle", {
+        service: "Subtitles",
+        label: track.label,
+        language: track.language,
+        uri: track.uri
+      })
     }
   }
 

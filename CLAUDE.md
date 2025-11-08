@@ -33,6 +33,8 @@ See [DEVELOPMENT.md](DEVELOPMENT.md) for complete setup instructions.
 ### Code Quality
 ```bash
 npm run lint                # Run ESLint (expo lint)
+npm test                    # Run Jest tests
+npm run typecheck           # Run TypeScript type checker
 ```
 
 ### Building
@@ -158,6 +160,46 @@ All saved to `expo-secure-store` which syncs to iCloud Keychain. After saving, *
 
 ## Important Patterns
 
+### Threading Safety (CRITICAL)
+**All React state updates triggered by player event listeners MUST use `InteractionManager.runAfterInteractions()`** to ensure they execute on the main thread. This prevents segmentation faults from Auto Layout violations.
+
+**WRONG - Will crash on corrupted files:**
+```typescript
+player.addListener('statusChange', (payload) => {
+  if (payload.status === 'error') {
+    setState({ type: 'ERROR' }); // ❌ Crashes! Running on JS thread
+  }
+});
+```
+
+**CORRECT - Thread-safe:**
+```typescript
+import { InteractionManager } from 'react-native';
+
+player.addListener('statusChange', (payload) => {
+  if (payload.status === 'error') {
+    InteractionManager.runAfterInteractions(() => {
+      setState({ type: 'ERROR' }); // ✅ Safe! Running on main thread
+    });
+  }
+});
+```
+
+**Why This Matters:**
+- Player event callbacks execute on the React Native JavaScript thread
+- UIKit/Auto Layout operations MUST only run on the main thread
+- When corrupted files trigger errors, state updates cause UI changes
+- Without `InteractionManager`, you get `EXC_CRASH (SIGABRT)` with `_AssertAutoLayoutOnAllowedThreadsOnly`
+
+**When to Use:**
+- ALL player event listeners (`statusChange`, `playingChange`, etc.)
+- Any state updates from timers/callbacks that affect UI
+- Error handlers that update component state
+
+**Reference Implementation:**
+- `hooks/useVideoPlayback.ts:396-491` - Player event listeners
+- `app/player.tsx:86-99` - Audio player state updates
+
 ### Codec Detection Flow
 Always fetch video details before playback to check codec compatibility:
 ```typescript
@@ -204,6 +246,23 @@ Add TV props to all interactive elements:
 
 4. **Patch Package**: Custom patches applied via `patch-package` on postinstall. Patches stored in `patches/` directory.
 
+## Fixed Issues
+
+### Threading Crash on Corrupted Files (Partial Fix)
+**Issue**: App crashed with `EXC_CRASH (SIGABRT)` segmentation fault when playing corrupted video files.
+
+**Root Cause**: Player event listeners were updating React state on the JavaScript thread, triggering Auto Layout operations that must only run on the main thread. The crash occurred in `_AssertAutoLayoutOnAllowedThreadsOnly` when corrupted files triggered error events.
+
+**Fix**: All state updates from player event listeners now use `InteractionManager.runAfterInteractions()` to ensure execution on the main thread. See **Threading Safety** pattern above.
+
+**Files Changed**:
+- `hooks/useVideoPlayback.ts` - Wrapped all `dispatch()` calls in player listeners
+- `app/player.tsx` - Wrapped `setIsPlaying()` in audio player listener
+
+**Limitation**: This fixes crashes from event callbacks, but some corrupted files may still crash during native player initialization before JavaScript can handle the error. For deeply corrupted files, the best solution is to fix or remove them from the Jellyfin library.
+
+**Manual Testing**: Play corrupted files to verify error handling without crashes
+
 ## File-Based Routing
 
 Expo Router uses file-based routing:
@@ -214,9 +273,52 @@ Expo Router uses file-based routing:
 
 Navigation: `router.push('/player')` or `router.back()`
 
+## Testing
+
+### Test Setup
+- **Test Framework**: Jest with `jest-expo` preset
+- **Test Location**: Tests live in `__tests__` folders next to source files
+  - `hooks/__tests__/` - Hook tests
+  - `services/__tests__/` - Service tests
+  - `app/__tests__/` - Component tests
+- **Configuration**: `jest.config.js` with path alias support (`@/*`)
+- **Setup File**: `jest.setup.js` - Global mocks and test utilities
+
+### Running Tests
+```bash
+npm test                              # Run all tests
+npm test -- hooks/__tests__/          # Run specific test directory
+npm test -- --watch                   # Watch mode
+npm test -- --coverage                # Generate coverage report
+```
+
+### Important: NO --legacy-peer-deps
+**NEVER use `--legacy-peer-deps` when installing dependencies.** This project uses `react-native-tvos@0.81.4-0` which has specific peer dependency requirements. Using `--legacy-peer-deps` can break the tvOS fork compatibility.
+
+### Manual Testing for Threading Safety
+The app previously crashed with `EXC_CRASH (SIGABRT)` when corrupted files triggered error events, because Auto Layout operations were happening on the React Native JavaScript thread instead of the main thread.
+
+**To verify the threading fix:**
+1. Play a corrupted video file
+2. Verify app shows error message (not crash)
+3. Play an audio file and toggle play/pause
+4. Navigate back while playing
+5. No crashes should occur in any scenario
+
+All state updates from player event listeners are wrapped in `InteractionManager.runAfterInteractions()` to ensure they execute on the main thread.
+
+### Test Mocks
+`jest.setup.js` provides global mocks for:
+- `expo-secure-store` - Secure storage
+- `expo-video` - Video player
+- `InteractionManager` - Threading safety (executes callbacks immediately in tests)
+- Console methods - Reduced noise in test output
+
 ## Configuration Files
 
 - `app.json`: Expo config with iOS bundle ID, TV support, splash screen, plugins
 - `tsconfig.json`: TypeScript config with strict mode and path aliases
 - `package.json`: Scripts, dependencies, and react-native exclusion rule
 - `eslint.config.js`: ESLint configuration (expo lint)
+- `jest.config.js`: Jest test configuration with path aliases
+- `jest.setup.js`: Global test mocks and utilities

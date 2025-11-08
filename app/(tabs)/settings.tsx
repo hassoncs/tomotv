@@ -81,21 +81,66 @@ export default function SettingsScreen() {
     }
   }
 
+  const validateInputs = (): {valid: boolean; error?: string} => {
+    // Check if fields are filled
+    if (!serverIp.trim()) {
+      return {valid: false, error: "Please enter a server IP address"}
+    }
+
+    if (!apiKey.trim()) {
+      return {valid: false, error: "Please enter an API key"}
+    }
+
+    if (!userId.trim()) {
+      return {valid: false, error: "Please enter a User ID"}
+    }
+
+    // Validate server IP format (allow IP addresses, hostnames, localhost)
+    const serverIpTrimmed = serverIp.trim()
+    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/
+    const hostnamePattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(:\d+)?$/
+    const localhostPattern = /^localhost(:\d+)?$/i
+
+    if (!ipPattern.test(serverIpTrimmed) && !hostnamePattern.test(serverIpTrimmed) && !localhostPattern.test(serverIpTrimmed)) {
+      return {valid: false, error: "Invalid server IP format. Use format: 192.168.1.100 or localhost"}
+    }
+
+    // Validate API key format (alphanumeric, typically 32 chars but can vary)
+    const apiKeyTrimmed = apiKey.trim()
+    if (!/^[a-zA-Z0-9]{16,64}$/.test(apiKeyTrimmed)) {
+      return {valid: false, error: "Invalid API key format. Must be 16-64 alphanumeric characters"}
+    }
+
+    // Validate User ID format (GUID without dashes or with dashes)
+    const userIdTrimmed = userId.trim()
+    if (!/^[a-f0-9]{32}$/.test(userIdTrimmed) && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(userIdTrimmed)) {
+      return {valid: false, error: "Invalid User ID format. Must be a valid GUID (e.g., 8d6b79c2-4368-496c-9393-1394d31ac428)"}
+    }
+
+    return {valid: true}
+  }
+
   const testConnection = async () => {
     try {
       setIsTesting(true)
 
-      // Validate inputs before testing
-      if (!serverIp.trim() || !apiKey.trim() || !userId.trim()) {
-        Alert.alert("Validation Error", "Please fill in all fields before testing connection")
+      // Validate inputs
+      const validation = validateInputs()
+      if (!validation.valid) {
+        Alert.alert("Validation Error", validation.error || "Invalid input")
         return
       }
 
+      // Sanitize and prepare inputs
+      const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "")
+      const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "")
+      const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "")
+
       // Temporarily save to test connection
       await Promise.all([
-        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, serverIp.trim()),
-        SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, apiKey.trim()),
-        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, userId.trim())
+        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, sanitizedServerIp),
+        SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, sanitizedApiKey),
+        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId)
       ])
 
       // Refresh config and test
@@ -126,26 +171,22 @@ export default function SettingsScreen() {
       setIsSaving(true)
 
       // Validate inputs
-      if (!serverIp.trim()) {
-        Alert.alert("Validation Error", "Please enter a server IP address")
+      const validation = validateInputs()
+      if (!validation.valid) {
+        Alert.alert("Validation Error", validation.error || "Invalid input")
         return
       }
 
-      if (!apiKey.trim()) {
-        Alert.alert("Validation Error", "Please enter an API key")
-        return
-      }
-
-      if (!userId.trim()) {
-        Alert.alert("Validation Error", "Please enter a User ID")
-        return
-      }
+      // Sanitize inputs to prevent injection attacks
+      const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "")
+      const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "")
+      const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "")
 
       // Save to secure store (syncs to iCloud Keychain automatically)
       await Promise.all([
-        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, serverIp.trim()),
-        SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, apiKey.trim()),
-        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, userId.trim())
+        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, sanitizedServerIp),
+        SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, sanitizedApiKey),
+        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId)
       ])
 
       // Refresh the API service config cache

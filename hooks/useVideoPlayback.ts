@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo, useRef, useCallback, useReducer } from 'react';
 import { useVideoPlayer, VideoSource } from 'expo-video';
+import { InteractionManager } from 'react-native';
 import {
   fetchVideoDetails,
   needsTranscoding,
@@ -9,6 +10,7 @@ import {
   getTranscodingStreamUrl,
 } from '@/services/jellyfinApi';
 import { JellyfinVideoItem } from '@/types/jellyfin';
+import { logger } from '@/utils/logger';
 
 export type PlaybackMode = 'direct' | 'transcode';
 
@@ -68,7 +70,11 @@ export interface VideoPlaybackResult {
  * State machine reducer for video playback
  */
 function videoPlayerReducer(state: VideoPlayerState, action: VideoPlayerAction): VideoPlayerState {
-  console.log('[VideoStateMachine] Transition:', state.type, '→', action.type);
+  logger.debug('State machine transition', {
+    service: 'VideoStateMachine',
+    from: state.type,
+    to: action.type
+  });
 
   switch (action.type) {
     case 'FETCH_METADATA':
@@ -153,7 +159,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
    * Step 1: Fetch video metadata and determine playback mode
    */
   const fetchMetadata = useCallback(async () => {
-    console.log('[useVideoPlayback] Fetching video details...');
+    logger.debug('Fetching video details', {service: 'useVideoPlayback', videoId});
 
     try {
       const details = await fetchVideoDetails(videoId);
@@ -184,16 +190,19 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         selectedMode = 'transcode';
 
         if (requiresTranscoding) {
-          console.log('[useVideoPlayback] Codec not supported, using transcoding');
+          logger.info('Codec not supported, using transcoding', {service: 'useVideoPlayback'});
         }
         if (hasExternalSubs) {
-          console.log(`[useVideoPlayback] Found ${subtitles.length} subtitle(s), using HLS with burn-in`);
+          logger.info('Found subtitles, using HLS with burn-in', {
+            service: 'useVideoPlayback',
+            subtitleCount: subtitles.length
+          });
         }
         if (hasTriedTranscoding) {
-          console.log('[useVideoPlayback] Retrying with transcoding');
+          logger.info('Retrying with transcoding', {service: 'useVideoPlayback'});
         }
       } else {
-        console.log('[useVideoPlayback] Using direct play');
+        logger.info('Using direct play', {service: 'useVideoPlayback'});
       }
 
       dispatch({
@@ -208,7 +217,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       }
 
     } catch (err) {
-      console.error('[useVideoPlayback] Error fetching metadata:', err);
+      logger.error('Error fetching metadata', err, {service: 'useVideoPlayback', videoId});
 
       // Provide user-friendly error message
       const errorMessage = err instanceof Error
@@ -247,9 +256,11 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           ? await getTranscodingStreamUrl(videoId, details)
           : getVideoStreamUrl(videoId, details);
 
-        console.log('[useVideoPlayback] Stream URL generated');
-        console.log('[useVideoPlayback] Mode:', mode.toUpperCase());
-        console.log('[useVideoPlayback] URL:', url);
+        logger.info('Stream URL generated', {
+          service: 'useVideoPlayback',
+          mode: mode.toUpperCase(),
+          url
+        });
 
         if (!url) {
           throw new Error('Failed to generate stream URL');
@@ -258,7 +269,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         setStreamUrl(url);
         dispatch({ type: 'STREAM_CREATED', streamUrl: url });
       } catch (error) {
-        console.error('[useVideoPlayback] Error generating stream URL:', error);
+        logger.error('Error generating stream URL', error, {service: 'useVideoPlayback'});
 
         dispatch({
           type: 'PLAYER_ERROR',
@@ -288,7 +299,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       contentType: streamUrl.includes('.m3u8') ? 'hls' : 'auto',
     };
 
-    console.log('[useVideoPlayback] Video source created');
+    logger.debug('Video source created', {service: 'useVideoPlayback'});
     return source;
   }, [streamUrl]);
 
@@ -298,7 +309,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const player = useVideoPlayer(videoSource, (player) => {
     if (!videoSource) return;
     player.loop = false;
-    console.log('[useVideoPlayback] Player initialized');
+    logger.debug('Player initialized', {service: 'useVideoPlayback'});
   });
 
   /**
@@ -372,7 +383,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   useEffect(() => {
     if (!player || !videoSource) return;
 
-    console.log('[useVideoPlayback] Attaching player event listeners');
+    logger.debug('Attaching player event listeners', {service: 'useVideoPlayback'});
 
     // Capture current state for closure
     const getCurrentMode = (): PlaybackMode => {
@@ -385,10 +396,14 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     const statusSubscription = player.addListener('statusChange', (payload) => {
       if (!isMountedRef.current) return;
 
-      console.log('[useVideoPlayback] Status:', payload.status);
+      logger.debug('Player status change', {service: 'useVideoPlayback', status: payload.status});
 
       if (payload.status === 'readyToPlay') {
-        dispatch({ type: 'PLAYER_READY' });
+        // Ensure state update happens on main thread via InteractionManager
+        InteractionManager.runAfterInteractions(() => {
+          if (!isMountedRef.current) return;
+          dispatch({ type: 'PLAYER_READY' });
+        });
 
         // Check if this is audio-only (skip auto-play for audio to avoid threading issues)
         const isAudio = videoDetails ? isAudioOnly(videoDetails) : false;
@@ -396,37 +411,41 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         // Auto-play on first ready (but skip for audio-only files)
         if (!autoPlayTriggeredRef.current && isMountedRef.current && !isAudio) {
           autoPlayTriggeredRef.current = true;
-          console.log('[useVideoPlayback] Scheduling auto-play...');
+          logger.debug('Scheduling auto-play', {service: 'useVideoPlayback'});
 
           // Clear any existing timer
           if (autoPlayTimerRef.current) {
             clearTimeout(autoPlayTimerRef.current);
           }
 
-          // Use requestAnimationFrame to ensure play() is called on main thread
+          // Use InteractionManager to ensure play() is called after interactions complete
           autoPlayTimerRef.current = setTimeout(() => {
             if (!isMountedRef.current) {
-              console.log('[useVideoPlayback] Component unmounted, skipping auto-play');
+              logger.debug('Component unmounted, skipping auto-play', {service: 'useVideoPlayback'});
               return;
             }
 
-            requestAnimationFrame(() => {
+            InteractionManager.runAfterInteractions(() => {
               if (!isMountedRef.current) return;
 
               try {
                 if (player.status === 'readyToPlay') {
-                  console.log('[useVideoPlayback] Calling play()');
+                  logger.debug('Calling play()', {service: 'useVideoPlayback'});
                   player.play();
                 }
               } catch (error) {
-                console.error('[useVideoPlayback] Error calling play():', error);
-                dispatch({
-                  type: 'PLAYER_ERROR',
-                  error: {
-                    message: 'Failed to start video playback. The video file may be corrupted or incompatible.',
-                  },
-                  mode: getCurrentMode(),
-                  hasTriedTranscode: hasTriedTranscoding,
+                logger.error('Error calling play()', error, {service: 'useVideoPlayback'});
+                // Dispatch error on main thread
+                InteractionManager.runAfterInteractions(() => {
+                  if (!isMountedRef.current) return;
+                  dispatch({
+                    type: 'PLAYER_ERROR',
+                    error: {
+                      message: 'Failed to start video playback. The video file may be corrupted or incompatible.',
+                    },
+                    mode: getCurrentMode(),
+                    hasTriedTranscode: hasTriedTranscoding,
+                  });
                 });
               }
             });
@@ -434,10 +453,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
             autoPlayTimerRef.current = null;
           }, 100);
         } else if (isAudio) {
-          console.log('[useVideoPlayback] Audio-only file - skipping auto-play, user must tap play button');
+          logger.info('Audio-only file - skipping auto-play, user must tap play button', {service: 'useVideoPlayback'});
         }
       } else if (payload.status === 'error') {
-        console.error('[useVideoPlayback] Playback error:', payload.error);
+        logger.error('Playback error', payload.error, {service: 'useVideoPlayback'});
 
         // Provide user-friendly error message based on error type
         let errorMessage = 'Failed to play video';
@@ -458,11 +477,15 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           }
         }
 
-        dispatch({
-          type: 'PLAYER_ERROR',
-          error: { message: errorMessage },
-          mode: getCurrentMode(),
-          hasTriedTranscode: hasTriedTranscoding,
+        // Ensure error dispatch happens on main thread
+        InteractionManager.runAfterInteractions(() => {
+          if (!isMountedRef.current) return;
+          dispatch({
+            type: 'PLAYER_ERROR',
+            error: { message: errorMessage },
+            mode: getCurrentMode(),
+            hasTriedTranscode: hasTriedTranscoding,
+          });
         });
       }
     });
@@ -471,7 +494,11 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       if (!isMountedRef.current) return;
 
       if (payload.isPlaying) {
-        dispatch({ type: 'PLAYER_PLAYING' });
+        // Ensure state update happens on main thread
+        InteractionManager.runAfterInteractions(() => {
+          if (!isMountedRef.current) return;
+          dispatch({ type: 'PLAYER_PLAYING' });
+        });
 
         // Start stable playback detection after video starts playing
         // Wait 1.5 seconds of continuous playback before hiding spinner
@@ -483,9 +510,13 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
           stablePlaybackTimerRef.current = setTimeout(() => {
             if (isMountedRef.current && player.playing) {
-              console.log('[useVideoPlayback] Stable playback detected, hiding spinner');
+              logger.debug('Stable playback detected, hiding spinner', {service: 'useVideoPlayback'});
               hasStablePlaybackRef.current = true;
-              setHasStablePlayback(true);
+              // Ensure state update happens on main thread
+              InteractionManager.runAfterInteractions(() => {
+                if (!isMountedRef.current) return;
+                setHasStablePlayback(true);
+              });
               stablePlaybackTimerRef.current = null;
             }
           }, 1500);
@@ -532,12 +563,12 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
                             state.error.includes('invalid');
 
     if (isCorruptedFile) {
-      console.log('[useVideoPlayback] File appears corrupted, skipping auto-retry with transcoding');
+      logger.warn('File appears corrupted, skipping auto-retry with transcoding', {service: 'useVideoPlayback'});
       // Don't auto-retry, let user manually retry or go back
       return;
     }
 
-    console.log('[useVideoPlayback] Direct play failed, will retry with transcoding...');
+    logger.info('Direct play failed, will retry with transcoding', {service: 'useVideoPlayback'});
     setHasTriedTranscoding(true);
     autoPlayTriggeredRef.current = false;
 

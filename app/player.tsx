@@ -6,6 +6,7 @@ import React, {useCallback, useEffect, useState} from "react"
 import {
   ActivityIndicator,
   BackHandler,
+  InteractionManager,
   LogBox,
   Platform,
   StyleSheet,
@@ -86,7 +87,10 @@ export default function VideoPlayerScreen() {
     if (!player || !isAudioOnly) return
 
     const subscription = player.addListener("playingChange", payload => {
-      setIsPlaying(payload.isPlaying)
+      // Ensure state update happens on main thread to avoid threading crashes
+      InteractionManager.runAfterInteractions(() => {
+        setIsPlaying(payload.isPlaying)
+      })
     })
 
     return () => {
