@@ -99,16 +99,6 @@ export default function VideoLibraryScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
-      {!Platform.isTV && (
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Video Library</Text>
-          <Text style={styles.headerSubtitle}>{videos.length} videos</Text>
-          <TouchableOpacity style={styles.refreshButton} onPress={handleRefresh}>
-            <Ionicons name="refresh-outline" size={28} color="#007AFF" />
-          </TouchableOpacity>
-        </View>
-      )}
-
       {videos.length === 0 ? (
         renderEmpty()
       ) : (
@@ -118,30 +108,14 @@ export default function VideoLibraryScreen() {
             renderItem={({item, index}) => <VideoGridItem video={item} onPress={handleVideoPress} index={index} />}
             keyExtractor={item => item.Id}
             numColumns={numColumns}
-            key={numColumns} // Force re-render when columns change
+            // key={numColumns} // Force re-render when columns change
             contentContainerStyle={styles.gridContent}
             columnWrapperStyle={styles.columnWrapper}
-            showsVerticalScrollIndicator={false}
+            showsVerticalScrollIndicator={true}
             initialNumToRender={Platform.isTV ? 15 : 12}
             maxToRenderPerBatch={Platform.isTV ? 15 : 12}
             windowSize={5}
-            removeClippedSubviews={false}
-            ListHeaderComponent={
-              null
-              // Platform.isTV ? (
-              //   <View style={styles.tvRefreshContainer}>
-              //     <TouchableOpacity
-              //       style={styles.tvRefreshButton}
-              //       onPress={handleRefresh}
-              //       isTVSelectable={true}
-              //       hasTVPreferredFocus={true}
-              //     >
-              //       <Ionicons name="refresh" size={32} color="#FFFFFF" />
-              //       <Text style={styles.tvRefreshText}>Refresh Library</Text>
-              //     </TouchableOpacity>
-              //   </View>
-              // ) : null
-            }
+            // removeClippedSubviews={false}
           />
         </>
       )}
@@ -152,63 +126,11 @@ export default function VideoLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFA600FF"
-  },
-  header: {
-    paddingHorizontal: 45,
-    paddingTop: 36,
-    paddingBottom: 30,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255, 255, 255, 0.1)",
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
-  headerTitle: {
-    fontSize: 34,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    flex: 1
-  },
-  headerSubtitle: {
-    fontSize: 17,
-    color: "#98989D",
-    marginRight: 16
-  },
-  refreshButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "rgba(0, 122, 255, 0.15)",
-    justifyContent: "center",
-    alignItems: "center"
-  },
-  tvRefreshContainer: {
-    paddingHorizontal: 24,
-    paddingVertical: 24,
-    alignItems: "center",
-    marginBottom: 16
-  },
-  tvRefreshButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 122, 255, 0.25)",
-    paddingHorizontal: 40,
-    paddingVertical: 20,
-    borderRadius: 16,
-    borderWidth: 3,
-    borderColor: "rgba(0, 122, 255, 0.5)"
-  },
-  tvRefreshText: {
-    color: "#FFFFFF",
-    fontSize: 24,
-    fontWeight: "700",
-    marginLeft: 16
+    backgroundColor: "#3d3d3d"
   },
   gridContent: {
-    padding: Platform.isTV ? 34 : 8,
-    marginTop: 60,
-    paddingBottom: 30
+    paddingTop: 60,
+    paddingBottom: 60
   },
   columnWrapper: {
     justifyContent: "flex-start",

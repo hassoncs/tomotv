@@ -86,7 +86,7 @@ export function VideoGridItem({video, onPress, index}: VideoGridItemProps) {
             <Image
               source={{uri: posterUrl}}
               style={styles.poster}
-              contentFit="cover"
+              contentFit="contain"
               transition={200}
               priority="high"
               cachePolicy="memory-disk"
@@ -131,7 +131,7 @@ export function VideoGridItem({video, onPress, index}: VideoGridItemProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    flex: 1 / (Platform.isTV ? 5 : 3),
     padding: Platform.isTV ? 16 : 8
   },
   card: {

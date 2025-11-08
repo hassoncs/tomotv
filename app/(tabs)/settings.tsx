@@ -427,15 +427,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000"
   },
   scrollContent: {
-    padding: Platform.isTV ? 60 : 24,
+    paddingTop: 60,
     paddingBottom: 60,
     alignItems: "center"
   },
   contentWrapper: {
     width: "60%",
     maxWidth: 1200,
-    minWidth: Platform.isTV ? 800 : 300,
-    marginTop: Platform.isTV ? 50 : 0
+    minWidth: Platform.isTV ? 800 : 300
   },
   loadingContainer: {
     flex: 1,
