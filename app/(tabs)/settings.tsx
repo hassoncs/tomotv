@@ -1,5 +1,11 @@
 import { fetchVideos, refreshConfig } from "@/services/jellyfinApi";
-import { Host, SecureField, TextField, TextFieldRef } from "@expo/ui/swift-ui";
+import {
+  Host,
+  SecureField,
+  Switch,
+  TextField,
+  TextFieldRef,
+} from "@expo/ui/swift-ui";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useRef, useState } from "react";
@@ -18,6 +24,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const STORAGE_KEYS = {
   SERVER_IP: "jellyfin_server_ip",
+  SERVER_PORT: "jellyfin_server_port",
+  SERVER_PROTOCOL: "jellyfin_server_protocol",
   API_KEY: "jellyfin_api_key",
   USER_ID: "jellyfin_user_id",
   VIDEO_QUALITY: "app_video_quality",
@@ -57,6 +65,10 @@ const QUALITY_PRESETS = [
 
 export default function SettingsScreen() {
   const [serverIp, setServerIp] = useState("");
+  const [serverPort, setServerPort] = useState("8096");
+  const [serverProtocol, setServerProtocol] = useState<"http" | "https">(
+    "http",
+  );
   const [apiKey, setApiKey] = useState("");
   const [userId, setUserId] = useState("");
   const [videoQuality, setVideoQuality] = useState(2); // Default to 720p
@@ -66,6 +78,7 @@ export default function SettingsScreen() {
 
   // Refs for text fields
   const serverIpRef = useRef<TextFieldRef>(null);
+  const serverPortRef = useRef<TextFieldRef>(null);
   const apiKeyRef = useRef<TextFieldRef>(null);
   const userIdRef = useRef<TextFieldRef>(null);
 
@@ -76,25 +89,39 @@ export default function SettingsScreen() {
   const loadSettings = async () => {
     try {
       setIsLoading(true);
-      const [savedIp, savedKey, savedUserId, savedQuality] = await Promise.all([
+      const [
+        savedIp,
+        savedPort,
+        savedProtocol,
+        savedKey,
+        savedUserId,
+        savedQuality,
+      ] = await Promise.all([
         SecureStore.getItemAsync(STORAGE_KEYS.SERVER_IP),
+        SecureStore.getItemAsync(STORAGE_KEYS.SERVER_PORT),
+        SecureStore.getItemAsync(STORAGE_KEYS.SERVER_PROTOCOL),
         SecureStore.getItemAsync(STORAGE_KEYS.API_KEY),
         SecureStore.getItemAsync(STORAGE_KEYS.USER_ID),
         SecureStore.getItemAsync(STORAGE_KEYS.VIDEO_QUALITY),
       ]);
 
       const ip = savedIp || "";
+      const port = savedPort || "8096";
+      const protocol = (savedProtocol as "http" | "https") || "http";
       const key = savedKey || "";
       const uid = savedUserId || "";
       const quality = savedQuality ? parseInt(savedQuality, 10) : 2; // Default to 720p
 
       setServerIp(ip);
+      setServerPort(port);
+      setServerProtocol(protocol);
       setApiKey(key);
       setUserId(uid);
       setVideoQuality(quality);
 
       // Set text in TextField refs
       serverIpRef.current?.setText(ip);
+      serverPortRef.current?.setText(port);
       apiKeyRef.current?.setText(key);
       userIdRef.current?.setText(uid);
     } catch (error) {
@@ -111,6 +138,10 @@ export default function SettingsScreen() {
       return { valid: false, error: "Please enter a server IP address" };
     }
 
+    if (!serverPort.trim()) {
+      return { valid: false, error: "Please enter a server port" };
+    }
+
     if (!apiKey.trim()) {
       return { valid: false, error: "Please enter an API key" };
     }
@@ -119,12 +150,12 @@ export default function SettingsScreen() {
       return { valid: false, error: "Please enter a User ID" };
     }
 
-    // Validate server IP format (allow IP addresses, hostnames, localhost)
+    // Validate server IP format (allow IP addresses, hostnames, localhost - NO PORT in IP field now)
     const serverIpTrimmed = serverIp.trim();
-    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/;
+    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
     const hostnamePattern =
-      /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(:\d+)?$/;
-    const localhostPattern = /^localhost(:\d+)?$/i;
+      /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+    const localhostPattern = /^localhost$/i;
 
     if (
       !ipPattern.test(serverIpTrimmed) &&
@@ -134,7 +165,16 @@ export default function SettingsScreen() {
       return {
         valid: false,
         error:
-          "Invalid server IP format. Use format: 192.168.1.100 or localhost",
+          "Invalid server IP format. Use format: 192.168.1.100 or localhost (no port)",
+      };
+    }
+
+    // Validate port
+    const port = parseInt(serverPort.trim(), 10);
+    if (isNaN(port) || port < 1 || port > 65535) {
+      return {
+        valid: false,
+        error: "Invalid port. Must be between 1 and 65535",
       };
     }
 
@@ -178,12 +218,15 @@ export default function SettingsScreen() {
 
       // Sanitize and prepare inputs
       const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "");
+      const sanitizedServerPort = serverPort.trim().replace(/[^0-9]/g, "");
       const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "");
       const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "");
 
       // Temporarily save to test connection
       await Promise.all([
         SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, sanitizedServerIp),
+        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_PORT, sanitizedServerPort),
+        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_PROTOCOL, serverProtocol),
         SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, sanitizedApiKey),
         SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId),
       ]);
@@ -224,12 +267,15 @@ export default function SettingsScreen() {
 
       // Sanitize inputs to prevent injection attacks
       const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "");
+      const sanitizedServerPort = serverPort.trim().replace(/[^0-9]/g, "");
       const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "");
       const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "");
 
       // Save to secure store (syncs to iCloud Keychain automatically)
       await Promise.all([
         SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, sanitizedServerIp),
+        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_PORT, sanitizedServerPort),
+        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_PROTOCOL, serverProtocol),
         SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, sanitizedApiKey),
         SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId),
       ]);
@@ -284,17 +330,22 @@ export default function SettingsScreen() {
             try {
               await Promise.all([
                 SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_IP),
+                SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_PORT),
+                SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_PROTOCOL),
                 SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY),
                 SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID),
                 SecureStore.deleteItemAsync(STORAGE_KEYS.VIDEO_QUALITY),
               ]);
               setServerIp("");
+              setServerPort("8096");
+              setServerProtocol("http");
               setApiKey("");
               setUserId("");
               setVideoQuality(2); // Reset to 720p default
 
               // Clear text in TextField refs
               serverIpRef.current?.setText("");
+              serverPortRef.current?.setText("8096");
               apiKeyRef.current?.setText("");
               userIdRef.current?.setText("");
 
@@ -333,24 +384,6 @@ export default function SettingsScreen() {
         contentInsetAdjustmentBehavior="automatic"
       >
         <View style={styles.contentContainer}>
-          {/* About Section */}
-          <View style={styles.aboutSection}>
-            <View style={styles.aboutHeader}>
-              <Ionicons
-                name="information-circle"
-                size={Platform.isTV ? 32 : 24}
-                color="#FFC312"
-              />
-              <Text style={styles.aboutHeaderText}>About TomoTV</Text>
-            </View>
-            <Text style={styles.aboutText}>
-              TomoTV streams video content from your Jellyfin media server.
-              Connect to your server to browse and play your movie library with
-              automatic codec detection and intelligent transcoding for smooth
-              playback across all devices.
-            </Text>
-          </View>
-
           {/* Section Header */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderText}>VIDEO QUALITY</Text>
@@ -410,44 +443,6 @@ export default function SettingsScreen() {
             <Text style={styles.sectionHeaderText}>JELLYFIN SERVER</Text>
           </View>
 
-          {/* Help Information */}
-          <View style={styles.helpSection}>
-            <View style={styles.helpItem}>
-              <Ionicons
-                name="desktop-outline"
-                size={Platform.isTV ? 20 : 16}
-                color="#8E8E93"
-              />
-              <Text style={styles.helpText}>
-                <Text style={styles.helpBold}>Server IP: </Text>Local network
-                address of your Jellyfin server (e.g., 192.168.1.100 or
-                jellyfin.local)
-              </Text>
-            </View>
-            <View style={styles.helpItem}>
-              <Ionicons
-                name="person-outline"
-                size={Platform.isTV ? 20 : 16}
-                color="#8E8E93"
-              />
-              <Text style={styles.helpText}>
-                <Text style={styles.helpBold}>User ID: </Text>Find in Jellyfin
-                Dashboard → Users → Select your user → Copy the ID from the URL
-              </Text>
-            </View>
-            <View style={styles.helpItem}>
-              <Ionicons
-                name="key-outline"
-                size={Platform.isTV ? 20 : 16}
-                color="#8E8E93"
-              />
-              <Text style={styles.helpText}>
-                <Text style={styles.helpBold}>API Key: </Text>Create in Jellyfin
-                Dashboard → API Keys → New Key
-              </Text>
-            </View>
-          </View>
-
           {/* Server Settings Group */}
           <View
             style={[
@@ -460,13 +455,48 @@ export default function SettingsScreen() {
             {/* Server IP */}
             <View style={[styles.listItem, styles.listItemFirst]}>
               <View style={styles.inputContainer}>
-                <Text style={styles.inputLabel}>Server IP</Text>
+                <Text style={styles.inputLabel}>Server IP / Hostname</Text>
                 <Host style={styles.inputHost}>
                   <TextField
                     ref={serverIpRef}
-                    placeholder="192.168.1.100"
+                    placeholder="192.168.1.100 or jellyfin.local"
                     autocorrection={false}
                     onChangeText={setServerIp}
+                  />
+                </Host>
+              </View>
+            </View>
+
+            {/* Port */}
+            <View style={styles.listItem}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Port</Text>
+                <Host style={styles.inputHost}>
+                  <TextField
+                    ref={serverPortRef}
+                    placeholder="8096"
+                    autocorrection={false}
+                    onChangeText={setServerPort}
+                  />
+                </Host>
+              </View>
+            </View>
+
+            {/* Protocol Toggle */}
+            <View style={styles.listItem}>
+              <View style={styles.inputContainer}>
+                <Text style={styles.inputLabel}>Protocol</Text>
+                <Host matchContents>
+                  <Switch
+                    value={serverProtocol === "https"}
+                    onValueChange={(value) =>
+                      setServerProtocol(value ? "https" : "http")
+                    }
+                    label="Use HTTPS"
+                    variant="switch"
+                    systemImage={
+                      serverProtocol === "https" ? "lock.fill" : "lock.open"
+                    }
                   />
                 </Host>
               </View>
@@ -587,55 +617,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: Platform.isTV ? 20 : 17,
     color: "#8E8E93",
-  },
-  // About Section
-  aboutSection: {
-    backgroundColor: "#1C1C1E",
-    borderRadius: Platform.isTV ? 32 : 12,
-    padding: Platform.isTV ? 32 : 20,
-    marginBottom: Platform.isTV ? 24 : 16,
-    borderWidth: 1,
-    borderColor: "rgba(255, 195, 18, 0.2)",
-  },
-  aboutHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: Platform.isTV ? 16 : 12,
-    marginBottom: Platform.isTV ? 16 : 12,
-  },
-  aboutHeaderText: {
-    fontSize: Platform.isTV ? 28 : 20,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  aboutText: {
-    fontSize: Platform.isTV ? 20 : 15,
-    lineHeight: Platform.isTV ? 32 : 22,
-    color: "#AEAEB2",
-    fontWeight: "400",
-  },
-  // Help Section
-  helpSection: {
-    backgroundColor: "#1C1C1E",
-    borderRadius: Platform.isTV ? 16 : 10,
-    padding: Platform.isTV ? 24 : 16,
-    marginBottom: Platform.isTV ? 16 : 12,
-    gap: Platform.isTV ? 16 : 12,
-  },
-  helpItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    gap: Platform.isTV ? 12 : 8,
-  },
-  helpText: {
-    flex: 1,
-    fontSize: Platform.isTV ? 18 : 14,
-    lineHeight: Platform.isTV ? 26 : 20,
-    color: "#8E8E93",
-  },
-  helpBold: {
-    fontWeight: "600",
-    color: "#AEAEB2",
   },
   // Section Headers (iOS style)
   sectionHeader: {
