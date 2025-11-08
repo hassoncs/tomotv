@@ -1,8 +1,8 @@
-import {fetchVideos, refreshConfig} from "@/services/jellyfinApi"
-import {Host, SecureField, TextField, TextFieldRef} from "@expo/ui/swift-ui"
-import {Ionicons} from "@expo/vector-icons"
-import * as SecureStore from "expo-secure-store"
-import React, {useEffect, useRef, useState} from "react"
+import { fetchVideos, refreshConfig } from "@/services/jellyfinApi";
+import { Host, SecureField, TextField, TextFieldRef } from "@expo/ui/swift-ui";
+import { Ionicons } from "@expo/vector-icons";
+import * as SecureStore from "expo-secure-store";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -12,251 +12,305 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
-} from "react-native"
-import {SafeAreaView} from "react-native-safe-area-context"
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const STORAGE_KEYS = {
   SERVER_IP: "jellyfin_server_ip",
   API_KEY: "jellyfin_api_key",
   USER_ID: "jellyfin_user_id",
-  VIDEO_QUALITY: "app_video_quality"
-}
+  VIDEO_QUALITY: "app_video_quality",
+};
 
 // Video quality presets (bitrate in kbps)
 const QUALITY_PRESETS = [
-  {label: "480p", value: 0, bitrate: 1500, resolution: "854x480", description: "Fast - Lower"},
-  {label: "540p", value: 1, bitrate: 2500, resolution: "960x540", description: "Balanced - Good"},
-  {label: "720p", value: 2, bitrate: 4000, resolution: "1280x720", description: "Smooth - High"},
-  {label: "1080p", value: 3, bitrate: 8000, resolution: "1920x1080", description: "Best - Highest"}
-]
+  {
+    label: "480p",
+    value: 0,
+    bitrate: 1500,
+    resolution: "854x480",
+    description: "Fast - Lower",
+  },
+  {
+    label: "540p",
+    value: 1,
+    bitrate: 2500,
+    resolution: "960x540",
+    description: "Balanced - Good",
+  },
+  {
+    label: "720p",
+    value: 2,
+    bitrate: 4000,
+    resolution: "1280x720",
+    description: "Smooth - High",
+  },
+  {
+    label: "1080p",
+    value: 3,
+    bitrate: 8000,
+    resolution: "1920x1080",
+    description: "Best - Highest",
+  },
+];
 
 export default function SettingsScreen() {
-  const [serverIp, setServerIp] = useState("")
-  const [apiKey, setApiKey] = useState("")
-  const [userId, setUserId] = useState("")
-  const [videoQuality, setVideoQuality] = useState(2) // Default to 720p
-  const [isLoading, setIsLoading] = useState(true)
-  const [isSaving, setIsSaving] = useState(false)
-  const [isTesting, setIsTesting] = useState(false)
+  const [serverIp, setServerIp] = useState("");
+  const [apiKey, setApiKey] = useState("");
+  const [userId, setUserId] = useState("");
+  const [videoQuality, setVideoQuality] = useState(2); // Default to 720p
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   // Refs for text fields
-  const serverIpRef = useRef<TextFieldRef>(null)
-  const apiKeyRef = useRef<TextFieldRef>(null)
-  const userIdRef = useRef<TextFieldRef>(null)
+  const serverIpRef = useRef<TextFieldRef>(null);
+  const apiKeyRef = useRef<TextFieldRef>(null);
+  const userIdRef = useRef<TextFieldRef>(null);
 
   useEffect(() => {
-    loadSettings()
-  }, [])
+    loadSettings();
+  }, []);
 
   const loadSettings = async () => {
     try {
-      setIsLoading(true)
+      setIsLoading(true);
       const [savedIp, savedKey, savedUserId, savedQuality] = await Promise.all([
         SecureStore.getItemAsync(STORAGE_KEYS.SERVER_IP),
         SecureStore.getItemAsync(STORAGE_KEYS.API_KEY),
         SecureStore.getItemAsync(STORAGE_KEYS.USER_ID),
-        SecureStore.getItemAsync(STORAGE_KEYS.VIDEO_QUALITY)
-      ])
+        SecureStore.getItemAsync(STORAGE_KEYS.VIDEO_QUALITY),
+      ]);
 
-      const ip = savedIp || ""
-      const key = savedKey || ""
-      const uid = savedUserId || ""
-      const quality = savedQuality ? parseInt(savedQuality, 10) : 2 // Default to 720p
+      const ip = savedIp || "";
+      const key = savedKey || "";
+      const uid = savedUserId || "";
+      const quality = savedQuality ? parseInt(savedQuality, 10) : 2; // Default to 720p
 
-      setServerIp(ip)
-      setApiKey(key)
-      setUserId(uid)
-      setVideoQuality(quality)
+      setServerIp(ip);
+      setApiKey(key);
+      setUserId(uid);
+      setVideoQuality(quality);
 
       // Set text in TextField refs
-      serverIpRef.current?.setText(ip)
-      apiKeyRef.current?.setText(key)
-      userIdRef.current?.setText(uid)
+      serverIpRef.current?.setText(ip);
+      apiKeyRef.current?.setText(key);
+      userIdRef.current?.setText(uid);
     } catch (error) {
-      console.error("Error loading settings:", error)
-      Alert.alert("Error", "Failed to load settings from iCloud")
+      console.error("Error loading settings:", error);
+      Alert.alert("Error", "Failed to load settings from iCloud");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
-  const validateInputs = (): {valid: boolean; error?: string} => {
+  const validateInputs = (): { valid: boolean; error?: string } => {
     // Check if fields are filled
     if (!serverIp.trim()) {
-      return {valid: false, error: "Please enter a server IP address"}
+      return { valid: false, error: "Please enter a server IP address" };
     }
 
     if (!apiKey.trim()) {
-      return {valid: false, error: "Please enter an API key"}
+      return { valid: false, error: "Please enter an API key" };
     }
 
     if (!userId.trim()) {
-      return {valid: false, error: "Please enter a User ID"}
+      return { valid: false, error: "Please enter a User ID" };
     }
 
     // Validate server IP format (allow IP addresses, hostnames, localhost)
-    const serverIpTrimmed = serverIp.trim()
-    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/
-    const hostnamePattern = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(:\d+)?$/
-    const localhostPattern = /^localhost(:\d+)?$/i
+    const serverIpTrimmed = serverIp.trim();
+    const ipPattern = /^(\d{1,3}\.){3}\d{1,3}(:\d+)?$/;
+    const hostnamePattern =
+      /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(:\d+)?$/;
+    const localhostPattern = /^localhost(:\d+)?$/i;
 
-    if (!ipPattern.test(serverIpTrimmed) && !hostnamePattern.test(serverIpTrimmed) && !localhostPattern.test(serverIpTrimmed)) {
-      return {valid: false, error: "Invalid server IP format. Use format: 192.168.1.100 or localhost"}
+    if (
+      !ipPattern.test(serverIpTrimmed) &&
+      !hostnamePattern.test(serverIpTrimmed) &&
+      !localhostPattern.test(serverIpTrimmed)
+    ) {
+      return {
+        valid: false,
+        error:
+          "Invalid server IP format. Use format: 192.168.1.100 or localhost",
+      };
     }
 
     // Validate API key format (alphanumeric, typically 32 chars but can vary)
-    const apiKeyTrimmed = apiKey.trim()
+    const apiKeyTrimmed = apiKey.trim();
     if (!/^[a-zA-Z0-9]{16,64}$/.test(apiKeyTrimmed)) {
-      return {valid: false, error: "Invalid API key format. Must be 16-64 alphanumeric characters"}
+      return {
+        valid: false,
+        error: "Invalid API key format. Must be 16-64 alphanumeric characters",
+      };
     }
 
     // Validate User ID format (GUID without dashes or with dashes)
-    const userIdTrimmed = userId.trim()
-    if (!/^[a-f0-9]{32}$/.test(userIdTrimmed) && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(userIdTrimmed)) {
-      return {valid: false, error: "Invalid User ID format. Must be a valid GUID (e.g., 8d6b79c2-4368-496c-9393-1394d31ac428)"}
+    const userIdTrimmed = userId.trim();
+    if (
+      !/^[a-f0-9]{32}$/.test(userIdTrimmed) &&
+      !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
+        userIdTrimmed,
+      )
+    ) {
+      return {
+        valid: false,
+        error:
+          "Invalid User ID format. Must be a valid GUID (e.g., 8d6b79c2-4368-496c-9393-1394d31ac428)",
+      };
     }
 
-    return {valid: true}
-  }
+    return { valid: true };
+  };
 
   const testConnection = async () => {
     try {
-      setIsTesting(true)
+      setIsTesting(true);
 
       // Validate inputs
-      const validation = validateInputs()
+      const validation = validateInputs();
       if (!validation.valid) {
-        Alert.alert("Validation Error", validation.error || "Invalid input")
-        return
+        Alert.alert("Validation Error", validation.error || "Invalid input");
+        return;
       }
 
       // Sanitize and prepare inputs
-      const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "")
-      const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "")
-      const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "")
+      const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "");
+      const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "");
+      const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "");
 
       // Temporarily save to test connection
       await Promise.all([
         SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, sanitizedServerIp),
         SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, sanitizedApiKey),
-        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId)
-      ])
+        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId),
+      ]);
 
       // Refresh config and test
-      await refreshConfig()
-      const videos = await fetchVideos()
+      await refreshConfig();
+      const videos = await fetchVideos();
 
       Alert.alert(
         "Connection Successful!",
         `Successfully connected to Jellyfin server.\n\nFound ${videos.length} video(s) in your library.`,
-        [{text: "OK"}]
-      )
+        [{ text: "OK" }],
+      );
     } catch (error) {
-      console.error("Connection test failed:", error)
+      console.error("Connection test failed:", error);
       Alert.alert(
         "Connection Failed",
         `Unable to connect to Jellyfin server.\n\nPlease check:\n• Server IP is correct\n• Jellyfin is running\n• API key and User ID are valid\n\nError: ${
           error instanceof Error ? error.message : "Unknown error"
         }`,
-        [{text: "OK"}]
-      )
+        [{ text: "OK" }],
+      );
     } finally {
-      setIsTesting(false)
+      setIsTesting(false);
     }
-  }
+  };
 
   const saveJellyfinSettings = async () => {
     try {
-      setIsSaving(true)
+      setIsSaving(true);
 
       // Validate inputs
-      const validation = validateInputs()
+      const validation = validateInputs();
       if (!validation.valid) {
-        Alert.alert("Validation Error", validation.error || "Invalid input")
-        return
+        Alert.alert("Validation Error", validation.error || "Invalid input");
+        return;
       }
 
       // Sanitize inputs to prevent injection attacks
-      const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "")
-      const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "")
-      const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "")
+      const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "");
+      const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "");
+      const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "");
 
       // Save to secure store (syncs to iCloud Keychain automatically)
       await Promise.all([
         SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, sanitizedServerIp),
         SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, sanitizedApiKey),
-        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId)
-      ])
+        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId),
+      ]);
 
       // Refresh the API service config cache
-      await refreshConfig()
+      await refreshConfig();
 
-      Alert.alert("Success", "Jellyfin settings saved successfully!", [{text: "OK"}])
+      Alert.alert("Success", "Jellyfin settings saved successfully!", [
+        { text: "OK" },
+      ]);
     } catch (error) {
-      console.error("Error saving settings:", error)
-      Alert.alert("Error", "Failed to save settings to iCloud")
+      console.error("Error saving settings:", error);
+      Alert.alert("Error", "Failed to save settings to iCloud");
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const saveAppSettings = async () => {
     try {
-      setIsSaving(true)
+      setIsSaving(true);
 
       // Save app settings
-      await SecureStore.setItemAsync(STORAGE_KEYS.VIDEO_QUALITY, videoQuality.toString())
+      await SecureStore.setItemAsync(
+        STORAGE_KEYS.VIDEO_QUALITY,
+        videoQuality.toString(),
+      );
 
-      const qualityLabel = QUALITY_PRESETS[videoQuality]?.label || "Unknown"
-      Alert.alert("Success", `Video quality set to ${qualityLabel}`)
+      const qualityLabel = QUALITY_PRESETS[videoQuality]?.label || "Unknown";
+      Alert.alert("Success", `Video quality set to ${qualityLabel}`);
     } catch (error) {
-      console.error("Error saving app settings:", error)
-      Alert.alert("Error", "Failed to save app settings")
+      console.error("Error saving app settings:", error);
+      Alert.alert("Error", "Failed to save app settings");
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const clearSettings = () => {
-    Alert.alert("Clear Settings", "Are you sure you want to clear all settings?", [
-      {
-        text: "Cancel",
-        style: "cancel"
-      },
-      {
-        text: "Clear",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await Promise.all([
-              SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_IP),
-              SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY),
-              SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID),
-              SecureStore.deleteItemAsync(STORAGE_KEYS.VIDEO_QUALITY)
-            ])
-            setServerIp("")
-            setApiKey("")
-            setUserId("")
-            setVideoQuality(2) // Reset to 720p default
+    Alert.alert(
+      "Clear Settings",
+      "Are you sure you want to clear all settings?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await Promise.all([
+                SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_IP),
+                SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY),
+                SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID),
+                SecureStore.deleteItemAsync(STORAGE_KEYS.VIDEO_QUALITY),
+              ]);
+              setServerIp("");
+              setApiKey("");
+              setUserId("");
+              setVideoQuality(2); // Reset to 720p default
 
-            // Clear text in TextField refs
-            serverIpRef.current?.setText("")
-            apiKeyRef.current?.setText("")
-            userIdRef.current?.setText("")
+              // Clear text in TextField refs
+              serverIpRef.current?.setText("");
+              apiKeyRef.current?.setText("");
+              userIdRef.current?.setText("");
 
-            // Refresh config to reset to defaults
-            await refreshConfig()
+              // Refresh config to reset to defaults
+              await refreshConfig();
 
-            Alert.alert("Success", "Settings cleared, using default values")
-          } catch (error) {
-            console.error("Error clearing settings:", error)
-            Alert.alert("Error", "Failed to clear settings")
-          }
-        }
-      }
-    ])
-  }
+              Alert.alert("Success", "Settings cleared, using default values");
+            } catch (error) {
+              console.error("Error clearing settings:", error);
+              Alert.alert("Error", "Failed to clear settings");
+            }
+          },
+        },
+      ],
+    );
+  };
 
   if (isLoading) {
     return (
@@ -266,7 +320,7 @@ export default function SettingsScreen() {
           <Text style={styles.loadingText}>Loading settings...</Text>
         </View>
       </SafeAreaView>
-    )
+    );
   }
 
   return (
@@ -282,11 +336,18 @@ export default function SettingsScreen() {
           {/* About Section */}
           <View style={styles.aboutSection}>
             <View style={styles.aboutHeader}>
-              <Ionicons name="information-circle" size={Platform.isTV ? 32 : 24} color="#FFC312" />
+              <Ionicons
+                name="information-circle"
+                size={Platform.isTV ? 32 : 24}
+                color="#FFC312"
+              />
               <Text style={styles.aboutHeaderText}>About TomoTV</Text>
             </View>
             <Text style={styles.aboutText}>
-              TomoTV streams video content from your Jellyfin media server. Connect to your server to browse and play your movie library with automatic codec detection and intelligent transcoding for smooth playback across all devices.
+              TomoTV streams video content from your Jellyfin media server.
+              Connect to your server to browse and play your movie library with
+              automatic codec detection and intelligent transcoding for smooth
+              playback across all devices.
             </Text>
           </View>
 
@@ -300,23 +361,29 @@ export default function SettingsScreen() {
             {QUALITY_PRESETS.map((preset, index) => (
               <Pressable
                 key={preset.value}
-                style={({focused}) => [
+                style={({ focused }) => [
                   styles.listItem,
                   index === 0 && styles.listItemFirst,
                   index === QUALITY_PRESETS.length - 1 && styles.listItemLast,
-                  focused && {backgroundColor: "rgba(255, 255, 255, 0.1)"}
+                  focused && { backgroundColor: "rgba(255, 255, 255, 0.1)" },
                 ]}
                 onPress={() => setVideoQuality(preset.value)}
-                tvParallaxProperties={{magnification: 1.01}}
+                tvParallaxProperties={{ magnification: 1.01 }}
                 isTVSelectable={true}
               >
                 <View style={styles.listItemContent}>
                   <View style={styles.listItemLeft}>
                     <Text style={styles.listItemTitle}>{preset.label}</Text>
-                    <Text style={styles.listItemSubtitle}>{preset.description}</Text>
+                    <Text style={styles.listItemSubtitle}>
+                      {preset.description}
+                    </Text>
                   </View>
                   {videoQuality === preset.value && (
-                    <Ionicons name="checkmark" size={Platform.isTV ? 28 : 24} color="#FFC312" />
+                    <Ionicons
+                      name="checkmark"
+                      size={Platform.isTV ? 28 : 24}
+                      color="#FFC312"
+                    />
                   )}
                 </View>
               </Pressable>
@@ -331,7 +398,11 @@ export default function SettingsScreen() {
             activeOpacity={0.2}
             isTVSelectable={true}
           >
-            {isSaving ? <ActivityIndicator color="#000" /> : <Text style={styles.primaryButtonText}>Save Quality</Text>}
+            {isSaving ? (
+              <ActivityIndicator color="#000" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Save Quality</Text>
+            )}
           </TouchableOpacity>
 
           {/* Jellyfin Server Section */}
@@ -342,21 +413,37 @@ export default function SettingsScreen() {
           {/* Help Information */}
           <View style={styles.helpSection}>
             <View style={styles.helpItem}>
-              <Ionicons name="desktop-outline" size={Platform.isTV ? 20 : 16} color="#8E8E93" />
+              <Ionicons
+                name="desktop-outline"
+                size={Platform.isTV ? 20 : 16}
+                color="#8E8E93"
+              />
               <Text style={styles.helpText}>
-                <Text style={styles.helpBold}>Server IP: </Text>Local network address of your Jellyfin server (e.g., 192.168.1.100 or jellyfin.local)
+                <Text style={styles.helpBold}>Server IP: </Text>Local network
+                address of your Jellyfin server (e.g., 192.168.1.100 or
+                jellyfin.local)
               </Text>
             </View>
             <View style={styles.helpItem}>
-              <Ionicons name="person-outline" size={Platform.isTV ? 20 : 16} color="#8E8E93" />
+              <Ionicons
+                name="person-outline"
+                size={Platform.isTV ? 20 : 16}
+                color="#8E8E93"
+              />
               <Text style={styles.helpText}>
-                <Text style={styles.helpBold}>User ID: </Text>Find in Jellyfin Dashboard → Users → Select your user → Copy the ID from the URL
+                <Text style={styles.helpBold}>User ID: </Text>Find in Jellyfin
+                Dashboard → Users → Select your user → Copy the ID from the URL
               </Text>
             </View>
             <View style={styles.helpItem}>
-              <Ionicons name="key-outline" size={Platform.isTV ? 20 : 16} color="#8E8E93" />
+              <Ionicons
+                name="key-outline"
+                size={Platform.isTV ? 20 : 16}
+                color="#8E8E93"
+              />
               <Text style={styles.helpText}>
-                <Text style={styles.helpBold}>API Key: </Text>Create in Jellyfin Dashboard → API Keys → New Key
+                <Text style={styles.helpBold}>API Key: </Text>Create in Jellyfin
+                Dashboard → API Keys → New Key
               </Text>
             </View>
           </View>
@@ -366,8 +453,8 @@ export default function SettingsScreen() {
             style={[
               styles.section,
               {
-                paddingBottom: Platform.isTV ? 30 : 24
-              }
+                paddingBottom: Platform.isTV ? 30 : 24,
+              },
             ]}
           >
             {/* Server IP */}
@@ -413,7 +500,11 @@ export default function SettingsScreen() {
                       onChangeText={setApiKey}
                     />
                   ) : (
-                    <SecureField ref={apiKeyRef} placeholder="Enter your API key" onChangeText={setApiKey} />
+                    <SecureField
+                      ref={apiKeyRef}
+                      placeholder="Enter your API key"
+                      onChangeText={setApiKey}
+                    />
                   )}
                 </Host>
               </View>
@@ -446,7 +537,9 @@ export default function SettingsScreen() {
               {isSaving ? (
                 <ActivityIndicator color="#000" />
               ) : (
-                <Text style={styles.primaryButtonText}>Save Server Settings</Text>
+                <Text style={styles.primaryButtonText}>
+                  Save Server Settings
+                </Text>
               )}
             </TouchableOpacity>
           </View>
@@ -464,36 +557,36 @@ export default function SettingsScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000000"
+    backgroundColor: "#000000",
   },
   scrollView: {
-    flex: 1
+    flex: 1,
   },
   scrollContent: {
     paddingTop: Platform.isTV ? 20 : 16,
     paddingBottom: Platform.isTV ? 60 : 40,
-    alignItems: "center"
+    alignItems: "center",
   },
   contentContainer: {
     width: "100%",
     maxWidth: Platform.isTV ? 1000 : 600,
-    paddingHorizontal: Platform.isTV ? 60 : 16
+    paddingHorizontal: Platform.isTV ? 60 : 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 16,
     fontSize: Platform.isTV ? 20 : 17,
-    color: "#8E8E93"
+    color: "#8E8E93",
   },
   // About Section
   aboutSection: {
@@ -502,24 +595,24 @@ const styles = StyleSheet.create({
     padding: Platform.isTV ? 32 : 20,
     marginBottom: Platform.isTV ? 24 : 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 195, 18, 0.2)"
+    borderColor: "rgba(255, 195, 18, 0.2)",
   },
   aboutHeader: {
     flexDirection: "row",
     alignItems: "center",
     gap: Platform.isTV ? 16 : 12,
-    marginBottom: Platform.isTV ? 16 : 12
+    marginBottom: Platform.isTV ? 16 : 12,
   },
   aboutHeaderText: {
     fontSize: Platform.isTV ? 28 : 20,
     fontWeight: "600",
-    color: "#FFFFFF"
+    color: "#FFFFFF",
   },
   aboutText: {
     fontSize: Platform.isTV ? 20 : 15,
     lineHeight: Platform.isTV ? 32 : 22,
     color: "#AEAEB2",
-    fontWeight: "400"
+    fontWeight: "400",
   },
   // Help Section
   helpSection: {
@@ -527,34 +620,34 @@ const styles = StyleSheet.create({
     borderRadius: Platform.isTV ? 16 : 10,
     padding: Platform.isTV ? 24 : 16,
     marginBottom: Platform.isTV ? 16 : 12,
-    gap: Platform.isTV ? 16 : 12
+    gap: Platform.isTV ? 16 : 12,
   },
   helpItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: Platform.isTV ? 12 : 8
+    gap: Platform.isTV ? 12 : 8,
   },
   helpText: {
     flex: 1,
     fontSize: Platform.isTV ? 18 : 14,
     lineHeight: Platform.isTV ? 26 : 20,
-    color: "#8E8E93"
+    color: "#8E8E93",
   },
   helpBold: {
     fontWeight: "600",
-    color: "#AEAEB2"
+    color: "#AEAEB2",
   },
   // Section Headers (iOS style)
   sectionHeader: {
     paddingHorizontal: Platform.isTV ? 16 : 16,
     paddingTop: Platform.isTV ? 32 : 24,
-    paddingBottom: Platform.isTV ? 12 : 8
+    paddingBottom: Platform.isTV ? 12 : 8,
   },
   sectionHeaderText: {
     fontSize: Platform.isTV ? 16 : 13,
     fontWeight: "600",
     color: "#8E8E93",
-    letterSpacing: -0.08
+    letterSpacing: -0.08,
   },
   // Section (Grouped List)
   section: {
@@ -562,7 +655,7 @@ const styles = StyleSheet.create({
     borderRadius: Platform.isTV ? 32 : 10,
     overflow: "hidden",
     // paddingVertical: Platform.isTV ? 8 : 6,
-    marginBottom: Platform.isTV ? 32 : 24
+    marginBottom: Platform.isTV ? 32 : 24,
   },
   // List Items
   listItem: {
@@ -572,54 +665,54 @@ const styles = StyleSheet.create({
     // borderBottomWidth: 0.5,
     // borderBottomColor: "rgba(84, 84, 88, 0.6)",
     // Add margin for TV focus scaling (10% scale = need 5% margin on each side)
-    marginHorizontal: Platform.isTV ? 4 : 0
+    marginHorizontal: Platform.isTV ? 4 : 0,
   },
   listItemFirst: {
     borderTopLeftRadius: Platform.isTV ? 16 : 10,
-    borderTopRightRadius: Platform.isTV ? 16 : 10
+    borderTopRightRadius: Platform.isTV ? 16 : 10,
   },
   listItemLast: {
     borderBottomWidth: 0,
     borderBottomLeftRadius: Platform.isTV ? 16 : 10,
-    borderBottomRightRadius: Platform.isTV ? 16 : 10
+    borderBottomRightRadius: Platform.isTV ? 16 : 10,
   },
   listItemContent: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: Platform.isTV ? 16 : 12
+    gap: Platform.isTV ? 16 : 12,
   },
   listItemLeft: {
-    flex: 1
+    flex: 1,
   },
   listItemTitle: {
     fontSize: Platform.isTV ? 25 : 20,
     fontWeight: "400",
     color: "#FFFFFF",
-    marginBottom: 2
+    marginBottom: 2,
   },
   listItemSubtitle: {
     color: "#8E8E93",
-    fontSize: Platform.isTV ? 20 : 17
+    fontSize: Platform.isTV ? 20 : 17,
   },
   // Input Fields
   inputContainer: {
-    gap: Platform.isTV ? 20 : 12
+    gap: Platform.isTV ? 20 : 12,
   },
   inputLabel: {
     fontSize: Platform.isTV ? 18 : 15,
     fontWeight: "500",
     color: "#8E8E93",
-    marginBottom: 15
+    marginBottom: 15,
   },
   inputHost: {
     width: "100%",
-    minHeight: Platform.isTV ? 52 : 44
+    minHeight: Platform.isTV ? 52 : 44,
   },
   // Buttons
   buttonGroup: {
     gap: Platform.isTV ? 16 : 12,
-    marginTop: Platform.isTV ? 24 : 16
+    marginTop: Platform.isTV ? 24 : 16,
   },
   primaryButton: {
     backgroundColor: "#FFC312",
@@ -631,12 +724,12 @@ const styles = StyleSheet.create({
     minHeight: Platform.isTV ? 60 : 50,
     maxWidth: 400,
     width: "100%",
-    marginHorizontal: "auto"
+    marginHorizontal: "auto",
   },
   primaryButtonText: {
     fontSize: Platform.isTV ? 25 : 17,
     fontWeight: "600",
-    color: "#000000"
+    color: "#000000",
   },
   secondaryButton: {
     backgroundColor: "transparent",
@@ -650,12 +743,12 @@ const styles = StyleSheet.create({
     minHeight: Platform.isTV ? 60 : 50,
     maxWidth: 400,
     width: "100%",
-    marginHorizontal: "auto"
+    marginHorizontal: "auto",
   },
   secondaryButtonText: {
     fontSize: Platform.isTV ? 24 : 17,
     fontWeight: "600",
-    color: "#FFC312"
+    color: "#FFC312",
   },
   destructiveButton: {
     backgroundColor: "transparent",
@@ -665,11 +758,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: Platform.isTV ? 40 : 32,
-    minHeight: Platform.isTV ? 60 : 50
+    minHeight: Platform.isTV ? 60 : 50,
   },
   destructiveButtonText: {
     fontSize: Platform.isTV ? 20 : 17,
     fontWeight: "600",
-    color: "#FF3B30"
-  }
-})
+    color: "#FF3B30",
+  },
+});

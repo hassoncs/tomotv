@@ -1,13 +1,24 @@
-import {formatDuration, getPosterUrl, hasPoster} from "@/services/jellyfinApi"
-import {JellyfinVideoItem} from "@/types/jellyfin"
-import {Image} from "expo-image"
-import React, {useCallback, useMemo, useState} from "react"
-import {Animated, Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native"
+import {
+  formatDuration,
+  getPosterUrl,
+  hasPoster,
+} from "@/services/jellyfinApi";
+import { JellyfinVideoItem } from "@/types/jellyfin";
+import { Image } from "expo-image";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  Animated,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface VideoGridItemProps {
-  video: JellyfinVideoItem
-  onPress: (video: JellyfinVideoItem) => void
-  index: number
+  video: JellyfinVideoItem;
+  onPress: (video: JellyfinVideoItem) => void;
+  index: number;
 }
 
 /**
@@ -20,60 +31,60 @@ interface VideoGridItemProps {
  * - Callbacks (handleFocus, handleBlur, handlePress) are memoized with useCallback
  * - Animated values use lazy initialization pattern for efficiency
  */
-function VideoGridItemComponent({video, onPress, index}: VideoGridItemProps) {
-  const [focused, setFocused] = useState(false)
-  const scaleAnim = useState(() => new Animated.Value(1))[0]
-  const shadowAnim = useState(() => new Animated.Value(0))[0]
+function VideoGridItemComponent({ video, onPress, index }: VideoGridItemProps) {
+  const [focused, setFocused] = useState(false);
+  const scaleAnim = useState(() => new Animated.Value(1))[0];
+  const shadowAnim = useState(() => new Animated.Value(0))[0];
 
   // Memoize computed values to avoid recalculation on every render
   const posterUrl = useMemo(
     () => (hasPoster(video) ? getPosterUrl(video.Id, 600) : undefined),
-    [video.Id]
-  )
+    [video],
+  );
 
   const duration = useMemo(
     () => formatDuration(video.RunTimeTicks),
-    [video.RunTimeTicks]
-  )
+    [video.RunTimeTicks],
+  );
 
   // Memoize callbacks to maintain referential stability
   const handleFocus = useCallback(() => {
-    setFocused(true)
+    setFocused(true);
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1.1,
         useNativeDriver: true,
         friction: 7,
-        tension: 100
+        tension: 100,
       }),
       Animated.timing(shadowAnim, {
         toValue: 1,
         duration: 200,
-        useNativeDriver: true
-      })
-    ]).start()
-  }, [scaleAnim, shadowAnim])
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim, shadowAnim]);
 
   const handleBlur = useCallback(() => {
-    setFocused(false)
+    setFocused(false);
     Animated.parallel([
       Animated.spring(scaleAnim, {
         toValue: 1,
         useNativeDriver: true,
         friction: 7,
-        tension: 100
+        tension: 100,
       }),
       Animated.timing(shadowAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true
-      })
-    ]).start()
-  }, [scaleAnim, shadowAnim])
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [scaleAnim, shadowAnim]);
 
   const handlePress = useCallback(() => {
-    onPress(video)
-  }, [onPress, video])
+    onPress(video);
+  }, [onPress, video]);
 
   return (
     <TouchableOpacity
@@ -89,8 +100,8 @@ function VideoGridItemComponent({video, onPress, index}: VideoGridItemProps) {
         style={[
           styles.card,
           {
-            transform: [{scale: scaleAnim}]
-          }
+            transform: [{ scale: scaleAnim }],
+          },
         ]}
       >
         <Animated.View
@@ -100,14 +111,14 @@ function VideoGridItemComponent({video, onPress, index}: VideoGridItemProps) {
             {
               shadowOpacity: shadowAnim.interpolate({
                 inputRange: [0, 1],
-                outputRange: [0.3, 0.8]
-              })
-            }
+                outputRange: [0.3, 0.8],
+              }),
+            },
           ]}
         >
           {posterUrl ? (
             <Image
-              source={{uri: posterUrl}}
+              source={{ uri: posterUrl }}
               style={styles.poster}
               contentFit="contain"
               transition={200}
@@ -143,13 +154,15 @@ function VideoGridItemComponent({video, onPress, index}: VideoGridItemProps) {
           )}
           {video.CommunityRating && (
             <View style={styles.ratingContainer}>
-              <Text style={styles.ratingText}>⭐ {video.CommunityRating.toFixed(1)}</Text>
+              <Text style={styles.ratingText}>
+                ⭐ {video.CommunityRating.toFixed(1)}
+              </Text>
             </View>
           )}
         </View>
       </Animated.View>
     </TouchableOpacity>
-  )
+  );
 }
 
 /**
@@ -162,27 +175,27 @@ function VideoGridItemComponent({video, onPress, index}: VideoGridItemProps) {
  */
 function arePropsEqual(
   prevProps: VideoGridItemProps,
-  nextProps: VideoGridItemProps
+  nextProps: VideoGridItemProps,
 ): boolean {
   return (
     prevProps.video.Id === nextProps.video.Id &&
     prevProps.video.RunTimeTicks === nextProps.video.RunTimeTicks &&
     prevProps.index === nextProps.index &&
     prevProps.onPress === nextProps.onPress
-  )
+  );
 }
 
 // Export memoized component
-export const VideoGridItem = React.memo(VideoGridItemComponent, arePropsEqual)
+export const VideoGridItem = React.memo(VideoGridItemComponent, arePropsEqual);
 
 const styles = StyleSheet.create({
   container: {
     flex: 1 / (Platform.isTV ? 5 : 3),
-    padding: Platform.isTV ? 16 : 8
+    padding: Platform.isTV ? 16 : 8,
   },
   card: {
     borderRadius: 32,
-    backgroundColor: "transparent"
+    backgroundColor: "transparent",
   },
   imageContainer: {
     width: "100%",
@@ -193,29 +206,29 @@ const styles = StyleSheet.create({
     shadowColor: "#fff",
     shadowOffset: {
       width: 0,
-      height: 8
+      height: 8,
     },
     shadowRadius: 32,
-    elevation: 8
+    elevation: 8,
   },
   focusedContainer: {
     // Additional styling for focused state handled by animations
   },
   poster: {
     width: "100%",
-    height: "100%"
+    height: "100%",
   },
   placeholderPoster: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#1C1C1E"
+    backgroundColor: "#1C1C1E",
   },
   placeholderText: {
     color: "#98989D",
     fontSize: 16,
-    fontWeight: "500"
+    fontWeight: "500",
   },
   durationBadge: {
     position: "absolute",
@@ -224,13 +237,13 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.85)",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 32
+    borderRadius: 32,
   },
   durationText: {
     color: "#FAC400FF",
     fontSize: 13,
     fontWeight: "700",
-    letterSpacing: 0.3
+    letterSpacing: 0.3,
   },
   focusIndicator: {
     position: "absolute",
@@ -241,33 +254,33 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: "#FAC400FF",
     borderRadius: 32,
-    backgroundColor: "transparent"
+    backgroundColor: "transparent",
   },
   infoContainer: {
     paddingTop: 12,
-    paddingHorizontal: 4
+    paddingHorizontal: 4,
   },
   title: {
     color: "#FFFFFF",
     fontSize: Platform.isTV ? 20 : 16,
     fontWeight: "700",
     marginBottom: 4,
-    lineHeight: Platform.isTV ? 26 : 22
+    lineHeight: Platform.isTV ? 26 : 22,
   },
   genre: {
     color: "#98989D",
     fontSize: Platform.isTV ? 16 : 13,
     fontWeight: "500",
-    marginBottom: 4
+    marginBottom: 4,
   },
   ratingContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2
+    marginTop: 2,
   },
   ratingText: {
     color: "#FFD700",
     fontSize: Platform.isTV ? 15 : 13,
-    fontWeight: "600"
-  }
-})
+    fontWeight: "600",
+  },
+});

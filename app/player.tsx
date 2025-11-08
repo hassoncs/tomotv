@@ -1,8 +1,8 @@
-import {useVideoPlayback} from "@/hooks/useVideoPlayback"
-import {Ionicons} from "@expo/vector-icons"
-import {useLocalSearchParams, useRouter} from "expo-router"
-import {VideoView} from "expo-video"
-import React, {useCallback, useEffect, useState} from "react"
+import { useVideoPlayback } from "@/hooks/useVideoPlayback";
+import { Ionicons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { VideoView } from "expo-video";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   BackHandler,
@@ -13,8 +13,8 @@ import {
   Text,
   TouchableOpacity,
   useTVEventHandler,
-  View
-} from "react-native"
+  View,
+} from "react-native";
 
 // Suppress known warnings
 LogBox.ignoreLogs([
@@ -22,116 +22,128 @@ LogBox.ignoreLogs([
   "The `allowsFullscreen` prop is deprecated",
   "JS object is no longer associated",
   "Operation requires a client callback",
-  "Operation requires a client data source"
-])
+  "Operation requires a client data source",
+]);
 
 export default function VideoPlayerScreen() {
-  const params = useLocalSearchParams<{videoId: string; videoName: string}>()
-  const router = useRouter()
+  const params = useLocalSearchParams<{ videoId: string; videoName: string }>();
+  const router = useRouter();
 
   // Use the video playback hook with state machine
-  const {player, state, videoDetails, isAudioOnly, showLoadingOverlay, retry} = useVideoPlayback({
+  const {
+    player,
+    state,
+    videoDetails,
+    isAudioOnly,
+    showLoadingOverlay,
+    retry,
+  } = useVideoPlayback({
     videoId: params.videoId,
-    videoName: params.videoName
-  })
+    videoName: params.videoName,
+  });
 
   // Track playing state for audio UI
-  const [isPlaying, setIsPlaying] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Handle TV remote events
   const handleTVEvent = (evt: any) => {
     if (evt.eventType === "menu") {
-      handleBack()
+      handleBack();
     }
-  }
+  };
 
-  useTVEventHandler(handleTVEvent)
+  useTVEventHandler(handleTVEvent);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
     if (player) {
       try {
-        player.pause()
-      } catch (error) {
+        player.pause();
+      } catch (_error) {
         // Ignore errors - player may already be cleaning up
       }
     }
-    router.back()
-  }, [player, router])
+    router.back();
+  }, [player, router]);
 
   // Handle Android TV back button
   useEffect(() => {
     if (Platform.OS === "android") {
-      const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-        handleBack()
-        return true
-      })
+      const backHandler = BackHandler.addEventListener(
+        "hardwareBackPress",
+        () => {
+          handleBack();
+          return true;
+        },
+      );
 
-      return () => backHandler.remove()
+      return () => backHandler.remove();
     }
-  }, [handleBack])
+  }, [handleBack]);
 
   // Pause player when entering error state
   useEffect(() => {
     if (state.type === "ERROR" && player) {
       try {
-        player.pause()
-      } catch (error) {
+        player.pause();
+      } catch (_error) {
         // Ignore errors - player may not be initialized
       }
     }
-  }, [state.type, player])
+  }, [state.type, player]);
 
   // Listen to player state for audio UI
   useEffect(() => {
-    if (!player || !isAudioOnly) return
+    if (!player || !isAudioOnly) return;
 
-    const subscription = player.addListener("playingChange", payload => {
+    const subscription = player.addListener("playingChange", (payload) => {
       // Ensure state update happens on main thread to avoid threading crashes
       InteractionManager.runAfterInteractions(() => {
-        setIsPlaying(payload.isPlaying)
-      })
-    })
+        setIsPlaying(payload.isPlaying);
+      });
+    });
 
     return () => {
-      subscription.remove()
-    }
-  }, [player, isAudioOnly])
+      subscription.remove();
+    };
+  }, [player, isAudioOnly]);
 
   // Toggle play/pause for audio
   const handlePlayPause = useCallback(() => {
-    if (!player) return
+    if (!player) return;
 
     try {
       if (isPlaying) {
-        player.pause()
+        player.pause();
       } else {
-        player.play()
+        player.play();
       }
     } catch (error) {
-      console.error("Error toggling playback:", error)
+      console.error("Error toggling playback:", error);
     }
-  }, [player, isPlaying])
+  }, [player, isPlaying]);
 
   // Render error state
   if (state.type === "ERROR") {
-    const {error} = state
-    const mode = videoDetails ? "Transcoding" : "Direct Play"
+    const { error } = state;
+    const mode = videoDetails ? "Transcoding" : "Direct Play";
 
-    let errorDetails = `${error}\n\n`
-    errorDetails += `Mode: ${mode}\n`
-    errorDetails += `Video: ${params.videoName}\n\n`
+    let errorDetails = `${error}\n\n`;
+    errorDetails += `Mode: ${mode}\n`;
+    errorDetails += `Video: ${params.videoName}\n\n`;
 
     if (mode === "Transcoding") {
-      errorDetails += "⚠️ TRANSCODING FAILED\n\n"
-      errorDetails += "Your Jellyfin server may not have transcoding enabled.\n\n"
-      errorDetails += "To fix this:\n"
-      errorDetails += "1. Open Jellyfin Dashboard\n"
-      errorDetails += "2. Go to Playback → Transcoding\n"
-      errorDetails += "3. Enable hardware acceleration or install FFmpeg\n\n"
-      errorDetails += "Alternative: Try a device that supports this codec directly."
+      errorDetails += "⚠️ TRANSCODING FAILED\n\n";
+      errorDetails +=
+        "Your Jellyfin server may not have transcoding enabled.\n\n";
+      errorDetails += "To fix this:\n";
+      errorDetails += "1. Open Jellyfin Dashboard\n";
+      errorDetails += "2. Go to Playback → Transcoding\n";
+      errorDetails += "3. Enable hardware acceleration or install FFmpeg\n\n";
+      errorDetails +=
+        "Alternative: Try a device that supports this codec directly.";
     } else {
-      errorDetails += "Video codec not supported for direct play."
+      errorDetails += "Video codec not supported for direct play.";
     }
 
     return (
@@ -142,11 +154,14 @@ export default function VideoPlayerScreen() {
         <TouchableOpacity style={styles.retryButton} onPress={retry}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.retryButton, styles.backButton]} onPress={handleBack}>
+        <TouchableOpacity
+          style={[styles.retryButton, styles.backButton]}
+          onPress={handleBack}
+        >
           <Text style={styles.retryButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
-    )
+    );
   }
 
   // Render audio-only player (no VideoView to avoid threading issues)
@@ -155,7 +170,11 @@ export default function VideoPlayerScreen() {
       <View style={styles.container}>
         {/* Audio UI - No VideoView component */}
         <View style={styles.audioContainer}>
-          <Ionicons name="musical-notes" size={Platform.isTV ? 120 : 80} color="rgba(255, 255, 255, 0.8)" />
+          <Ionicons
+            name="musical-notes"
+            size={Platform.isTV ? 120 : 80}
+            color="rgba(255, 255, 255, 0.8)"
+          />
           <Text style={styles.audioTitle}>{params.videoName}</Text>
           <Text style={styles.audioSubtitle}>Audio File</Text>
 
@@ -167,7 +186,11 @@ export default function VideoPlayerScreen() {
               isTVSelectable={true}
               hasTVPreferredFocus={true}
             >
-              <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
+              <Ionicons
+                name={isPlaying ? "pause" : "play"}
+                size={Platform.isTV ? 48 : 36}
+                color="#FFFFFF"
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -179,7 +202,7 @@ export default function VideoPlayerScreen() {
           </TouchableOpacity>
         )}
       </View>
-    )
+    );
   }
 
   // Render video player with native controls
@@ -202,7 +225,9 @@ export default function VideoPlayerScreen() {
           {"mode" in state && state.mode === "transcode" && (
             <View style={styles.encodingMessageContainer}>
               <Text style={styles.encodingTitle}>Transcoding Video</Text>
-              <Text style={styles.encodingSubtitle}>Codec not compatible • Converting to H.264</Text>
+              <Text style={styles.encodingSubtitle}>
+                Codec not compatible • Converting to H.264
+              </Text>
             </View>
           )}
         </View>
@@ -215,44 +240,44 @@ export default function VideoPlayerScreen() {
         </TouchableOpacity>
       )}
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000000"
+    backgroundColor: "#000000",
   },
   video: {
     flex: 1,
     width: "100%",
-    height: "100%"
+    height: "100%",
   },
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#000000",
-    zIndex: 100
+    zIndex: 100,
   },
   encodingMessageContainer: {
     marginTop: 24,
     alignItems: "center",
-    paddingHorizontal: 40
+    paddingHorizontal: 40,
   },
   encodingTitle: {
     fontSize: Platform.isTV ? 24 : 18,
     fontWeight: "600",
     color: "#FFFFFF",
     marginBottom: 6,
-    letterSpacing: 0.3
+    letterSpacing: 0.3,
   },
   encodingSubtitle: {
     fontSize: Platform.isTV ? 18 : 14,
     fontWeight: "400",
     color: "rgba(255, 255, 255, 0.7)",
     textAlign: "center",
-    letterSpacing: 0.2
+    letterSpacing: 0.2,
   },
   iosBackButton: {
     position: "absolute",
@@ -264,14 +289,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.7)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000
+    zIndex: 1000,
   },
   audioContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#000000",
-    padding: 40
+    padding: 40,
   },
   audioTitle: {
     marginTop: 32,
@@ -279,14 +304,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
     textAlign: "center",
-    paddingHorizontal: 40
+    paddingHorizontal: 40,
   },
   audioSubtitle: {
     marginTop: 12,
     fontSize: Platform.isTV ? 20 : 16,
     fontWeight: "400",
     color: "rgba(255, 255, 255, 0.6)",
-    textAlign: "center"
+    textAlign: "center",
   },
   playPauseButton: {
     marginTop: 48,
@@ -297,43 +322,43 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: "rgba(0, 122, 255, 1)",
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
   },
   errorContainer: {
     flex: 1,
     backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
-    padding: 40
+    padding: 40,
   },
   errorTitle: {
     marginTop: 16,
     fontSize: 28,
     fontWeight: "700",
     color: "#FFFFFF",
-    textAlign: "center"
+    textAlign: "center",
   },
   errorText: {
     marginTop: 8,
     fontSize: 18,
     color: "#98989D",
     textAlign: "center",
-    lineHeight: 26
+    lineHeight: 26,
   },
   retryButton: {
     marginTop: 24,
     paddingHorizontal: 32,
     paddingVertical: 12,
     backgroundColor: "#007AFF",
-    borderRadius: 8
+    borderRadius: 8,
   },
   retryButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#FFFFFF"
+    color: "#FFFFFF",
   },
   backButton: {
     backgroundColor: "#8E8E93",
-    marginTop: 12
-  }
-})
+    marginTop: 12,
+  },
+});

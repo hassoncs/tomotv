@@ -5,21 +5,21 @@
  * Tests the callback pattern without depending on React Native native modules.
  */
 
-describe('Player Component Threading Safety Pattern', () => {
+describe("Player Component Threading Safety Pattern", () => {
   // Mock callback runner for testing the pattern
   const mockCallbackRunner = {
     runAfterInteractions: jest.fn((callback) => {
       if (callback) callback();
       return { cancel: jest.fn() };
-    })
+    }),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('Audio Player State Update Pattern', () => {
-    it('should wrap setIsPlaying updates in callback', () => {
+  describe("Audio Player State Update Pattern", () => {
+    it("should wrap setIsPlaying updates in callback", () => {
       const mockSetIsPlaying = jest.fn();
 
       // This is the pattern used in player.tsx for audio files
@@ -39,7 +39,7 @@ describe('Player Component Threading Safety Pattern', () => {
       expect(mockSetIsPlaying).toHaveBeenCalledWith(false);
     });
 
-    it('should handle rapid state changes safely', () => {
+    it("should handle rapid state changes safely", () => {
       const mockSetIsPlaying = jest.fn();
 
       const playerListener = (payload: { isPlaying: boolean }) => {
@@ -61,8 +61,8 @@ describe('Player Component Threading Safety Pattern', () => {
     });
   });
 
-  describe('Audio Player Listener Lifecycle', () => {
-    it('should demonstrate safe listener setup and cleanup', () => {
+  describe("Audio Player Listener Lifecycle", () => {
+    it("should demonstrate safe listener setup and cleanup", () => {
       const listeners = new Map();
       const mockPlayer = {
         addListener: jest.fn((event: string, callback: Function) => {
@@ -78,69 +78,73 @@ describe('Player Component Threading Safety Pattern', () => {
               if (index > -1) {
                 list.splice(index, 1);
               }
-            })
+            }),
           };
-        })
+        }),
       };
 
       const mockSetIsPlaying = jest.fn();
 
       // Setup listener (like in player.tsx useEffect)
-      const subscription = mockPlayer.addListener('playingChange', (payload: any) => {
-        mockCallbackRunner.runAfterInteractions(() => {
-          mockSetIsPlaying(payload.isPlaying);
-        });
-      });
+      const subscription = mockPlayer.addListener(
+        "playingChange",
+        (payload: any) => {
+          mockCallbackRunner.runAfterInteractions(() => {
+            mockSetIsPlaying(payload.isPlaying);
+          });
+        },
+      );
 
       // Trigger event
-      listeners.get('playingChange').forEach((cb: Function) =>
-        cb({ isPlaying: true })
-      );
+      listeners
+        .get("playingChange")
+        .forEach((cb: Function) => cb({ isPlaying: true }));
 
       expect(mockSetIsPlaying).toHaveBeenCalledWith(true);
 
       // Cleanup
       subscription.remove();
-      expect(listeners.get('playingChange')).toHaveLength(0);
+      expect(listeners.get("playingChange")).toHaveLength(0);
     });
   });
 
-  describe('Error State Rendering', () => {
-    it('should handle error state without threading violations', () => {
+  describe("Error State Rendering", () => {
+    it("should handle error state without threading violations", () => {
       // Error state objects used in player.tsx
       const errorStates = [
         {
-          type: 'ERROR',
-          error: 'This video file appears to be corrupted or in an unsupported format',
-          canRetryWithTranscode: false
+          type: "ERROR",
+          error:
+            "This video file appears to be corrupted or in an unsupported format",
+          canRetryWithTranscode: false,
         },
         {
-          type: 'ERROR',
-          error: 'Network error: Unable to connect to the server',
-          canRetryWithTranscode: true
+          type: "ERROR",
+          error: "Network error: Unable to connect to the server",
+          canRetryWithTranscode: true,
         },
         {
-          type: 'ERROR',
-          error: 'Failed to load video details',
-          canRetryWithTranscode: false
-        }
+          type: "ERROR",
+          error: "Failed to load video details",
+          canRetryWithTranscode: false,
+        },
       ];
 
       errorStates.forEach((state) => {
         // Verify error state structure
-        expect(state).toHaveProperty('type', 'ERROR');
-        expect(state).toHaveProperty('error');
-        expect(state).toHaveProperty('canRetryWithTranscode');
-        expect(typeof state.error).toBe('string');
+        expect(state).toHaveProperty("type", "ERROR");
+        expect(state).toHaveProperty("error");
+        expect(state).toHaveProperty("canRetryWithTranscode");
+        expect(typeof state.error).toBe("string");
       });
     });
   });
 
-  describe('Back Handler Pattern', () => {
-    it('should safely pause player on back navigation', () => {
+  describe("Back Handler Pattern", () => {
+    it("should safely pause player on back navigation", () => {
       const mockPlayer = {
         pause: jest.fn(),
-        play: jest.fn()
+        play: jest.fn(),
       };
 
       const mockRouterBack = jest.fn();
@@ -150,7 +154,7 @@ describe('Player Component Threading Safety Pattern', () => {
         if (mockPlayer) {
           try {
             mockPlayer.pause();
-          } catch (error) {
+          } catch (_error) {
             // Ignore errors - player may already be cleaning up
           }
         }
@@ -163,11 +167,11 @@ describe('Player Component Threading Safety Pattern', () => {
       expect(mockRouterBack).toHaveBeenCalled();
     });
 
-    it('should handle pause errors gracefully', () => {
+    it("should handle pause errors gracefully", () => {
       const mockPlayer = {
         pause: jest.fn(() => {
-          throw new Error('Player already disposed');
-        })
+          throw new Error("Player already disposed");
+        }),
       };
 
       const mockRouterBack = jest.fn();
@@ -176,7 +180,7 @@ describe('Player Component Threading Safety Pattern', () => {
         if (mockPlayer) {
           try {
             mockPlayer.pause();
-          } catch (error) {
+          } catch (_error) {
             // Ignore errors - expected during cleanup
           }
         }
@@ -189,28 +193,28 @@ describe('Player Component Threading Safety Pattern', () => {
     });
   });
 
-  describe('Player State Transitions', () => {
-    it('should handle state transitions safely', () => {
+  describe("Player State Transitions", () => {
+    it("should handle state transitions safely", () => {
       const states = [
-        { type: 'IDLE' },
-        { type: 'FETCHING_METADATA' },
-        { type: 'CREATING_STREAM', mode: 'direct' },
-        { type: 'INITIALIZING_PLAYER', mode: 'direct' },
-        { type: 'READY', mode: 'direct' },
-        { type: 'PLAYING', mode: 'direct' },
-        { type: 'ERROR', error: 'Test error', canRetryWithTranscode: false }
+        { type: "IDLE" },
+        { type: "FETCHING_METADATA" },
+        { type: "CREATING_STREAM", mode: "direct" },
+        { type: "INITIALIZING_PLAYER", mode: "direct" },
+        { type: "READY", mode: "direct" },
+        { type: "PLAYING", mode: "direct" },
+        { type: "ERROR", error: "Test error", canRetryWithTranscode: false },
       ];
 
       // All states should be valid objects
       states.forEach((state) => {
-        expect(state).toHaveProperty('type');
-        expect(typeof state.type).toBe('string');
+        expect(state).toHaveProperty("type");
+        expect(typeof state.type).toBe("string");
       });
     });
   });
 
-  describe('Integration: Complete Audio Player Flow', () => {
-    it('should demonstrate complete threading-safe audio player', () => {
+  describe("Integration: Complete Audio Player Flow", () => {
+    it("should demonstrate complete threading-safe audio player", () => {
       const listeners = new Map();
       const mockPlayer = {
         playing: false,
@@ -224,33 +228,36 @@ describe('Player Component Threading Safety Pattern', () => {
               const list = listeners.get(event);
               const index = list.indexOf(callback);
               if (index > -1) list.splice(index, 1);
-            })
+            }),
           };
         }),
         play: jest.fn(() => {
           mockPlayer.playing = true;
-          listeners.get('playingChange')?.forEach((cb: Function) =>
-            cb({ isPlaying: true })
-          );
+          listeners
+            .get("playingChange")
+            ?.forEach((cb: Function) => cb({ isPlaying: true }));
         }),
         pause: jest.fn(() => {
           mockPlayer.playing = false;
-          listeners.get('playingChange')?.forEach((cb: Function) =>
-            cb({ isPlaying: false })
-          );
-        })
+          listeners
+            .get("playingChange")
+            ?.forEach((cb: Function) => cb({ isPlaying: false }));
+        }),
       };
 
       const mockSetIsPlaying = jest.fn();
       let isPlaying = false;
 
       // Setup listener with callback (like player.tsx)
-      const subscription = mockPlayer.addListener('playingChange', (payload: any) => {
-        mockCallbackRunner.runAfterInteractions(() => {
-          isPlaying = payload.isPlaying;
-          mockSetIsPlaying(payload.isPlaying);
-        });
-      });
+      const subscription = mockPlayer.addListener(
+        "playingChange",
+        (payload: any) => {
+          mockCallbackRunner.runAfterInteractions(() => {
+            isPlaying = payload.isPlaying;
+            mockSetIsPlaying(payload.isPlaying);
+          });
+        },
+      );
 
       // Test play
       mockPlayer.play();
@@ -265,7 +272,7 @@ describe('Player Component Threading Safety Pattern', () => {
 
       // Cleanup
       subscription.remove();
-      expect(listeners.get('playingChange')).toHaveLength(0);
+      expect(listeners.get("playingChange")).toHaveLength(0);
     });
   });
 });
