@@ -24,6 +24,8 @@ LogBox.ignoreLogs([
   "JS object is no longer associated",
   "Operation requires a client callback",
   "Operation requires a client data source",
+  "Cannot Open", // Direct play failures that trigger automatic transcoding retry
+  "Failed to load the player item", // Player errors during automatic retry
 ]);
 
 export default function VideoPlayerScreen() {
@@ -130,8 +132,33 @@ export default function VideoPlayerScreen() {
     }
   }, [player, isPlaying]);
 
-  // Render error state
+  // Render error state (but not if auto-retry is in progress)
   if (state.type === "ERROR") {
+    // If we can retry with transcoding, show loading overlay instead of error
+    // This prevents flashing an error message during automatic retry
+    if (state.canRetryWithTranscode) {
+      return (
+        <View style={styles.container}>
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+            <View style={styles.encodingMessageContainer}>
+              <Text style={styles.encodingTitle}>Retrying with Transcoding</Text>
+              <Text style={styles.encodingSubtitle}>
+                Direct play failed • Converting to H.264
+              </Text>
+            </View>
+          </View>
+          {/* Back button for iOS */}
+          {!Platform.isTV && (
+            <TouchableOpacity style={styles.iosBackButton} onPress={handleBack}>
+              <Ionicons name="close" size={30} color="#FFFFFF" />
+            </TouchableOpacity>
+          )}
+        </View>
+      );
+    }
+
+    // Only show error UI if retry is not possible or has already failed
     const { error } = state;
     const mode = videoDetails ? "Transcoding" : "Direct Play";
 

@@ -455,7 +455,15 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           logger.info('Audio-only file - skipping auto-play, user must tap play button', {service: 'useVideoPlayback'});
         }
       } else if (payload.status === 'error') {
-        logger.error('Playback error', payload.error, {service: 'useVideoPlayback'});
+        const currentMode = getCurrentMode();
+        const willRetryWithTranscode = currentMode === 'direct' && !hasTriedTranscoding;
+
+        // Log at INFO level if we'll auto-retry, ERROR level if this is a real failure
+        if (willRetryWithTranscode) {
+          logger.info('Direct play failed, will retry with transcoding', payload.error, {service: 'useVideoPlayback'});
+        } else {
+          logger.error('Playback error', payload.error, {service: 'useVideoPlayback'});
+        }
 
         // Provide user-friendly error message based on error type
         let errorMessage = 'Failed to play video';
@@ -482,7 +490,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           dispatch({
             type: 'PLAYER_ERROR',
             error: { message: errorMessage },
-            mode: getCurrentMode(),
+            mode: currentMode,
             hasTriedTranscode: hasTriedTranscoding,
           });
         });
@@ -567,7 +575,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       return;
     }
 
-    logger.info('Direct play failed, will retry with transcoding', {service: 'useVideoPlayback'});
+    // Note: Already logged in player error handler above
     setHasTriedTranscoding(true);
     autoPlayTriggeredRef.current = false;
 
