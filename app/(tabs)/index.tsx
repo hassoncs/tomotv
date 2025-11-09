@@ -57,22 +57,22 @@ export default function VideoLibraryScreen() {
         console.log("========================");
       }
 
-      let serverUrl = "";
-      if (serverIp && serverIp.trim()) {
-        const ip = serverIp.trim();
-        const port = serverPort?.trim() || "8096";
-        const protocol = serverProtocol?.trim() || "http";
+      // let serverUrl = "";
+      // if (serverIp && serverIp.trim()) {
+      //   const ip = serverIp.trim();
+      //   const port = serverPort?.trim() || "8096";
+      //   const protocol = serverProtocol?.trim() || "http";
 
-        serverUrl = `${protocol}://${ip}:${port}`;
-      } else {
-        const devServer = process.env.EXPO_PUBLIC_DEV_JELLYFIN_SERVER;
+      //   serverUrl = `${protocol}://${ip}:${port}`;
+      // } else {
+      //   const devServer = process.env.EXPO_PUBLIC_DEV_JELLYFIN_SERVER;
 
-        if (devServer) {
-          serverUrl = devServer;
-        } else {
-          serverUrl = "JELLYFIN";
-        }
-      }
+      //   if (devServer) {
+      //     serverUrl = devServer;
+      //   } else {
+      //     serverUrl = "JELLYFIN";
+      //   }
+      // }
 
       const libraryName = await fetchLibraryName();
 
@@ -164,6 +164,7 @@ export default function VideoLibraryScreen() {
 
     if (error) {
       const isConfigError = error.includes("not configured");
+
       return (
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
@@ -241,7 +242,7 @@ export default function VideoLibraryScreen() {
       <View style={styles.serverLabelContainer}>
         <View style={styles.serverLabelWrapper}>
           <Text style={styles.serverLabel} numberOfLines={1}>
-            {serverInfo || "JELLYFIN"}
+            lib: {serverInfo || "JELLYFIN"}
           </Text>
         </View>
       </View>
@@ -296,6 +297,7 @@ const styles = StyleSheet.create({
     fontWeight: "300",
     letterSpacing: 1.5,
     textAlign: "center",
+    textTransform: "uppercase",
   },
   gridContent: {
     paddingTop: Platform.isTV ? 40 : 20,

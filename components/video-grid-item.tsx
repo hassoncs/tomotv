@@ -1,8 +1,4 @@
-import {
-  formatDuration,
-  getPosterUrl,
-  hasPoster,
-} from "@/services/jellyfinApi";
+import { getPosterUrl, hasPoster } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
@@ -50,7 +46,7 @@ function VideoGridItemComponent({ video, onPress, index }: VideoGridItemProps) {
   // Only compute poster URL - this is always needed for display
   const posterUrl = useMemo(
     () => (hasPoster(video) ? getPosterUrl(video.Id, POSTER_SIZE) : undefined),
-    [video.Id], // Only video ID needed, not entire video object
+    [video], // Only video ID needed, not entire video object
   );
 
   // Lazy compute metadata ONLY when focused - huge performance win!
