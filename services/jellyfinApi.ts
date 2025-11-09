@@ -315,7 +315,7 @@ export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
     // Wrap the fetch operation with retry logic
     return await retryWithBackoff(
       async () => {
-        const url = `${config.server}/Users/${config.userId}/Items?Recursive=true&IncludeItemTypes=Movie,Video&Fields=Path,MediaStreams,Overview,PremiereDate,CommunityRating,OfficialRating,Genres`;
+        const url = `${config.server}/Users/${config.userId}/Items?Recursive=true&IncludeItemTypes=Movie,Video&Fields=Path,MediaStreams,Genres`;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout

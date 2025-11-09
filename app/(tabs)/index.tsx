@@ -192,10 +192,17 @@ export default function VideoLibraryScreen() {
   const getItemLayout = useCallback(
     (_: ArrayLike<JellyfinVideoItem> | null | undefined, index: number) => ({
       length: itemDimensions.itemHeight,
-      offset: itemDimensions.itemHeight * index,
+      offset: itemDimensions.itemHeight * Math.floor(index / numColumns),
       index
     }),
-    [itemDimensions]
+    [itemDimensions, numColumns]
+  )
+
+  const renderItem = useCallback(
+    ({item, index}: {item: JellyfinVideoItem; index: number}) => (
+      <VideoGridItem video={item} onPress={handleVideoPress} index={index} />
+    ),
+    [handleVideoPress]
   )
 
   return (
@@ -212,7 +219,7 @@ export default function VideoLibraryScreen() {
       ) : (
         <FlatList
           data={videos}
-          renderItem={({item, index}) => <VideoGridItem video={item} onPress={handleVideoPress} index={index} />}
+          renderItem={renderItem}
           keyExtractor={item => item.Id}
           getItemLayout={getItemLayout}
           numColumns={numColumns}
@@ -221,9 +228,9 @@ export default function VideoLibraryScreen() {
           columnWrapperStyle={styles.columnWrapper}
           showsVerticalScrollIndicator={true}
           updateCellsBatchingPeriod={100}
-          initialNumToRender={15}
-          maxToRenderPerBatch={15}
-          windowSize={5}
+          initialNumToRender={Platform.isTV ? 10 : 9}
+          maxToRenderPerBatch={Platform.isTV ? 10 : 9}
+          windowSize={3}
           contentInsetAdjustmentBehavior="automatic"
           removeClippedSubviews={true}
         />

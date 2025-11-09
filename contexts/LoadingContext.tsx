@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
 import { View, ActivityIndicator, StyleSheet, Modal } from 'react-native';
 
 interface LoadingContextType {
@@ -12,16 +12,21 @@ const LoadingContext = createContext<LoadingContextType | undefined>(undefined);
 export function LoadingProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(false);
 
-  const showGlobalLoader = () => {
+  const showGlobalLoader = useCallback(() => {
     setIsLoading(true);
-  };
+  }, []);
 
-  const hideGlobalLoader = () => {
+  const hideGlobalLoader = useCallback(() => {
     setIsLoading(false);
-  };
+  }, []);
+
+  const value = useMemo(
+    () => ({ showGlobalLoader, hideGlobalLoader, isLoading }),
+    [showGlobalLoader, hideGlobalLoader, isLoading]
+  );
 
   return (
-    <LoadingContext.Provider value={{ showGlobalLoader, hideGlobalLoader, isLoading }}>
+    <LoadingContext.Provider value={value}>
       {children}
       <Modal
         visible={isLoading}
