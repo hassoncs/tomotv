@@ -142,7 +142,9 @@ export default function VideoPlayerScreen() {
           <View style={styles.loadingOverlay}>
             <ActivityIndicator size="large" color="#FFFFFF" />
             <View style={styles.encodingMessageContainer}>
-              <Text style={styles.encodingTitle}>Retrying with Transcoding</Text>
+              <Text style={styles.encodingTitle}>
+                Retrying with Transcoding
+              </Text>
               <Text style={styles.encodingSubtitle}>
                 Direct play failed • Converting to H.264
               </Text>

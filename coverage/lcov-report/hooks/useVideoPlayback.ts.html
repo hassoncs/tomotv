@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/241</span>
+                <span class='fraction'>0/243</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/181</span>
+                <span class='fraction'>0/183</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/225</span>
+                <span class='fraction'>0/227</span>
             </div>
         
             
@@ -697,7 +697,14 @@
 <a name='L632'></a><a href='#L632'>632</a>
 <a name='L633'></a><a href='#L633'>633</a>
 <a name='L634'></a><a href='#L634'>634</a>
-<a name='L635'></a><a href='#L635'>635</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L635'></a><a href='#L635'>635</a>
+<a name='L636'></a><a href='#L636'>636</a>
+<a name='L637'></a><a href='#L637'>637</a>
+<a name='L638'></a><a href='#L638'>638</a>
+<a name='L639'></a><a href='#L639'>639</a>
+<a name='L640'></a><a href='#L640'>640</a>
+<a name='L641'></a><a href='#L641'>641</a>
+<a name='L642'></a><a href='#L642'>642</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1110,7 +1117,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1130,8 +1136,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1149,13 +1155,21 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1267,7 +1281,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1743,7 +1757,6 @@ export function <span class="fstat-no" title="function not covered" >useVideoPla
 &nbsp;
         // Auto-play on first ready (but skip for audio-only files)
 <span class="cstat-no" title="statement not covered" >        if (!autoPlayTriggeredRef.current &amp;&amp; isMountedRef.current &amp;&amp; !isAudio) {</span>
-<span class="cstat-no" title="statement not covered" >          autoPlayTriggeredRef.current = true;</span>
 <span class="cstat-no" title="statement not covered" >          logger.debug('Scheduling auto-play', {service: 'useVideoPlayback'});</span>
 &nbsp;
           // Clear any existing timer
@@ -1762,10 +1775,10 @@ export function <span class="fstat-no" title="function not covered" >useVideoPla
 <span class="cstat-no" title="statement not covered" >              if (!isMountedRef.current) <span class="cstat-no" title="statement not covered" >return;</span></span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >              try {</span>
-<span class="cstat-no" title="statement not covered" >                if (player.status === 'readyToPlay') {</span>
-<span class="cstat-no" title="statement not covered" >                  logger.debug('Calling play()', {service: 'useVideoPlayback'});</span>
-<span class="cstat-no" title="statement not covered" >                  player.play();</span>
-                }
+<span class="cstat-no" title="statement not covered" >                logger.debug('Calling play()', {service: 'useVideoPlayback'});</span>
+<span class="cstat-no" title="statement not covered" >                player.play();</span>
+                // Only mark as triggered after successful play
+<span class="cstat-no" title="statement not covered" >                autoPlayTriggeredRef.current = true;</span>
               } catch (error) {
 <span class="cstat-no" title="statement not covered" >                logger.error('Error calling play()', error, {service: 'useVideoPlayback'});</span>
                 // Dispatch error on main thread
@@ -1789,7 +1802,15 @@ export function <span class="fstat-no" title="function not covered" >useVideoPla
 <span class="cstat-no" title="statement not covered" >          logger.info('Audio-only file - skipping auto-play, user must tap play button', {service: 'useVideoPlayback'});</span>
         }
       } else <span class="cstat-no" title="statement not covered" >if (payload.status === 'error') {</span>
-<span class="cstat-no" title="statement not covered" >        logger.error('Playback error', payload.error, {service: 'useVideoPlayback'});</span>
+        const currentMode = <span class="cstat-no" title="statement not covered" >getCurrentMode();</span>
+        const willRetryWithTranscode = <span class="cstat-no" title="statement not covered" >currentMode === 'direct' &amp;&amp; !hasTriedTranscoding;</span>
+&nbsp;
+        // Log at INFO level if we'll auto-retry, ERROR level if this is a real failure
+<span class="cstat-no" title="statement not covered" >        if (willRetryWithTranscode) {</span>
+<span class="cstat-no" title="statement not covered" >          logger.info('Direct play failed, will retry with transcoding', payload.error, {service: 'useVideoPlayback'});</span>
+        } else {
+<span class="cstat-no" title="statement not covered" >          logger.error('Playback error', payload.error, {service: 'useVideoPlayback'});</span>
+        }
 &nbsp;
         // Provide user-friendly error message based on error type
         let errorMessage = <span class="cstat-no" title="statement not covered" >'Failed to play video';</span>
@@ -1816,7 +1837,7 @@ export function <span class="fstat-no" title="function not covered" >useVideoPla
 <span class="cstat-no" title="statement not covered" >          dispatch({</span>
             type: 'PLAYER_ERROR',
             error: { message: errorMessage },
-            mode: getCurrentMode(),
+            mode: currentMode,
             hasTriedTranscode: hasTriedTranscoding,
           });
         });
@@ -1901,7 +1922,7 @@ export function <span class="fstat-no" title="function not covered" >useVideoPla
 <span class="cstat-no" title="statement not covered" >      return;</span>
     }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >    logger.info('Direct play failed, will retry with transcoding', {service: 'useVideoPlayback'});</span>
+    // Note: Already logged in player error handler above
 <span class="cstat-no" title="statement not covered" >    setHasTriedTranscoding(true);</span>
 <span class="cstat-no" title="statement not covered" >    autoPlayTriggeredRef.current = false;</span>
 &nbsp;
@@ -1972,7 +1993,7 @@ export function <span class="fstat-no" title="function not covered" >useVideoPla
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2025-11-08T18:41:57.486Z
+                at 2025-11-09T19:33:24.743Z
             </div>
         <script src="../prettify.js"></script>
         <script>

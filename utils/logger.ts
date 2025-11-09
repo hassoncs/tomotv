@@ -55,9 +55,15 @@ class Logger {
       case 'debug':
       case 'info':
         console.log(formattedMessage);
+        if (error) {
+          console.log(error);
+        }
         break;
       case 'warn':
         console.warn(formattedMessage);
+        if (error) {
+          console.warn(error);
+        }
         break;
       case 'error':
         console.error(formattedMessage);
@@ -81,17 +87,27 @@ class Logger {
   }
 
   /**
-   * Log informational messages
+   * Log informational messages with optional error object
    */
-  info(message: string, context?: LogContext): void {
-    this.log('info', message, undefined, context);
+  info(message: string, error?: Error | any, context?: LogContext): void {
+    // If second argument is not an error-like object, treat it as context
+    if (error && typeof error === 'object' && !('message' in error || 'stack' in error)) {
+      this.log('info', message, undefined, error as LogContext);
+    } else {
+      this.log('info', message, error, context);
+    }
   }
 
   /**
-   * Log warning messages
+   * Log warning messages with optional error object
    */
-  warn(message: string, context?: LogContext): void {
-    this.log('warn', message, undefined, context);
+  warn(message: string, error?: Error | any, context?: LogContext): void {
+    // If second argument is not an error-like object, treat it as context
+    if (error && typeof error === 'object' && !('message' in error || 'stack' in error)) {
+      this.log('warn', message, undefined, error as LogContext);
+    } else {
+      this.log('warn', message, error, context);
+    }
   }
 
   /**
