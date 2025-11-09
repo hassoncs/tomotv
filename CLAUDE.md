@@ -148,6 +148,11 @@ The app is optimized for Apple TV:
 - **Remote Events**: `useTVEventHandler` for Menu button handling
 - **Grid Layout**: 5 columns on TV vs 3 on mobile (`Platform.isTV` checks)
 - **Type Augmentation**: `types/react-native-tvos.d.ts` adds TV props to TouchableOpacity
+- **Multilayer Icons**: tvOS uses parallax 3D icons with front/middle/back layers
+  - Icon layers stored in `assets/images/icon/` (front.png, middle.png, back.png)
+  - **Manual setup required**: Must be configured in Xcode after `npm run prebuild`
+  - See [TVOS_ICONS.md](TVOS_ICONS.md) for complete setup instructions
+  - **Important**: Expo's `app.json` does not support automatic multilayer icon generation
 
 ### Settings & Configuration
 

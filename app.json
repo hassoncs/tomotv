@@ -21,18 +21,6 @@
         "NSBonjourServices": ["_jellyfin._tcp"]
       }
     },
-    "tvos": {
-      "bundleIdentifier": "dev.keiver.tomotv",
-      "infoPlist": {
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
-          "NSAllowsLocalNetworking": true
-        },
-        "NSLocalNetworkUsageDescription": "TomoTV needs to access your local network to connect to your Jellyfin media server.",
-        "NSBonjourServices": ["_jellyfin._tcp"],
-        "UIUserInterfaceStyle": "Automatic"
-      }
-    },
     "plugins": [
       "expo-router",
       [
