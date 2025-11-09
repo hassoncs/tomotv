@@ -142,7 +142,7 @@ function VideoGridItemComponent({video, onPress, index}: VideoGridItemProps) {
               source={{uri: posterUrl}}
               style={styles.poster}
               contentFit="contain"
-              transition={200}
+              transition={100}
               priority="high"
               cachePolicy="memory-disk"
               placeholder={require("@/assets/images/icon.png")}
@@ -154,54 +154,70 @@ function VideoGridItemComponent({video, onPress, index}: VideoGridItemProps) {
             </View>
           )}
 
-          {/* Duration Badge */}
-          <View style={styles.durationBadge}>
-            <Text style={styles.durationText}>{duration}</Text>
-          </View>
-
           {/* Focus Indicator */}
           {focused && Platform.isTV && <View style={styles.focusIndicator} />}
 
-          {/* Bottom Info Section with Blur */}
-          <BlurView
-            intensity={80}
-            style={[styles.infoOverlay, focused ? styles.infoOverlayFocused : styles.infoOverlayUnfocused]}
-            tint="dark"
-          >
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Video:</Text>
-              <Text style={styles.infoValue}>{videoCodec}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Audio:</Text>
-              <Text style={styles.infoValue}>{audioCodec}</Text>
-            </View>
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Resolution:</Text>
-              <Text style={styles.infoValue}>{resolution}</Text>
-            </View>
-            {fileSize && (
+          {/* Bottom Info Section with Blur if there is a poster*/}
+          {posterUrl ? (
+            <BlurView
+              intensity={80}
+              style={[styles.infoOverlay, focused ? styles.infoOverlayFocused : styles.infoOverlayUnfocused]}
+              tint="dark"
+            >
               <View style={styles.infoRow}>
-                <Text style={styles.infoLabel}>Size:</Text>
-                <Text style={styles.infoValue}>{fileSize}</Text>
+                <Text style={styles.infoLabel}>Codecs:</Text>
+                <Text style={styles.infoValue}>
+                  {videoCodec} / {audioCodec}
+                </Text>
               </View>
-            )}
-          </BlurView>
-        </Animated.View>
-
-        {/* Video Info */}
-        <View style={styles.infoContainer}>
-          {video.Genres && video.Genres.length > 0 && (
-            <Text style={styles.genre} numberOfLines={1}>
-              {video.Genres.slice(0, 2).join(" • ")}
-            </Text>
-          )}
-          {video.CommunityRating && (
-            <View style={styles.ratingContainer}>
-              <Text style={styles.ratingText}>⭐ {video.CommunityRating.toFixed(1)}</Text>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Resolution:</Text>
+                <Text style={styles.infoValue}>{resolution}</Text>
+              </View>
+              {fileSize && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Size:</Text>
+                  <Text style={styles.infoValue}>
+                    {fileSize} / {duration}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Name:</Text>
+                <Text style={styles.infoValue} numberOfLines={1} lineBreakMode="clip">
+                  {video?.Name || "Unknown"}
+                </Text>
+              </View>
+            </BlurView>
+          ) : (
+            <View style={[styles.infoOverlay, focused ? styles.infoOverlayFocused : styles.infoOverlayUnfocused]}>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Codecs:</Text>
+                <Text style={styles.infoValue}>
+                  {videoCodec} / {audioCodec}
+                </Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Resolution:</Text>
+                <Text style={styles.infoValue}>{resolution}</Text>
+              </View>
+              {fileSize && (
+                <View style={styles.infoRow}>
+                  <Text style={styles.infoLabel}>Size:</Text>
+                  <Text style={styles.infoValue}>
+                    {fileSize} / {duration}
+                  </Text>
+                </View>
+              )}
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Name:</Text>
+                <Text style={styles.infoValue} numberOfLines={1} lineBreakMode="clip">
+                  {video?.Name || "Unknown"}
+                </Text>
+              </View>
             </View>
           )}
-        </View>
+        </Animated.View>
       </Animated.View>
     </TouchableOpacity>
   )
