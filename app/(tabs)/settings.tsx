@@ -63,14 +63,43 @@ const QUALITY_PRESETS = [
   },
 ];
 
+// Helper to get initial env values
+const getInitialEnvValues = () => {
+  let devIp = "";
+  let devPort = "8096";
+  let devProtocol: "http" | "https" = "http";
+
+  const devServerUrl = process.env.EXPO_PUBLIC_DEV_JELLYFIN_SERVER;
+  if (devServerUrl) {
+    try {
+      const url = new URL(devServerUrl);
+      devProtocol = url.protocol.replace(":", "") as "http" | "https";
+      devIp = url.hostname;
+      devPort = url.port || "8096";
+    } catch (e) {
+      console.warn("Failed to parse dev server URL:", e);
+    }
+  }
+
+  return {
+    ip: devIp,
+    port: devPort,
+    protocol: devProtocol,
+    apiKey: process.env.EXPO_PUBLIC_DEV_JELLYFIN_API_KEY || "",
+    userId: process.env.EXPO_PUBLIC_DEV_JELLYFIN_USER_ID || "",
+  };
+};
+
 export default function SettingsScreen() {
-  const [serverIp, setServerIp] = useState("");
-  const [serverPort, setServerPort] = useState("8096");
+  const initialEnv = getInitialEnvValues();
+
+  const [serverIp, setServerIp] = useState(initialEnv.ip);
+  const [serverPort, setServerPort] = useState(initialEnv.port);
   const [serverProtocol, setServerProtocol] = useState<"http" | "https">(
-    "http",
+    initialEnv.protocol,
   );
-  const [apiKey, setApiKey] = useState("");
-  const [userId, setUserId] = useState("");
+  const [apiKey, setApiKey] = useState(initialEnv.apiKey);
+  const [userId, setUserId] = useState(initialEnv.userId);
   const [videoQuality, setVideoQuality] = useState(2); // Default to 720p
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -82,8 +111,15 @@ export default function SettingsScreen() {
   const apiKeyRef = useRef<TextFieldRef>(null);
   const userIdRef = useRef<TextFieldRef>(null);
 
+  // Refs to store current values without causing re-renders
+  const currentServerIp = useRef(serverIp);
+  const currentServerPort = useRef(serverPort);
+  const currentApiKey = useRef(apiKey);
+  const currentUserId = useRef(userId);
+
   useEffect(() => {
     loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadSettings = async () => {
@@ -105,25 +141,34 @@ export default function SettingsScreen() {
         SecureStore.getItemAsync(STORAGE_KEYS.VIDEO_QUALITY),
       ]);
 
-      const ip = savedIp || "";
-      const port = savedPort || "8096";
-      const protocol = (savedProtocol as "http" | "https") || "http";
-      const key = savedKey || "";
-      const uid = savedUserId || "";
-      const quality = savedQuality ? parseInt(savedQuality, 10) : 2; // Default to 720p
+      // Only override state if we have saved values
+      // Otherwise keep the env values that were initialized
+      if (savedIp) {
+        setServerIp(savedIp);
+        currentServerIp.current = savedIp;
+      }
+      if (savedPort) {
+        setServerPort(savedPort);
+        currentServerPort.current = savedPort;
+      }
+      if (savedProtocol) setServerProtocol(savedProtocol as "http" | "https");
+      if (savedKey) {
+        setApiKey(savedKey);
+        currentApiKey.current = savedKey;
+      }
+      if (savedUserId) {
+        setUserId(savedUserId);
+        currentUserId.current = savedUserId;
+      }
+      if (savedQuality) setVideoQuality(parseInt(savedQuality, 10));
 
-      setServerIp(ip);
-      setServerPort(port);
-      setServerProtocol(protocol);
-      setApiKey(key);
-      setUserId(uid);
-      setVideoQuality(quality);
-
-      // Set text in TextField refs
-      serverIpRef.current?.setText(ip);
-      serverPortRef.current?.setText(port);
-      apiKeyRef.current?.setText(key);
-      userIdRef.current?.setText(uid);
+      console.log("Loading settings:", {
+        hasSavedIp: !!savedIp,
+        hasSavedKey: !!savedKey,
+        hasSavedUserId: !!savedUserId,
+        currentIp: savedIp || serverIp,
+        currentPort: savedPort || serverPort,
+      });
     } catch (error) {
       console.error("Error loading settings:", error);
       Alert.alert("Error", "Failed to load settings from iCloud");
@@ -133,25 +178,31 @@ export default function SettingsScreen() {
   };
 
   const validateInputs = (): { valid: boolean; error?: string } => {
+    // Use ref values instead of state
+    const ip = currentServerIp.current;
+    const port = currentServerPort.current;
+    const key = currentApiKey.current;
+    const uid = currentUserId.current;
+
     // Check if fields are filled
-    if (!serverIp.trim()) {
+    if (!ip.trim()) {
       return { valid: false, error: "Please enter a server IP address" };
     }
 
-    if (!serverPort.trim()) {
+    if (!port.trim()) {
       return { valid: false, error: "Please enter a server port" };
     }
 
-    if (!apiKey.trim()) {
+    if (!key.trim()) {
       return { valid: false, error: "Please enter an API key" };
     }
 
-    if (!userId.trim()) {
+    if (!uid.trim()) {
       return { valid: false, error: "Please enter a User ID" };
     }
 
     // Validate server IP format (allow IP addresses, hostnames, localhost - NO PORT in IP field now)
-    const serverIpTrimmed = serverIp.trim();
+    const serverIpTrimmed = ip.trim();
     const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
     const hostnamePattern =
       /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
@@ -170,8 +221,8 @@ export default function SettingsScreen() {
     }
 
     // Validate port
-    const port = parseInt(serverPort.trim(), 10);
-    if (isNaN(port) || port < 1 || port > 65535) {
+    const portNum = parseInt(port.trim(), 10);
+    if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
       return {
         valid: false,
         error: "Invalid port. Must be between 1 and 65535",
@@ -179,7 +230,7 @@ export default function SettingsScreen() {
     }
 
     // Validate API key format (alphanumeric, typically 32 chars but can vary)
-    const apiKeyTrimmed = apiKey.trim();
+    const apiKeyTrimmed = key.trim();
     if (!/^[a-zA-Z0-9]{16,64}$/.test(apiKeyTrimmed)) {
       return {
         valid: false,
@@ -188,7 +239,7 @@ export default function SettingsScreen() {
     }
 
     // Validate User ID format (GUID without dashes or with dashes)
-    const userIdTrimmed = userId.trim();
+    const userIdTrimmed = uid.trim();
     if (
       !/^[a-f0-9]{32}$/.test(userIdTrimmed) &&
       !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(
@@ -216,11 +267,19 @@ export default function SettingsScreen() {
         return;
       }
 
-      // Sanitize and prepare inputs
-      const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "");
-      const sanitizedServerPort = serverPort.trim().replace(/[^0-9]/g, "");
-      const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "");
-      const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "");
+      // Sanitize and prepare inputs (use ref values)
+      const sanitizedServerIp = currentServerIp.current
+        .trim()
+        .replace(/[<>'"]/g, "");
+      const sanitizedServerPort = currentServerPort.current
+        .trim()
+        .replace(/[^0-9]/g, "");
+      const sanitizedApiKey = currentApiKey.current
+        .trim()
+        .replace(/[^a-zA-Z0-9]/g, "");
+      const sanitizedUserId = currentUserId.current
+        .trim()
+        .replace(/[^a-f0-9-]/gi, "");
 
       // Temporarily save to test connection
       await Promise.all([
@@ -265,11 +324,19 @@ export default function SettingsScreen() {
         return;
       }
 
-      // Sanitize inputs to prevent injection attacks
-      const sanitizedServerIp = serverIp.trim().replace(/[<>'"]/g, "");
-      const sanitizedServerPort = serverPort.trim().replace(/[^0-9]/g, "");
-      const sanitizedApiKey = apiKey.trim().replace(/[^a-zA-Z0-9]/g, "");
-      const sanitizedUserId = userId.trim().replace(/[^a-f0-9-]/gi, "");
+      // Sanitize inputs to prevent injection attacks (use ref values)
+      const sanitizedServerIp = currentServerIp.current
+        .trim()
+        .replace(/[<>'"]/g, "");
+      const sanitizedServerPort = currentServerPort.current
+        .trim()
+        .replace(/[^0-9]/g, "");
+      const sanitizedApiKey = currentApiKey.current
+        .trim()
+        .replace(/[^a-zA-Z0-9]/g, "");
+      const sanitizedUserId = currentUserId.current
+        .trim()
+        .replace(/[^a-f0-9-]/gi, "");
 
       // Save to secure store (syncs to iCloud Keychain automatically)
       await Promise.all([
@@ -294,23 +361,63 @@ export default function SettingsScreen() {
     }
   };
 
-  const saveAppSettings = async () => {
+  const handleQualityChange = async (qualityValue: number) => {
     try {
-      setIsSaving(true);
+      setVideoQuality(qualityValue);
 
-      // Save app settings
+      // Save immediately
       await SecureStore.setItemAsync(
         STORAGE_KEYS.VIDEO_QUALITY,
-        videoQuality.toString(),
+        qualityValue.toString(),
       );
 
-      const qualityLabel = QUALITY_PRESETS[videoQuality]?.label || "Unknown";
+      const qualityLabel = QUALITY_PRESETS[qualityValue]?.label || "Unknown";
       Alert.alert("Success", `Video quality set to ${qualityLabel}`);
     } catch (error) {
-      console.error("Error saving app settings:", error);
-      Alert.alert("Error", "Failed to save app settings");
-    } finally {
-      setIsSaving(false);
+      console.error("Error saving video quality:", error);
+      Alert.alert("Error", "Failed to save video quality");
+    }
+  };
+
+  const viewDebugInfo = async () => {
+    try {
+      const [
+        savedIp,
+        savedPort,
+        savedProtocol,
+        savedKey,
+        savedUserId,
+        savedQuality,
+      ] = await Promise.all([
+        SecureStore.getItemAsync(STORAGE_KEYS.SERVER_IP),
+        SecureStore.getItemAsync(STORAGE_KEYS.SERVER_PORT),
+        SecureStore.getItemAsync(STORAGE_KEYS.SERVER_PROTOCOL),
+        SecureStore.getItemAsync(STORAGE_KEYS.API_KEY),
+        SecureStore.getItemAsync(STORAGE_KEYS.USER_ID),
+        SecureStore.getItemAsync(STORAGE_KEYS.VIDEO_QUALITY),
+      ]);
+
+      const qualityLabel = savedQuality
+        ? QUALITY_PRESETS[parseInt(savedQuality, 10)]?.label || "Unknown"
+        : "Not set";
+
+      const debugInfo = `
+📱 Stored in iCloud Keychain:
+
+Server IP: ${savedIp || "Not set"}
+Port: ${savedPort || "Not set"}
+Protocol: ${savedProtocol || "Not set"}
+User ID: ${savedUserId || "Not set"}
+API Key: ${savedKey || "Not set"}
+Video Quality: ${qualityLabel}
+
+✅ These values are synced across all your Apple devices via iCloud Keychain.
+      `.trim();
+
+      Alert.alert("Debug Info", debugInfo, [{ text: "OK", style: "default" }]);
+    } catch (error) {
+      console.error("Error loading debug info:", error);
+      Alert.alert("Error", "Failed to load debug information");
     }
   };
 
@@ -400,7 +507,7 @@ export default function SettingsScreen() {
                   index === QUALITY_PRESETS.length - 1 && styles.listItemLast,
                   focused && { backgroundColor: "rgba(255, 255, 255, 0.1)" },
                 ]}
-                onPress={() => setVideoQuality(preset.value)}
+                onPress={() => handleQualityChange(preset.value)}
                 tvParallaxProperties={{ magnification: 1.01 }}
                 isTVSelectable={true}
               >
@@ -423,21 +530,6 @@ export default function SettingsScreen() {
             ))}
           </View>
 
-          {/* Save Quality Button */}
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={saveAppSettings}
-            disabled={isSaving}
-            activeOpacity={0.2}
-            isTVSelectable={true}
-          >
-            {isSaving ? (
-              <ActivityIndicator color="#000" />
-            ) : (
-              <Text style={styles.primaryButtonText}>Save Quality</Text>
-            )}
-          </TouchableOpacity>
-
           {/* Jellyfin Server Section */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderText}>JELLYFIN SERVER</Text>
@@ -459,9 +551,12 @@ export default function SettingsScreen() {
                 <Host style={styles.inputHost}>
                   <TextField
                     ref={serverIpRef}
+                    defaultValue={serverIp}
                     placeholder="192.168.1.100 or jellyfin.local"
                     autocorrection={false}
-                    onChangeText={setServerIp}
+                    onChangeText={(value) => {
+                      currentServerIp.current = value;
+                    }}
                   />
                 </Host>
               </View>
@@ -474,9 +569,12 @@ export default function SettingsScreen() {
                 <Host style={styles.inputHost}>
                   <TextField
                     ref={serverPortRef}
+                    defaultValue={serverPort}
                     placeholder="8096"
                     autocorrection={false}
-                    onChangeText={setServerPort}
+                    onChangeText={(value) => {
+                      currentServerPort.current = value;
+                    }}
                   />
                 </Host>
               </View>
@@ -509,9 +607,12 @@ export default function SettingsScreen() {
                 <Host style={styles.inputHost}>
                   <TextField
                     ref={userIdRef}
+                    defaultValue={userId}
                     placeholder="Enter your user ID"
                     autocorrection={false}
-                    onChangeText={setUserId}
+                    onChangeText={(value) => {
+                      currentUserId.current = value;
+                    }}
                   />
                 </Host>
               </View>
@@ -525,15 +626,21 @@ export default function SettingsScreen() {
                   {Platform.isTV ? (
                     <TextField
                       ref={apiKeyRef}
+                      defaultValue={apiKey}
                       placeholder="Enter your API key"
                       autocorrection={false}
-                      onChangeText={setApiKey}
+                      onChangeText={(value) => {
+                        currentApiKey.current = value;
+                      }}
                     />
                   ) : (
                     <SecureField
                       ref={apiKeyRef}
+                      defaultValue={apiKey}
                       placeholder="Enter your API key"
-                      onChangeText={setApiKey}
+                      onChangeText={(value) => {
+                        currentApiKey.current = value;
+                      }}
                     />
                   )}
                 </Host>
@@ -573,6 +680,16 @@ export default function SettingsScreen() {
               )}
             </TouchableOpacity>
           </View>
+
+          {/* Debug Info */}
+          <TouchableOpacity
+            style={styles.debugButton}
+            onPress={viewDebugInfo}
+            activeOpacity={0.6}
+            isTVSelectable={true}
+          >
+            <Text style={styles.debugButtonText}>View iCloud Sync Status</Text>
+          </TouchableOpacity>
 
           {/* Clear Settings */}
           <TouchableOpacity
@@ -731,6 +848,26 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFC312",
   },
+  debugButton: {
+    backgroundColor: "transparent",
+    paddingVertical: Platform.isTV ? 20 : 14,
+    paddingHorizontal: Platform.isTV ? 28 : 20,
+    borderRadius: 999,
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: Platform.isTV ? 32 : 24,
+    minHeight: Platform.isTV ? 60 : 50,
+    borderWidth: 1,
+    borderColor: "#8E8E93",
+    maxWidth: 400,
+    width: "100%",
+    marginHorizontal: "auto",
+  },
+  debugButtonText: {
+    fontSize: Platform.isTV ? 20 : 17,
+    fontWeight: "600",
+    color: "#8E8E93",
+  },
   destructiveButton: {
     backgroundColor: "transparent",
     paddingVertical: Platform.isTV ? 20 : 14,
@@ -738,7 +875,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: "center",
     justifyContent: "center",
-    marginTop: Platform.isTV ? 40 : 32,
+    marginTop: Platform.isTV ? 16 : 12,
     minHeight: Platform.isTV ? 60 : 50,
   },
   destructiveButtonText: {

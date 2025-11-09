@@ -410,7 +410,6 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
         // Auto-play on first ready (but skip for audio-only files)
         if (!autoPlayTriggeredRef.current && isMountedRef.current && !isAudio) {
-          autoPlayTriggeredRef.current = true;
           logger.debug('Scheduling auto-play', {service: 'useVideoPlayback'});
 
           // Clear any existing timer
@@ -429,10 +428,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
               if (!isMountedRef.current) return;
 
               try {
-                if (player.status === 'readyToPlay') {
-                  logger.debug('Calling play()', {service: 'useVideoPlayback'});
-                  player.play();
-                }
+                logger.debug('Calling play()', {service: 'useVideoPlayback'});
+                player.play();
+                // Only mark as triggered after successful play
+                autoPlayTriggeredRef.current = true;
               } catch (error) {
                 logger.error('Error calling play()', error, {service: 'useVideoPlayback'});
                 // Dispatch error on main thread

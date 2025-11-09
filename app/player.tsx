@@ -15,6 +15,7 @@ import {
   useTVEventHandler,
   View,
 } from "react-native";
+import { useLoading } from "@/contexts/LoadingContext";
 
 // Suppress known warnings
 LogBox.ignoreLogs([
@@ -28,6 +29,7 @@ LogBox.ignoreLogs([
 export default function VideoPlayerScreen() {
   const params = useLocalSearchParams<{ videoId: string; videoName: string }>();
   const router = useRouter();
+  const { hideGlobalLoader } = useLoading();
 
   // Use the video playback hook with state machine
   const {
@@ -44,6 +46,11 @@ export default function VideoPlayerScreen() {
 
   // Track playing state for audio UI
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Hide global loader when component mounts
+  useEffect(() => {
+    hideGlobalLoader();
+  }, [hideGlobalLoader]);
 
   // Handle TV remote events
   const handleTVEvent = (evt: any) => {

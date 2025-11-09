@@ -19,6 +19,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useLoading } from "@/contexts/LoadingContext";
 
 export default function VideoLibraryScreen() {
   const [videos, setVideos] = useState<JellyfinVideoItem[]>([]);
@@ -26,6 +27,7 @@ export default function VideoLibraryScreen() {
   const [error, setError] = useState<string | null>(null);
   const [serverInfo, setServerInfo] = useState<string>("");
   const router = useRouter();
+  const { showGlobalLoader } = useLoading();
 
   useEffect(() => {
     // Sync dev credentials first, then load data
@@ -103,6 +105,9 @@ export default function VideoLibraryScreen() {
   };
 
   const handleVideoPress = (video: JellyfinVideoItem) => {
+    // Show loader immediately for better UX
+    showGlobalLoader();
+
     router.push({
       pathname: "/player" as any,
       params: {
