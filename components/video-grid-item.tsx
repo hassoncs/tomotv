@@ -1,29 +1,22 @@
-import { getPosterUrl, hasPoster } from "@/services/jellyfinApi";
-import { JellyfinVideoItem } from "@/types/jellyfin";
-import { BlurView } from "expo-blur";
-import { Image } from "expo-image";
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import {getPosterUrl, hasPoster} from "@/services/jellyfinApi"
+import {JellyfinVideoItem} from "@/types/jellyfin"
+import {BlurView} from "expo-blur"
+import {Image} from "expo-image"
+import React, {useCallback, useMemo, useRef, useState} from "react"
+import {Animated, Platform, StyleSheet, Text, TouchableOpacity, View} from "react-native"
 
 // Cache platform values at module level for better performance
-const IS_TV = Platform.isTV;
-const CARD_PADDING = IS_TV ? 16 : 8;
-const POSTER_SIZE = IS_TV ? 300 : 200; // Optimized for memory
-const NUM_COLUMNS = IS_TV ? 5 : 3;
+const IS_TV = Platform.isTV
+const CARD_PADDING = IS_TV ? 16 : 8
+const POSTER_SIZE = IS_TV ? 300 : 200 // Optimized for memory
+const NUM_COLUMNS = IS_TV ? 5 : 3
 
 interface VideoGridItemProps {
-  video: JellyfinVideoItem;
-  onPress: (video: JellyfinVideoItem) => void;
-  index: number;
-  onItemFocus?: () => void;
-  onItemBlur?: () => void;
+  video: JellyfinVideoItem
+  onPress: (video: JellyfinVideoItem) => void
+  index: number
+  onItemFocus?: () => void
+  onItemBlur?: () => void
 }
 
 /**
@@ -39,88 +32,73 @@ interface VideoGridItemProps {
  * - Platform values cached at module level
  * - BlurView only rendered when focused
  */
-function VideoGridItemComponent({
-  video,
-  onPress,
-  index,
-  onItemFocus,
-  onItemBlur,
-}: VideoGridItemProps) {
-  const [focused, setFocused] = useState(false);
+function VideoGridItemComponent({video, onPress, index, onItemFocus, onItemBlur}: VideoGridItemProps) {
+  const [focused, setFocused] = useState(false)
 
   // Single animated value with native driver for 60fps performance
-  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current
 
   // Only compute poster URL - this is always needed for display
   const posterUrl = useMemo(
     () => (hasPoster(video) ? getPosterUrl(video.Id, POSTER_SIZE) : undefined),
-    [video], // Only video ID needed, not entire video object
-  );
+    [video] // Only video ID needed, not entire video object
+  )
 
   // Lazy compute metadata ONLY when focused - huge performance win!
   const metadata = useMemo(() => {
-    if (!focused) return null;
+    if (!focused) return null
 
-    const videoStream = video.MediaStreams?.find(
-      (stream) => stream.Type === "Video",
-    );
-    const audioStream = video.MediaStreams?.find(
-      (stream) => stream.Type === "Audio",
-    );
+    const videoStream = video.MediaStreams?.find(stream => stream.Type === "Video")
+    const audioStream = video.MediaStreams?.find(stream => stream.Type === "Audio")
 
-    const videoCodec = videoStream?.Codec?.toUpperCase() || "Unknown";
-    const audioCodec = audioStream?.Codec?.toUpperCase() || "Unknown";
+    const videoCodec = videoStream?.Codec?.toUpperCase() || "Unknown"
+    const audioCodec = audioStream?.Codec?.toUpperCase() || "Unknown"
     const resolution =
-      videoStream?.Width && videoStream?.Height
-        ? `${videoStream.Width}x${videoStream.Height}`
-        : "Unknown";
+      videoStream?.Width && videoStream?.Height ? `${videoStream.Width}x${videoStream.Height}` : "Unknown"
 
     // Calculate file size
-    let fileSize = null;
-    let duration = null;
+    let fileSize = null
+    let duration = null
     if (videoStream?.BitRate && video.RunTimeTicks) {
-      const durationSeconds = video.RunTimeTicks / 10000000;
-      const sizeBytes = (videoStream.BitRate * durationSeconds) / 8;
-      const sizeGB = sizeBytes / (1024 * 1024 * 1024);
-      fileSize =
-        sizeGB >= 1
-          ? `${sizeGB.toFixed(1)} GB`
-          : `${(sizeBytes / (1024 * 1024)).toFixed(0)} MB`;
+      const durationSeconds = video.RunTimeTicks / 10000000
+      const sizeBytes = (videoStream.BitRate * durationSeconds) / 8
+      const sizeGB = sizeBytes / (1024 * 1024 * 1024)
+      fileSize = sizeGB >= 1 ? `${sizeGB.toFixed(1)} GB` : `${(sizeBytes / (1024 * 1024)).toFixed(0)} MB`
 
       // Format duration
-      const totalMinutes = Math.floor(durationSeconds / 60);
-      const hours = Math.floor(totalMinutes / 60);
-      const minutes = totalMinutes % 60;
-      duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+      const totalMinutes = Math.floor(durationSeconds / 60)
+      const hours = Math.floor(totalMinutes / 60)
+      const minutes = totalMinutes % 60
+      duration = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
     }
 
-    return { videoCodec, audioCodec, resolution, fileSize, duration };
-  }, [focused, video.MediaStreams, video.RunTimeTicks]);
+    return {videoCodec, audioCodec, resolution, fileSize, duration}
+  }, [focused, video.MediaStreams, video.RunTimeTicks])
 
   // Focus handlers with smooth native animation
   const handleFocus = useCallback(() => {
-    setFocused(true);
-    onItemFocus?.();
+    setFocused(true)
+    onItemFocus?.()
     Animated.timing(scaleAnim, {
       toValue: 1.05,
       duration: 150, // Fast and snappy
-      useNativeDriver: true, // Runs on native thread = 60fps
-    }).start();
-  }, [scaleAnim, onItemFocus]);
+      useNativeDriver: true // Runs on native thread = 60fps
+    }).start()
+  }, [scaleAnim, onItemFocus])
 
   const handleBlur = useCallback(() => {
-    setFocused(false);
-    onItemBlur?.();
+    setFocused(false)
+    onItemBlur?.()
     Animated.timing(scaleAnim, {
       toValue: 1,
       duration: 150,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim, onItemBlur]);
+      useNativeDriver: true
+    }).start()
+  }, [scaleAnim, onItemBlur])
 
   const handlePress = useCallback(() => {
-    onPress(video);
-  }, [onPress, video]);
+    onPress(video)
+  }, [onPress, video])
 
   return (
     <TouchableOpacity
@@ -132,18 +110,11 @@ function VideoGridItemComponent({
       hasTVPreferredFocus={index === 0}
       style={styles.container}
     >
-      <Animated.View
-        style={[styles.card, { transform: [{ scale: scaleAnim }] }]}
-      >
-        <View
-          style={[
-            styles.imageContainer,
-            focused && styles.imageContainerFocused,
-          ]}
-        >
+      <Animated.View style={[styles.card, {transform: [{scale: scaleAnim}]}]}>
+        <View style={styles.imageContainer}>
           {posterUrl ? (
             <Image
-              source={{ uri: posterUrl }}
+              source={{uri: posterUrl}}
               style={styles.poster}
               contentFit="cover"
               transition={0}
@@ -160,9 +131,6 @@ function VideoGridItemComponent({
             </View>
           )}
 
-          {/* Focus Indicator - Simple border, no animation */}
-          {focused && IS_TV && <View style={styles.focusIndicator} />}
-
           {/* Bottom Info Section with Blur - Only render when focused for performance */}
           {focused &&
             metadata &&
@@ -173,11 +141,7 @@ function VideoGridItemComponent({
                 </Text>
                 <Text style={styles.infoValue}>{metadata.resolution}</Text>
                 <Text style={styles.infoValue}>{metadata?.duration}</Text>
-                <Text
-                  style={styles.infoValue}
-                  numberOfLines={1}
-                  lineBreakMode="clip"
-                >
+                <Text style={styles.infoValue} numberOfLines={1} lineBreakMode="clip">
                   {video?.Name || "Unknown"}
                 </Text>
               </BlurView>
@@ -192,19 +156,18 @@ function VideoGridItemComponent({
                     {metadata.fileSize} / {metadata.duration}
                   </Text>
                 )}
-                <Text
-                  style={styles.infoValue}
-                  numberOfLines={1}
-                  lineBreakMode="clip"
-                >
+                <Text style={styles.infoValue} numberOfLines={1} lineBreakMode="clip">
                   {video?.Name || "Unknown"}
                 </Text>
               </View>
             ))}
+
+          {/* Border overlay - rendered on top to avoid gaps */}
+          <View style={[styles.borderOverlay, focused && styles.borderOverlayFocused]} pointerEvents="none" />
         </View>
       </Animated.View>
     </TouchableOpacity>
-  );
+  )
 }
 
 /**
@@ -212,91 +175,85 @@ function VideoGridItemComponent({
  * Only re-render when video.Id or index changes
  * Removed checks for RunTimeTicks and MediaStreams since we compute lazily now
  */
-function arePropsEqual(
-  prevProps: VideoGridItemProps,
-  nextProps: VideoGridItemProps,
-): boolean {
+function arePropsEqual(prevProps: VideoGridItemProps, nextProps: VideoGridItemProps): boolean {
   return (
     prevProps.video.Id === nextProps.video.Id &&
     prevProps.index === nextProps.index &&
     prevProps.onPress === nextProps.onPress &&
     prevProps.onItemFocus === nextProps.onItemFocus &&
     prevProps.onItemBlur === nextProps.onItemBlur
-  );
+  )
 }
 
 // Export memoized component
-export const VideoGridItem = React.memo(VideoGridItemComponent, arePropsEqual);
+export const VideoGridItem = React.memo(VideoGridItemComponent, arePropsEqual)
 
 const styles = StyleSheet.create({
   container: {
     flex: 1 / NUM_COLUMNS,
-    padding: CARD_PADDING,
+    padding: CARD_PADDING
   },
   card: {
     borderRadius: 32,
     backgroundColor: "transparent",
+    overflow: "hidden"
   },
   imageContainer: {
     width: "100%",
     aspectRatio: 2 / 3, // Standard movie poster aspect ratio
     borderRadius: 32,
     overflow: "hidden",
-    backgroundColor: "#1C1C1E",
-    borderWidth: 2,
-    borderColor: "rgba(255, 255, 255, 0.15)",
+    backgroundColor: "#1C1C1E"
   },
-  imageContainerFocused: {
+  borderOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.15)"
+  },
+  borderOverlayFocused: {
     borderColor: "rgba(250, 196, 0, 0.5)",
-    // Simplified shadow - no animation
     shadowColor: "#fff",
-    shadowOffset: { width: 0, height: 8 },
+    shadowOffset: {width: 0, height: 8},
     shadowOpacity: 0.6,
     shadowRadius: 24,
-    elevation: 12,
+    elevation: 12
   },
   poster: {
     width: "100%",
-    height: "100%",
+    height: "100%"
   },
   placeholderPoster: {
     width: "100%",
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#1C1C1E"
   },
   placeholderText: {
     color: "#98989D",
     fontSize: 16,
     fontWeight: "500",
     width: "90%",
-    textAlign: "center",
-  },
-  focusIndicator: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderWidth: 4,
-    borderColor: "#FAC400FF",
-    borderRadius: 30,
-    backgroundColor: "transparent",
+    textAlign: "center"
   },
   infoOverlay: {
     position: "absolute",
-    bottom: 4,
-    left: 4,
-    right: 4,
+    bottom: 0,
+    left: 0,
+    right: 0,
     height: "35%",
     paddingVertical: IS_TV ? 16 : 12,
     paddingHorizontal: IS_TV ? 20 : 16,
     overflow: "hidden",
     justifyContent: "center",
     alignItems: "center",
-    borderBottomLeftRadius: 26,
-    borderBottomRightRadius: 26,
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32
   },
   infoValue: {
     color: "#FFFFFF",
@@ -304,6 +261,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
     marginVertical: IS_TV ? 3 : 2,
-    width: "100%",
-  },
-});
+    width: "100%"
+  }
+})

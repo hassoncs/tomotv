@@ -243,7 +243,7 @@ export default function SearchScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       {!isGridFocused && (
-        <View style={styles.searchContainer}>
+        <View style={styles.searchContainer} focusable>
           <View>
             <Host style={styles.searchInputHost}>
               <TextField

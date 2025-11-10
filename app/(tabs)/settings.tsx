@@ -510,6 +510,7 @@ Video Quality: ${qualityLabel}
                 onPress={() => handleQualityChange(preset.value)}
                 tvParallaxProperties={{ magnification: 1.01 }}
                 isTVSelectable={true}
+                hasTVPreferredFocus={index === 0}
               >
                 <View style={styles.listItemContent}>
                   <View style={styles.listItemLeft}>

@@ -35,7 +35,11 @@ export default function HelpScreen() {
           </View>
 
           {/* About Card */}
-          <Pressable style={styles.card} isTVSelectable={true}>
+          <Pressable
+            style={styles.card}
+            isTVSelectable={true}
+            hasTVPreferredFocus={true}
+          >
             <View style={styles.cardHeader}>
               <View style={styles.cardIconBadge}>
                 <Ionicons
