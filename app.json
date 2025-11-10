@@ -14,7 +14,6 @@
       "bundleIdentifier": "dev.keiver.tomotv",
       "infoPlist": {
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
           "NSAllowsLocalNetworking": true
         },
         "NSLocalNetworkUsageDescription": "TomoTV needs to access your local network to connect to your Jellyfin media server and stream videos to your Apple TV.",
@@ -37,8 +36,7 @@
       ],
       ["@react-native-tvos/config-tv"],
       "expo-secure-store",
-      "expo-video",
-      "expo-web-browser"
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,

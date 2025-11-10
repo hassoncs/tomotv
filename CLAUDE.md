@@ -202,7 +202,7 @@ EXPO_PUBLIC_DEV_JELLYFIN_USER_ID=your_user_id
 
 - Never commit `.env.local` (already in `.gitignore`)
 - No hardcoded credentials in source code
-- ATS (App Transport Security) allows HTTP for local networks only
+- ATS (App Transport Security) allows HTTP for local networks only (HTTPS required for internet servers)
 - Credentials stored in iCloud Keychain (iOS) / Android Keystore
 - API key passed in headers and URLs
 
@@ -323,7 +323,7 @@ npm run test:coverage # Check coverage
 
 1. **Codec Support:** Only H.264 and HEVC are direct-played; all others require transcoding
 2. **Subtitle Burning:** External subtitles are burned into video during transcoding (cannot be toggled)
-3. **Network:** Requires local network access; no internet streaming
+3. **Network:** HTTP connections limited to local networks; public Jellyfin servers must use HTTPS
 4. **Jellyfin Only:** Only works with Jellyfin servers (not Plex, Emby, etc.)
 
 ## Additional Resources
