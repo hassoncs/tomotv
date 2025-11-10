@@ -47,139 +47,212 @@ export default function HelpScreen() {
               <Text style={styles.cardTitle}>About</Text>
             </View>
             <Text style={styles.cardText}>
-              Tomo TV streams video content from your Jellyfin media server.
-              Connect to your server to browse and play your movie library with
-              automatic codec detection and intelligent transcoding for smooth
-              playback across all devices.
+              Play any video from your Mac on Apple TV—no manual encoding
+              required. Tomo TV automatically handles videos that won&apos;t
+              normally play, so you can just hit play and watch.
             </Text>
           </Pressable>
 
-          {/* Configuration Guide Section */}
+          {/* Quick Start Section */}
           <View style={styles.sectionHeader}>
             <Ionicons
-              name="book-outline"
+              name="rocket-outline"
               size={Platform.isTV ? 24 : 20}
               color="#FFC312"
             />
-            <Text style={styles.sectionTitle}>Configuration Guide</Text>
+            <Text style={styles.sectionTitle}>Quick Start</Text>
           </View>
 
-          {/* Server Configuration Card */}
           <Pressable style={styles.helpCard} isTVSelectable={true}>
             <View style={styles.helpCardHeader}>
               <View style={styles.helpIconContainer}>
+                <Ionicons
+                  name="settings-outline"
+                  size={Platform.isTV ? 32 : 24}
+                  color="#FFC312"
+                />
+              </View>
+              <Text style={styles.helpCardTitle}>Configuration</Text>
+            </View>
+            <Text style={styles.helpCardText}>
+              Go to the <Text style={styles.highlight}>Settings</Text> tab and
+              enter:
+            </Text>
+            <View style={styles.configList}>
+              <View style={styles.configItem}>
                 <Ionicons
                   name="desktop"
-                  size={Platform.isTV ? 32 : 24}
+                  size={Platform.isTV ? 20 : 16}
                   color="#FFC312"
                 />
-              </View>
-              <Text style={styles.helpCardTitle}>Server Setup</Text>
-            </View>
-            <Text style={styles.helpCardText}>
-              Enter your Jellyfin server&apos;s IP address or hostname{" "}
-              <Text style={styles.highlight}>without the port</Text> (e.g.,{" "}
-              <Text style={styles.code}>192.168.1.100</Text> or{" "}
-              <Text style={styles.code}>jellyfin.local</Text>).
-            </Text>
-            <Text style={styles.helpCardText}>
-              The default port is <Text style={styles.code}>8096</Text> for HTTP
-              or <Text style={styles.code}>8920</Text> for HTTPS. Toggle the
-              protocol switch if your server uses SSL.
-            </Text>
-          </Pressable>
-
-          {/* User ID Card */}
-          <Pressable style={styles.helpCard} isTVSelectable={true}>
-            <View style={styles.helpCardHeader}>
-              <View style={styles.helpIconContainer}>
-                <Ionicons
-                  name="person"
-                  size={Platform.isTV ? 32 : 24}
-                  color="#FFC312"
-                />
-              </View>
-              <Text style={styles.helpCardTitle}>User ID</Text>
-            </View>
-            <Text style={styles.helpCardText}>To find your User ID:</Text>
-            <View style={styles.stepsList}>
-              <View style={styles.step}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>1</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  Open Jellyfin Dashboard in your browser
+                <Text style={styles.configText}>
+                  Server IP (e.g.,{" "}
+                  <Text style={styles.code}>192.168.1.100</Text>)
                 </Text>
               </View>
-              <View style={styles.step}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>2</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  Navigate to <Text style={styles.highlight}>Users</Text>
-                </Text>
-              </View>
-              <View style={styles.step}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>3</Text>
-                </View>
-                <Text style={styles.stepText}>Select your user account</Text>
-              </View>
-              <View style={styles.step}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>4</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  Copy the ID from the browser URL
-                </Text>
-              </View>
-            </View>
-          </Pressable>
-
-          {/* API Key Card */}
-          <Pressable style={styles.helpCard} isTVSelectable={true}>
-            <View style={styles.helpCardHeader}>
-              <View style={styles.helpIconContainer}>
+              <View style={styles.configItem}>
                 <Ionicons
                   name="key"
+                  size={Platform.isTV ? 20 : 16}
+                  color="#FFC312"
+                />
+                <Text style={styles.configText}>
+                  API Key from Jellyfin Dashboard → API Keys
+                </Text>
+              </View>
+              <View style={styles.configItem}>
+                <Ionicons
+                  name="person"
+                  size={Platform.isTV ? 20 : 16}
+                  color="#FFC312"
+                />
+                <Text style={styles.configText}>
+                  User ID from Jellyfin Dashboard → Users
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+
+          {/* Transcoding Section */}
+          <View style={styles.sectionHeader}>
+            <Ionicons
+              name="film-outline"
+              size={Platform.isTV ? 24 : 20}
+              color="#FFC312"
+            />
+            <Text style={styles.sectionTitle}>How Transcoding Works</Text>
+          </View>
+
+          <Pressable style={styles.highlightCard} isTVSelectable={true}>
+            <View style={styles.helpCardHeader}>
+              <View style={styles.helpIconContainer}>
+                <Ionicons
+                  name="sync"
                   size={Platform.isTV ? 32 : 24}
                   color="#FFC312"
                 />
               </View>
-              <Text style={styles.helpCardTitle}>API Key</Text>
+              <Text style={styles.helpCardTitle}>Smart Codec Detection</Text>
             </View>
-            <Text style={styles.helpCardText}>To create an API Key:</Text>
-            <View style={styles.stepsList}>
-              <View style={styles.step}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>1</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  Open Jellyfin Dashboard in your browser
+
+            {/* Enable Transcoding Notice */}
+            <View style={styles.noticeBox}>
+              <Ionicons
+                name="information-circle"
+                size={Platform.isTV ? 24 : 20}
+                color="#FFC312"
+              />
+              <Text style={styles.noticeText}>
+                <Text style={styles.noticeBold}>Enable Transcoding</Text> in
+                Settings to unlock this feature
+              </Text>
+            </View>
+
+            <Text style={styles.helpCardText}>
+              Tomo TV analyzes each video&apos;s codec before playback. If your
+              device supports the codec natively (like H.264 or HEVC), the video
+              plays directly for the best quality and performance.
+            </Text>
+            <Text style={styles.helpCardText}>
+              For unsupported codecs, the app automatically requests your
+              Jellyfin server to transcode the video in real-time to a
+              compatible format. This happens seamlessly in the background—you
+              just press play.
+            </Text>
+          </Pressable>
+
+          {/* Codec Support Card */}
+          <Pressable style={styles.helpCard} isTVSelectable={true}>
+            <View style={styles.helpCardHeader}>
+              <View style={styles.helpIconContainer}>
+                <Ionicons
+                  name="checkmark-circle"
+                  size={Platform.isTV ? 32 : 24}
+                  color="#34C759"
+                />
+              </View>
+              <Text style={styles.helpCardTitle}>Supported Codecs</Text>
+            </View>
+            <Text style={styles.codecSubtitle}>Direct Play (Native)</Text>
+            <View style={styles.codecBadgeRow}>
+              <View style={styles.codecBadge}>
+                <Text style={styles.codecBadgeText}>H.264</Text>
+              </View>
+              <View style={styles.codecBadge}>
+                <Text style={styles.codecBadgeText}>HEVC (H.265)</Text>
+              </View>
+            </View>
+            <Text style={styles.helpCardText}>
+              These codecs play directly without transcoding for maximum quality
+              and minimal server load.
+            </Text>
+
+            <Text
+              style={[
+                styles.codecSubtitle,
+                { marginTop: Platform.isTV ? 20 : 16 },
+              ]}
+            >
+              Transcoded Formats
+            </Text>
+            <View style={styles.codecBadgeRow}>
+              <View style={styles.codecBadgeSecondary}>
+                <Text style={styles.codecBadgeTextSecondary}>MPEG-4</Text>
+              </View>
+              <View style={styles.codecBadgeSecondary}>
+                <Text style={styles.codecBadgeTextSecondary}>VP8</Text>
+              </View>
+              <View style={styles.codecBadgeSecondary}>
+                <Text style={styles.codecBadgeTextSecondary}>VP9</Text>
+              </View>
+              <View style={styles.codecBadgeSecondary}>
+                <Text style={styles.codecBadgeTextSecondary}>AV1</Text>
+              </View>
+              <View style={styles.codecBadgeSecondary}>
+                <Text style={styles.codecBadgeTextSecondary}>VC-1</Text>
+              </View>
+              <View style={styles.codecBadgeSecondary}>
+                <Text style={styles.codecBadgeTextSecondary}>MPEG-2</Text>
+              </View>
+            </View>
+            <Text style={styles.helpCardText}>
+              These formats are automatically converted on-the-fly by your
+              Jellyfin server.
+            </Text>
+          </Pressable>
+
+          {/* Quality Settings Card */}
+          <Pressable style={styles.helpCard} isTVSelectable={true}>
+            <View style={styles.helpCardHeader}>
+              <View style={styles.helpIconContainer}>
+                <Ionicons
+                  name="options"
+                  size={Platform.isTV ? 32 : 24}
+                  color="#FFC312"
+                />
+              </View>
+              <Text style={styles.helpCardTitle}>Quality Control</Text>
+            </View>
+            <Text style={styles.helpCardText}>
+              Once transcoding is enabled in{" "}
+              <Text style={styles.highlight}>Settings</Text>, you can adjust the
+              quality to balance between video quality and network performance:
+            </Text>
+            <View style={styles.qualityList}>
+              <View style={styles.qualityItem}>
+                <Text style={styles.qualityLabel}>480p</Text>
+                <Text style={styles.qualityDesc}>
+                  Lower bandwidth, faster start
                 </Text>
               </View>
-              <View style={styles.step}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>2</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  Go to <Text style={styles.highlight}>API Keys</Text>
-                </Text>
+              <View style={styles.qualityItem}>
+                <Text style={styles.qualityLabel}>720p</Text>
+                <Text style={styles.qualityDesc}>Balanced quality</Text>
               </View>
-              <View style={styles.step}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>3</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  Click <Text style={styles.highlight}>New Key</Text>
-                </Text>
-              </View>
-              <View style={styles.step}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>4</Text>
-                </View>
-                <Text style={styles.stepText}>
-                  Copy the generated key to TomoTV
+              <View style={styles.qualityItem}>
+                <Text style={styles.qualityLabel}>1080p</Text>
+                <Text style={styles.qualityDesc}>
+                  High quality, more bandwidth
                 </Text>
               </View>
             </View>
@@ -248,7 +321,17 @@ export default function HelpScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Made for your Jellyfin Library
+              Made for your Jellyfin Library, Please visit
+              <Text
+                style={{
+                  color: "#34C759",
+                  fontWeight: "600",
+                }}
+              >
+                {" "}
+                https://jellyfin.org/{" "}
+              </Text>
+              for information on how to setup your server.
             </Text>
             <View style={styles.footerDivider} />
             <Text style={styles.versionText}>Version 1.0.0</Text>
@@ -353,7 +436,37 @@ const styles = StyleSheet.create({
     padding: Platform.isTV ? 28 : 20,
     marginBottom: Platform.isTV ? 20 : 16,
     borderWidth: 1,
-    borderColor: "rgba(142, 142, 147, 0.3)",
+    borderColor: "rgba(255, 195, 18, 0.2)",
+  },
+  highlightCard: {
+    backgroundColor: "#1C1C1E",
+    borderRadius: Platform.isTV ? 20 : 14,
+    padding: Platform.isTV ? 28 : 20,
+    marginBottom: Platform.isTV ? 20 : 16,
+    borderWidth: 2,
+    borderColor: "rgba(255, 195, 18, 0.4)",
+  },
+  // Notice Box
+  noticeBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Platform.isTV ? 12 : 10,
+    backgroundColor: "rgba(255, 195, 18, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 195, 18, 0.4)",
+    borderRadius: Platform.isTV ? 12 : 10,
+    padding: Platform.isTV ? 16 : 12,
+    marginBottom: Platform.isTV ? 20 : 16,
+  },
+  noticeText: {
+    flex: 1,
+    fontSize: Platform.isTV ? 18 : 15,
+    lineHeight: Platform.isTV ? 28 : 22,
+    color: "#AEAEB2",
+  },
+  noticeBold: {
+    fontWeight: "700",
+    color: "#FFC312",
   },
   helpCardHeader: {
     flexDirection: "row",
@@ -425,6 +538,85 @@ const styles = StyleSheet.create({
     lineHeight: Platform.isTV ? 34 : 22,
     color: "#AEAEB2",
   },
+  // Configuration List
+  configList: {
+    gap: Platform.isTV ? 16 : 12,
+    marginTop: Platform.isTV ? 12 : 8,
+  },
+  configItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Platform.isTV ? 12 : 10,
+    paddingVertical: Platform.isTV ? 8 : 6,
+  },
+  configText: {
+    flex: 1,
+    fontSize: Platform.isTV ? 18 : 15,
+    lineHeight: Platform.isTV ? 28 : 22,
+    color: "#AEAEB2",
+  },
+  // Codec Styles
+  codecSubtitle: {
+    fontSize: Platform.isTV ? 20 : 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginBottom: Platform.isTV ? 12 : 8,
+  },
+  codecBadgeRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: Platform.isTV ? 12 : 8,
+    marginBottom: Platform.isTV ? 16 : 12,
+  },
+  codecBadge: {
+    backgroundColor: "rgba(52, 199, 89, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(52, 199, 89, 0.4)",
+    borderRadius: Platform.isTV ? 12 : 8,
+    paddingHorizontal: Platform.isTV ? 16 : 12,
+    paddingVertical: Platform.isTV ? 8 : 6,
+  },
+  codecBadgeText: {
+    fontSize: Platform.isTV ? 16 : 13,
+    fontWeight: "600",
+    color: "#34C759",
+  },
+  codecBadgeSecondary: {
+    backgroundColor: "rgba(255, 195, 18, 0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 195, 18, 0.3)",
+    borderRadius: Platform.isTV ? 12 : 8,
+    paddingHorizontal: Platform.isTV ? 16 : 12,
+    paddingVertical: Platform.isTV ? 8 : 6,
+  },
+  codecBadgeTextSecondary: {
+    fontSize: Platform.isTV ? 16 : 13,
+    fontWeight: "600",
+    color: "#FFC312",
+  },
+  // Quality List
+  qualityList: {
+    gap: Platform.isTV ? 12 : 10,
+    marginTop: Platform.isTV ? 12 : 8,
+  },
+  qualityItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "rgba(142, 142, 147, 0.1)",
+    borderRadius: Platform.isTV ? 12 : 8,
+    paddingHorizontal: Platform.isTV ? 20 : 16,
+    paddingVertical: Platform.isTV ? 12 : 10,
+  },
+  qualityLabel: {
+    fontSize: Platform.isTV ? 18 : 15,
+    fontWeight: "600",
+    color: "#FFC312",
+  },
+  qualityDesc: {
+    fontSize: Platform.isTV ? 16 : 13,
+    color: "#8E8E93",
+  },
   // Features Grid
   featuresGrid: {
     flexDirection: "row",
@@ -440,7 +632,7 @@ const styles = StyleSheet.create({
     padding: Platform.isTV ? 24 : 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(142, 142, 147, 0.2)",
+    borderColor: "rgba(255, 195, 18, 0.2)",
   },
   featureTitle: {
     fontSize: Platform.isTV ? 20 : 16,
@@ -465,7 +657,7 @@ const styles = StyleSheet.create({
   footerDivider: {
     width: Platform.isTV ? 80 : 60,
     height: 2,
-    backgroundColor: "rgba(142, 142, 147, 0.3)",
+    backgroundColor: "rgba(255, 195, 18, 0.2)",
     marginVertical: Platform.isTV ? 16 : 12,
   },
   footerText: {
