@@ -7,6 +7,10 @@ export default function TabLayout() {
         <Label>Library</Label>
         <Icon sf="film.fill" />
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="search">
+        <Label>Search</Label>
+        <Icon sf="magnifyingglass" />
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <Label>Settings</Label>
         <Icon sf="gearshape.fill" />

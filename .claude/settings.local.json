@@ -23,7 +23,9 @@
       "Bash(find:*)",
       "Bash(/Applications/Jellyfin.app/Contents/MacOS/ffmpeg:*)",
       "Bash(launchctl list:*)",
-      "Bash(pgrep:*)"
+      "Bash(pgrep:*)",
+      "Bash(grep:*)",
+      "Bash(tree:*)"
     ],
     "deny": [],
     "ask": []
