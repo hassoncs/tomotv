@@ -1,15 +1,7 @@
-import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import {
-  Image,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {Ionicons} from "@expo/vector-icons"
+import React from "react"
+import {Image, Platform, Pressable, ScrollView, StyleSheet, Text, View} from "react-native"
+import {SafeAreaView} from "react-native-safe-area-context"
 
 export default function HelpScreen() {
   return (
@@ -23,157 +15,95 @@ export default function HelpScreen() {
         <View style={styles.contentContainer}>
           {/* Hero Section */}
           <View style={styles.heroSection}>
-            <Image
-              source={require("@/assets/images/icon.png")}
-              style={styles.appIcon}
-              resizeMode="contain"
-            />
+            <Image source={require("@/assets/images/icon.png")} style={styles.appIcon} resizeMode="contain" />
             <Text style={styles.heroTitle}>Tomo TV</Text>
-            <Text style={styles.heroSubtitle}>
-              Play videos from your Mac on your Apple TV
-            </Text>
+            <Text style={styles.heroSubtitle}>Play videos from your Jellyfin server on your Apple TV</Text>
           </View>
 
           {/* About Card */}
-          <Pressable
-            style={styles.card}
-            isTVSelectable={true}
-            hasTVPreferredFocus={true}
-          >
+          <Pressable style={styles.card} isTVSelectable={true} hasTVPreferredFocus={true}>
             <View style={styles.cardHeader}>
               <View style={styles.cardIconBadge}>
-                <Ionicons
-                  name="information-circle"
-                  size={Platform.isTV ? 28 : 22}
-                  color="#FFC312"
-                />
+                <Ionicons name="information-circle" size={Platform.isTV ? 28 : 22} color="#FFC312" />
               </View>
               <Text style={styles.cardTitle}>About</Text>
             </View>
             <Text style={styles.cardText}>
-              Play any video from your Mac on Apple TV—no manual encoding
-              required. Tomo TV automatically handles videos that won&apos;t
-              normally play, so you can just hit play and watch.
+              Play any video from Jellyfin servers on your Apple TV — no manual encoding required. Tomo TV automatically
+              handles videos that won&apos;t normally play, so you can just hit play and watch.
             </Text>
           </Pressable>
 
           {/* Quick Start Section */}
           <View style={styles.sectionHeader}>
-            <Ionicons
-              name="rocket-outline"
-              size={Platform.isTV ? 24 : 20}
-              color="#FFC312"
-            />
+            <Ionicons name="rocket-outline" size={Platform.isTV ? 24 : 20} color="#FFC312" />
             <Text style={styles.sectionTitle}>Quick Start</Text>
           </View>
 
           <Pressable style={styles.helpCard} isTVSelectable={true}>
             <View style={styles.helpCardHeader}>
               <View style={styles.helpIconContainer}>
-                <Ionicons
-                  name="settings-outline"
-                  size={Platform.isTV ? 32 : 24}
-                  color="#FFC312"
-                />
+                <Ionicons name="settings-outline" size={Platform.isTV ? 32 : 24} color="#FFC312" />
               </View>
               <Text style={styles.helpCardTitle}>Configuration</Text>
             </View>
             <Text style={styles.helpCardText}>
-              Go to the <Text style={styles.highlight}>Settings</Text> tab and
-              enter:
+              Go to the <Text style={styles.highlight}>Settings</Text> tab and enter:
             </Text>
             <View style={styles.configList}>
               <View style={styles.configItem}>
-                <Ionicons
-                  name="desktop"
-                  size={Platform.isTV ? 20 : 16}
-                  color="#FFC312"
-                />
-                <Text style={styles.configText}>
-                  Server IP (e.g.,{" "}
-                  <Text style={styles.code}>192.168.1.100</Text>)
-                </Text>
+                <Ionicons name="desktop" size={Platform.isTV ? 20 : 16} color="#FFC312" />
+                <Text style={styles.configText}>Jellyfin Server IP</Text>
               </View>
               <View style={styles.configItem}>
-                <Ionicons
-                  name="key"
-                  size={Platform.isTV ? 20 : 16}
-                  color="#FFC312"
-                />
-                <Text style={styles.configText}>
-                  API Key from Jellyfin Dashboard → API Keys
-                </Text>
+                <Ionicons name="key" size={Platform.isTV ? 20 : 16} color="#FFC312" />
+                <Text style={styles.configText}>API Key from Jellyfin Dashboard → API Keys</Text>
               </View>
               <View style={styles.configItem}>
-                <Ionicons
-                  name="person"
-                  size={Platform.isTV ? 20 : 16}
-                  color="#FFC312"
-                />
-                <Text style={styles.configText}>
-                  User ID from Jellyfin Dashboard → Users
-                </Text>
+                <Ionicons name="person" size={Platform.isTV ? 20 : 16} color="#FFC312" />
+                <Text style={styles.configText}>User ID from Jellyfin Dashboard → Users</Text>
               </View>
             </View>
           </Pressable>
 
           {/* Transcoding Section */}
           <View style={styles.sectionHeader}>
-            <Ionicons
-              name="film-outline"
-              size={Platform.isTV ? 24 : 20}
-              color="#FFC312"
-            />
+            <Ionicons name="film-outline" size={Platform.isTV ? 24 : 20} color="#FFC312" />
             <Text style={styles.sectionTitle}>How Transcoding Works</Text>
           </View>
 
-          <Pressable style={styles.highlightCard} isTVSelectable={true}>
+          <Pressable style={styles.card} isTVSelectable={true}>
             <View style={styles.helpCardHeader}>
               <View style={styles.helpIconContainer}>
-                <Ionicons
-                  name="sync"
-                  size={Platform.isTV ? 32 : 24}
-                  color="#FFC312"
-                />
+                <Ionicons name="sync" size={Platform.isTV ? 32 : 24} color="#FFC312" />
               </View>
-              <Text style={styles.helpCardTitle}>Smart Codec Detection</Text>
+              <Text style={styles.helpCardTitle}>HLS Streaming</Text>
             </View>
 
             {/* Enable Transcoding Notice */}
             <View style={styles.noticeBox}>
-              <Ionicons
-                name="information-circle"
-                size={Platform.isTV ? 24 : 20}
-                color="#FFC312"
-              />
+              <Ionicons name="information-circle" size={Platform.isTV ? 24 : 20} color="#FFC312" />
               <Text style={styles.noticeText}>
-                <Text style={styles.noticeBold}>Enable Transcoding</Text> in
-                Settings to unlock this feature
+                <Text style={styles.noticeBold}>Enable Transcoding in your server. This is imperative.</Text>
               </Text>
             </View>
 
             <Text style={styles.helpCardText}>
-              Tomo TV analyzes each video&apos;s codec before playback. If your
-              device supports the codec natively (like H.264 or HEVC), the video
-              plays directly for the best quality and performance.
+              Tomo TV streams video from your Jellyfin server using HLS (HTTP Live Streaming). When you play a video,
+              the app requests a stream from Jellyfin, which handles all the transcoding server-side if needed.
             </Text>
             <Text style={styles.helpCardText}>
-              For unsupported codecs, the app automatically requests your
-              Jellyfin server to transcode the video in real-time to a
-              compatible format. This happens seamlessly in the background—you
-              just press play.
+              This means your server/computer does the heavy lifting—converting video formats in real-time—while your
+              Apple TV simply plays the optimized stream. You just press play and Jellyfin takes care of the rest.
             </Text>
+            <Text style={styles.helpCardText}>Subtitles tracks will be autodetected and burned into the stream.</Text>
           </Pressable>
 
           {/* Codec Support Card */}
-          <Pressable style={styles.helpCard} isTVSelectable={true}>
+          {/* <Pressable style={styles.helpCard} isTVSelectable={true}>
             <View style={styles.helpCardHeader}>
               <View style={styles.helpIconContainer}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={Platform.isTV ? 32 : 24}
-                  color="#34C759"
-                />
+                <Ionicons name="checkmark-circle" size={Platform.isTV ? 32 : 24} color="#34C759" />
               </View>
               <Text style={styles.helpCardTitle}>Supported Codecs</Text>
             </View>
@@ -187,18 +117,10 @@ export default function HelpScreen() {
               </View>
             </View>
             <Text style={styles.helpCardText}>
-              These codecs play directly without transcoding for maximum quality
-              and minimal server load.
+              These codecs play directly without transcoding for maximum quality and minimal server load.
             </Text>
 
-            <Text
-              style={[
-                styles.codecSubtitle,
-                { marginTop: Platform.isTV ? 20 : 16 },
-              ]}
-            >
-              Transcoded Formats
-            </Text>
+            <Text style={[styles.codecSubtitle, {marginTop: Platform.isTV ? 20 : 16}]}>Transcoded Formats</Text>
             <View style={styles.codecBadgeRow}>
               <View style={styles.codecBadgeSecondary}>
                 <Text style={styles.codecBadgeTextSecondary}>MPEG-4</Text>
@@ -220,34 +142,30 @@ export default function HelpScreen() {
               </View>
             </View>
             <Text style={styles.helpCardText}>
-              These formats are automatically converted on-the-fly by your
-              Jellyfin server.
+              These formats are automatically converted on-the-fly by your Jellyfin server.
             </Text>
-          </Pressable>
+          </Pressable> */}
 
           {/* Quality Settings Card */}
           <Pressable style={styles.helpCard} isTVSelectable={true}>
             <View style={styles.helpCardHeader}>
               <View style={styles.helpIconContainer}>
-                <Ionicons
-                  name="options"
-                  size={Platform.isTV ? 32 : 24}
-                  color="#FFC312"
-                />
+                <Ionicons name="options" size={Platform.isTV ? 32 : 24} color="#FFC312" />
               </View>
               <Text style={styles.helpCardTitle}>Quality Control</Text>
             </View>
             <Text style={styles.helpCardText}>
-              Once transcoding is enabled in{" "}
-              <Text style={styles.highlight}>Settings</Text>, you can adjust the
-              quality to balance between video quality and network performance:
+              Once transcoding is enabled in <Text style={styles.highlight}>Settings</Text>, you can adjust the quality
+              to balance between video quality and network performance:
             </Text>
             <View style={styles.qualityList}>
               <View style={styles.qualityItem}>
                 <Text style={styles.qualityLabel}>480p</Text>
-                <Text style={styles.qualityDesc}>
-                  Lower bandwidth, faster start
-                </Text>
+                <Text style={styles.qualityDesc}>Lower bandwidth, faster start</Text>
+              </View>
+              <View style={styles.qualityItem}>
+                <Text style={styles.qualityLabel}>540p</Text>
+                <Text style={styles.qualityDesc}>Lower bandwidth, default</Text>
               </View>
               <View style={styles.qualityItem}>
                 <Text style={styles.qualityLabel}>720p</Text>
@@ -255,70 +173,40 @@ export default function HelpScreen() {
               </View>
               <View style={styles.qualityItem}>
                 <Text style={styles.qualityLabel}>1080p</Text>
-                <Text style={styles.qualityDesc}>
-                  High quality, more bandwidth
-                </Text>
+                <Text style={styles.qualityDesc}>High quality, more bandwidth</Text>
               </View>
             </View>
           </Pressable>
 
           {/* Features Section */}
           <View style={styles.sectionHeader}>
-            <Ionicons
-              name="sparkles-outline"
-              size={Platform.isTV ? 24 : 20}
-              color="#FFC312"
-            />
+            <Ionicons name="sparkles-outline" size={Platform.isTV ? 24 : 20} color="#FFC312" />
             <Text style={styles.sectionTitle}>Key Features</Text>
           </View>
 
           <View style={styles.featuresGrid}>
             <Pressable style={styles.featureCard} isTVSelectable={true}>
-              <Ionicons
-                name="play-circle"
-                size={Platform.isTV ? 40 : 32}
-                color="#FFC312"
-              />
-              <Text style={styles.featureTitle}>Smart Playback</Text>
-              <Text style={styles.featureText}>
-                Automatic codec detection with intelligent transcoding
-              </Text>
+              <Ionicons name="play-circle" size={Platform.isTV ? 40 : 32} color="#FFC312" />
+              <Text style={styles.featureTitle}>HLS Streaming</Text>
+              <Text style={styles.featureText}>Seamless video streaming with server-side transcoding</Text>
             </Pressable>
 
             <Pressable style={styles.featureCard} isTVSelectable={true}>
-              <Ionicons
-                name="cloud-done"
-                size={Platform.isTV ? 40 : 32}
-                color="#FFC312"
-              />
+              <Ionicons name="cloud-done" size={Platform.isTV ? 40 : 32} color="#FFC312" />
               <Text style={styles.featureTitle}>iCloud Sync</Text>
-              <Text style={styles.featureText}>
-                Settings sync across all your Apple devices
-              </Text>
+              <Text style={styles.featureText}>Settings sync across all your Apple devices</Text>
             </Pressable>
 
             <Pressable style={styles.featureCard} isTVSelectable={true}>
-              <Ionicons
-                name="tv"
-                size={Platform.isTV ? 40 : 32}
-                color="#FFC312"
-              />
+              <Ionicons name="tv" size={Platform.isTV ? 40 : 32} color="#FFC312" />
               <Text style={styles.featureTitle}>Apple TV Ready</Text>
-              <Text style={styles.featureText}>
-                Optimized for big screen viewing experience
-              </Text>
+              <Text style={styles.featureText}>Optimized for big screen viewing experience</Text>
             </Pressable>
 
             <Pressable style={styles.featureCard} isTVSelectable={true}>
-              <Ionicons
-                name="shield-checkmark"
-                size={Platform.isTV ? 40 : 32}
-                color="#FFC312"
-              />
+              <Ionicons name="shield-checkmark" size={Platform.isTV ? 40 : 32} color="#FFC312" />
               <Text style={styles.featureTitle}>Secure Storage</Text>
-              <Text style={styles.featureText}>
-                Credentials stored in iCloud Keychain
-              </Text>
+              <Text style={styles.featureText}>Credentials stored in iCloud Keychain</Text>
             </Pressable>
           </View>
 
@@ -329,7 +217,7 @@ export default function HelpScreen() {
               <Text
                 style={{
                   color: "#34C759",
-                  fontWeight: "600",
+                  fontWeight: "600"
                 }}
               >
                 {" "}
@@ -343,49 +231,49 @@ export default function HelpScreen() {
         </View>
       </ScrollView>
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: "#000000"
   },
   scrollView: {
-    flex: 1,
+    flex: 1
   },
   scrollContent: {
     paddingTop: Platform.isTV ? 20 : 16,
-    paddingBottom: Platform.isTV ? 60 : 40,
+    paddingBottom: Platform.isTV ? 60 : 40
   },
   contentContainer: {
     width: "100%",
     maxWidth: Platform.isTV ? 1000 : 600,
     paddingHorizontal: Platform.isTV ? 60 : 16,
-    alignSelf: "center",
+    alignSelf: "center"
   },
   // Hero Section
   heroSection: {
     alignItems: "center",
-    marginBottom: Platform.isTV ? 48 : 32,
+    marginBottom: Platform.isTV ? 48 : 32
   },
   appIcon: {
     width: Platform.isTV ? 120 : 96,
     height: Platform.isTV ? 120 : 96,
     marginBottom: Platform.isTV ? 24 : 16,
-    borderRadius: 4000,
+    borderRadius: 4000
   },
   heroTitle: {
     fontSize: Platform.isTV ? 48 : 36,
     fontWeight: "700",
     color: "#FFFFFF",
     marginBottom: Platform.isTV ? 8 : 4,
-    letterSpacing: -0.5,
+    letterSpacing: -0.5
   },
   heroSubtitle: {
     fontSize: Platform.isTV ? 22 : 17,
     color: "#8E8E93",
-    fontWeight: "500",
+    fontWeight: "500"
   },
   // Card Styles
   card: {
@@ -394,13 +282,13 @@ const styles = StyleSheet.create({
     padding: Platform.isTV ? 32 : 24,
     marginBottom: Platform.isTV ? 32 : 24,
     borderWidth: 1,
-    borderColor: "rgba(255, 195, 18, 0.2)",
+    borderColor: "rgba(255, 195, 18, 0.2)"
   },
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: Platform.isTV ? 16 : 12,
-    gap: Platform.isTV ? 12 : 8,
+    gap: Platform.isTV ? 12 : 8
   },
   cardIconBadge: {
     width: Platform.isTV ? 40 : 32,
@@ -408,17 +296,17 @@ const styles = StyleSheet.create({
     borderRadius: Platform.isTV ? 20 : 16,
     backgroundColor: "rgba(255, 195, 18, 0.15)",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "center"
   },
   cardTitle: {
     fontSize: Platform.isTV ? 26 : 20,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: "#FFFFFF"
   },
   cardText: {
     fontSize: Platform.isTV ? 20 : 15,
     lineHeight: Platform.isTV ? 32 : 22,
-    color: "#AEAEB2",
+    color: "#AEAEB2"
   },
   // Section Headers
   sectionHeader: {
@@ -426,12 +314,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: Platform.isTV ? 12 : 8,
     marginTop: Platform.isTV ? 16 : 8,
-    marginBottom: Platform.isTV ? 24 : 16,
+    marginBottom: Platform.isTV ? 24 : 16
   },
   sectionTitle: {
     fontSize: Platform.isTV ? 28 : 22,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#FFFFFF"
   },
   // Help Cards
   helpCard: {
@@ -440,7 +328,7 @@ const styles = StyleSheet.create({
     padding: Platform.isTV ? 28 : 20,
     marginBottom: Platform.isTV ? 20 : 16,
     borderWidth: 1,
-    borderColor: "rgba(255, 195, 18, 0.2)",
+    borderColor: "rgba(255, 195, 18, 0.2)"
   },
   highlightCard: {
     backgroundColor: "#1C1C1E",
@@ -448,7 +336,7 @@ const styles = StyleSheet.create({
     padding: Platform.isTV ? 28 : 20,
     marginBottom: Platform.isTV ? 20 : 16,
     borderWidth: 2,
-    borderColor: "rgba(255, 195, 18, 0.4)",
+    borderColor: "rgba(255, 195, 18, 0.4)"
   },
   // Notice Box
   noticeBox: {
@@ -460,23 +348,23 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 195, 18, 0.4)",
     borderRadius: Platform.isTV ? 12 : 10,
     padding: Platform.isTV ? 16 : 12,
-    marginBottom: Platform.isTV ? 20 : 16,
+    marginBottom: Platform.isTV ? 20 : 16
   },
   noticeText: {
     flex: 1,
     fontSize: Platform.isTV ? 18 : 15,
     lineHeight: Platform.isTV ? 28 : 22,
-    color: "#AEAEB2",
+    color: "#AEAEB2"
   },
   noticeBold: {
     fontWeight: "700",
-    color: "#FFC312",
+    color: "#FFC312"
   },
   helpCardHeader: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: Platform.isTV ? 16 : 12,
-    gap: Platform.isTV ? 16 : 12,
+    gap: Platform.isTV ? 16 : 12
   },
   helpIconContainer: {
     width: Platform.isTV ? 56 : 44,
@@ -484,43 +372,43 @@ const styles = StyleSheet.create({
     borderRadius: Platform.isTV ? 28 : 22,
     backgroundColor: "rgba(255, 195, 18, 0.15)",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "center"
   },
   helpCardTitle: {
     fontSize: Platform.isTV ? 24 : 18,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: "#FFFFFF"
   },
   helpCardText: {
     fontSize: Platform.isTV ? 18 : 15,
     lineHeight: Platform.isTV ? 28 : 22,
     color: "#AEAEB2",
-    marginBottom: Platform.isTV ? 16 : 12,
+    marginBottom: Platform.isTV ? 16 : 12
   },
   highlight: {
     color: "#FFC312",
-    fontWeight: "600",
+    fontWeight: "600"
   },
   code: {
     fontFamily: Platform.select({
       ios: "Menlo",
-      default: "monospace",
+      default: "monospace"
     }),
     backgroundColor: "rgba(142, 142, 147, 0.2)",
     paddingHorizontal: Platform.isTV ? 8 : 6,
     paddingVertical: Platform.isTV ? 4 : 2,
     borderRadius: Platform.isTV ? 6 : 4,
     fontSize: Platform.isTV ? 17 : 14,
-    color: "#FFC312",
+    color: "#FFC312"
   },
   // Steps List
   stepsList: {
-    gap: Platform.isTV ? 16 : 12,
+    gap: Platform.isTV ? 16 : 12
   },
   step: {
     flexDirection: "row",
     alignItems: "flex-start",
-    gap: Platform.isTV ? 16 : 12,
+    gap: Platform.isTV ? 16 : 12
   },
   stepNumber: {
     width: Platform.isTV ? 32 : 24,
@@ -529,48 +417,48 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFC312",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 2,
+    marginTop: 2
   },
   stepNumberText: {
     fontSize: Platform.isTV ? 16 : 13,
     fontWeight: "700",
-    color: "#000000",
+    color: "#000000"
   },
   stepText: {
     flex: 1,
     fontSize: Platform.isTV ? 18 : 15,
     lineHeight: Platform.isTV ? 34 : 22,
-    color: "#AEAEB2",
+    color: "#AEAEB2"
   },
   // Configuration List
   configList: {
     gap: Platform.isTV ? 16 : 12,
-    marginTop: Platform.isTV ? 12 : 8,
+    marginTop: Platform.isTV ? 12 : 8
   },
   configItem: {
     flexDirection: "row",
     alignItems: "center",
     gap: Platform.isTV ? 12 : 10,
-    paddingVertical: Platform.isTV ? 8 : 6,
+    paddingVertical: Platform.isTV ? 8 : 6
   },
   configText: {
     flex: 1,
     fontSize: Platform.isTV ? 18 : 15,
     lineHeight: Platform.isTV ? 28 : 22,
-    color: "#AEAEB2",
+    color: "#AEAEB2"
   },
   // Codec Styles
   codecSubtitle: {
     fontSize: Platform.isTV ? 20 : 16,
     fontWeight: "600",
     color: "#FFFFFF",
-    marginBottom: Platform.isTV ? 12 : 8,
+    marginBottom: Platform.isTV ? 12 : 8
   },
   codecBadgeRow: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Platform.isTV ? 12 : 8,
-    marginBottom: Platform.isTV ? 16 : 12,
+    marginBottom: Platform.isTV ? 16 : 12
   },
   codecBadge: {
     backgroundColor: "rgba(52, 199, 89, 0.15)",
@@ -578,12 +466,12 @@ const styles = StyleSheet.create({
     borderColor: "rgba(52, 199, 89, 0.4)",
     borderRadius: Platform.isTV ? 12 : 8,
     paddingHorizontal: Platform.isTV ? 16 : 12,
-    paddingVertical: Platform.isTV ? 8 : 6,
+    paddingVertical: Platform.isTV ? 8 : 6
   },
   codecBadgeText: {
     fontSize: Platform.isTV ? 16 : 13,
     fontWeight: "600",
-    color: "#34C759",
+    color: "#34C759"
   },
   codecBadgeSecondary: {
     backgroundColor: "rgba(255, 195, 18, 0.15)",
@@ -591,17 +479,17 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 195, 18, 0.3)",
     borderRadius: Platform.isTV ? 12 : 8,
     paddingHorizontal: Platform.isTV ? 16 : 12,
-    paddingVertical: Platform.isTV ? 8 : 6,
+    paddingVertical: Platform.isTV ? 8 : 6
   },
   codecBadgeTextSecondary: {
     fontSize: Platform.isTV ? 16 : 13,
     fontWeight: "600",
-    color: "#FFC312",
+    color: "#FFC312"
   },
   // Quality List
   qualityList: {
     gap: Platform.isTV ? 12 : 10,
-    marginTop: Platform.isTV ? 12 : 8,
+    marginTop: Platform.isTV ? 12 : 8
   },
   qualityItem: {
     flexDirection: "row",
@@ -610,23 +498,23 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(142, 142, 147, 0.1)",
     borderRadius: Platform.isTV ? 12 : 8,
     paddingHorizontal: Platform.isTV ? 20 : 16,
-    paddingVertical: Platform.isTV ? 12 : 10,
+    paddingVertical: Platform.isTV ? 12 : 10
   },
   qualityLabel: {
     fontSize: Platform.isTV ? 18 : 15,
     fontWeight: "600",
-    color: "#FFC312",
+    color: "#FFC312"
   },
   qualityDesc: {
     fontSize: Platform.isTV ? 16 : 13,
-    color: "#8E8E93",
+    color: "#8E8E93"
   },
   // Features Grid
   featuresGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: Platform.isTV ? 16 : 12,
-    marginBottom: Platform.isTV ? 32 : 24,
+    marginBottom: Platform.isTV ? 32 : 24
   },
   featureCard: {
     flex: 1,
@@ -636,7 +524,7 @@ const styles = StyleSheet.create({
     padding: Platform.isTV ? 24 : 20,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "rgba(255, 195, 18, 0.2)",
+    borderColor: "rgba(255, 195, 18, 0.2)"
   },
   featureTitle: {
     fontSize: Platform.isTV ? 20 : 16,
@@ -644,35 +532,35 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginTop: Platform.isTV ? 16 : 12,
     marginBottom: Platform.isTV ? 8 : 6,
-    textAlign: "center",
+    textAlign: "center"
   },
   featureText: {
     fontSize: Platform.isTV ? 16 : 13,
     lineHeight: Platform.isTV ? 24 : 19,
     color: "#8E8E93",
-    textAlign: "center",
+    textAlign: "center"
   },
   // Footer
   footer: {
     alignItems: "center",
     marginTop: Platform.isTV ? 32 : 24,
-    paddingTop: Platform.isTV ? 32 : 24,
+    paddingTop: Platform.isTV ? 32 : 24
   },
   footerDivider: {
     width: Platform.isTV ? 80 : 60,
     height: 2,
     backgroundColor: "rgba(255, 195, 18, 0.2)",
-    marginVertical: Platform.isTV ? 16 : 12,
+    marginVertical: Platform.isTV ? 16 : 12
   },
   footerText: {
     fontSize: Platform.isTV ? 18 : 14,
     color: "#8E8E93",
     textAlign: "center",
-    marginBottom: Platform.isTV ? 8 : 4,
+    marginBottom: Platform.isTV ? 8 : 4
   },
   versionText: {
     fontSize: Platform.isTV ? 16 : 13,
     color: "#636366",
-    textAlign: "center",
-  },
-});
+    textAlign: "center"
+  }
+})
