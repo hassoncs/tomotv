@@ -1,6 +1,7 @@
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLoading } from "@/contexts/LoadingContext";
-import { fetchVideos, syncDevCredentials } from "@/services/jellyfinApi";
+import { useLibrary } from "@/contexts/LibraryContext";
+import { syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { Host, TextField, TextFieldRef } from "@expo/ui/swift-ui";
 import { cornerRadius } from "@expo/ui/swift-ui/modifiers";
@@ -25,47 +26,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SearchScreen() {
-  const [videos, setVideos] = useState<JellyfinVideoItem[]>([]);
-  const [filteredVideos, setFilteredVideos] = useState<JellyfinVideoItem[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
-  const loadingRef = useRef(false);
+  const { videos, isLoading, error, refreshLibrary } = useLibrary();
+  const [filteredVideos, setFilteredVideos] = useState<JellyfinVideoItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<TextFieldRef>(null);
   const focusedGridItemsCountRef = useRef(0);
   const [isGridFocused, setIsGridFocused] = useState(false);
-
-  const loadVideos = useCallback(async () => {
-    if (loadingRef.current) {
-      if (__DEV__) {
-        console.log("Already loading, ignoring duplicate call");
-      }
-      return;
-    }
-
-    try {
-      loadingRef.current = true;
-      setIsLoading(true);
-      setError(null);
-
-      const fetchedVideos = await fetchVideos();
-      setVideos(fetchedVideos);
-      // Don't set filteredVideos - keep empty until user searches
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load videos";
-      setError(errorMessage);
-
-      if (__DEV__) {
-        console.error("Error loading videos:", err);
-      }
-    } finally {
-      setIsLoading(false);
-      loadingRef.current = false;
-    }
-  }, []);
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
@@ -83,31 +51,19 @@ export default function SearchScreen() {
   );
 
   const handleRefresh = useCallback(() => {
-    loadVideos();
-  }, [loadVideos]);
+    refreshLibrary();
+  }, [refreshLibrary]);
 
+  // Sync dev credentials on mount (only once)
   useEffect(() => {
-    let isMounted = true;
-
-    syncDevCredentials().then(() => {
-      if (isMounted) {
-        loadVideos();
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [loadVideos]);
+    syncDevCredentials();
+  }, []);
 
   // Focus search input when screen comes into focus
   useFocusEffect(
     useCallback(() => {
       // TextField should automatically receive focus as first focusable element
       // tvOS focus engine will handle this
-      if (__DEV__) {
-        console.log("Search screen focused");
-      }
     }, []),
   );
 

@@ -1,21 +1,11 @@
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLoading } from "@/contexts/LoadingContext";
-import {
-  fetchLibraryName,
-  fetchVideos,
-  syncDevCredentials,
-} from "@/services/jellyfinApi";
+import { useLibrary } from "@/contexts/LibraryContext";
+import { syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import * as SecureStore from "expo-secure-store";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useMemo } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -28,95 +18,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VideoLibraryScreen() {
-  const [videos, setVideos] = useState<JellyfinVideoItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [serverInfo, setServerInfo] = useState<string>("");
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
-  const loadingRef = useRef(false);
-
-  const loadServerInfo = useCallback(async () => {
-    try {
-      const [serverIp, serverPort, serverProtocol, apiKey, userId] =
-        await Promise.all([
-          SecureStore.getItemAsync("jellyfin_server_ip"),
-          SecureStore.getItemAsync("jellyfin_server_port"),
-          SecureStore.getItemAsync("jellyfin_server_protocol"),
-          SecureStore.getItemAsync("jellyfin_api_key"),
-          SecureStore.getItemAsync("jellyfin_user_id"),
-        ]);
-
-      if (__DEV__) {
-        console.log("=== SecureStore Debug ===");
-        console.log("Server IP:", serverIp);
-        console.log("Server Port:", serverPort);
-        console.log("Server Protocol:", serverProtocol);
-        console.log("API Key exists:", !!apiKey);
-        console.log("User ID exists:", !!userId);
-        console.log("========================");
-      }
-
-      // let serverUrl = "";
-      // if (serverIp && serverIp.trim()) {
-      //   const ip = serverIp.trim();
-      //   const port = serverPort?.trim() || "8096";
-      //   const protocol = serverProtocol?.trim() || "http";
-
-      //   serverUrl = `${protocol}://${ip}:${port}`;
-      // } else {
-      //   const devServer = process.env.EXPO_PUBLIC_DEV_JELLYFIN_SERVER;
-
-      //   if (devServer) {
-      //     serverUrl = devServer;
-      //   } else {
-      //     serverUrl = "JELLYFIN";
-      //   }
-      // }
-
-      const libraryName = await fetchLibraryName();
-
-      if (__DEV__) {
-        console.log("Setting server info:", libraryName);
-      }
-
-      setServerInfo(libraryName);
-    } catch (err) {
-      if (__DEV__) {
-        console.error("Error loading server info:", err);
-      }
-      setServerInfo("JELLYFIN");
-    }
-  }, []);
-
-  const loadVideos = useCallback(async () => {
-    if (loadingRef.current) {
-      if (__DEV__) {
-        console.log("Already loading, ignoring duplicate call");
-      }
-      return;
-    }
-
-    try {
-      loadingRef.current = true;
-      setIsLoading(true);
-      setError(null);
-
-      const fetchedVideos = await fetchVideos();
-      setVideos(fetchedVideos);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to load videos";
-      setError(errorMessage);
-
-      if (__DEV__) {
-        console.error("Error loading videos:", err);
-      }
-    } finally {
-      setIsLoading(false);
-      loadingRef.current = false;
-    }
-  }, []);
+  const { videos, isLoading, error, libraryName, refreshLibrary } =
+    useLibrary();
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
@@ -134,23 +39,13 @@ export default function VideoLibraryScreen() {
   );
 
   const handleRefresh = useCallback(() => {
-    loadVideos();
-  }, [loadVideos]);
+    refreshLibrary();
+  }, [refreshLibrary]);
 
+  // Sync dev credentials on mount (only once)
   useEffect(() => {
-    let isMounted = true;
-
-    syncDevCredentials().then(() => {
-      if (isMounted) {
-        loadVideos();
-        loadServerInfo();
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [loadVideos, loadServerInfo]);
+    syncDevCredentials();
+  }, []);
 
   const renderEmpty = useCallback(() => {
     if (isLoading) {
@@ -242,7 +137,7 @@ export default function VideoLibraryScreen() {
       <View style={styles.serverLabelContainer}>
         <View style={styles.serverLabelWrapper}>
           <Text style={styles.serverLabel} numberOfLines={1}>
-            lib: {serverInfo || "JELLYFIN"}
+            lib: {libraryName || "JELLYFIN"}
           </Text>
         </View>
       </View>

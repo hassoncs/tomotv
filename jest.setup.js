@@ -1,3 +1,18 @@
+// Polyfill structuredClone for older Node versions
+// Standard Web API - proper polyfill pattern
+if (typeof global.structuredClone === 'undefined') {
+  global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
+}
+
+// WORKAROUND: Mock Expo's winter runtime globals for Jest
+// Expo 54+ uses a "winter" module system that requires these globals
+// This is a temporary hack until Expo provides official Jest support
+// See: https://github.com/expo/expo/tree/main/packages/expo/src/winter
+global.__ExpoImportMetaRegistry = {};
+
+// Mock @expo/metro-runtime to prevent native runtime from loading in Node
+jest.mock('@expo/metro-runtime', () => ({}));
+
 // Mock expo-secure-store
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),
@@ -9,6 +24,31 @@ jest.mock('expo-secure-store', () => ({
 jest.mock('expo-video', () => ({
   useVideoPlayer: jest.fn(),
   VideoView: 'VideoView'
+}));
+
+// Mock @expo/ui/swift-ui
+jest.mock('@expo/ui/swift-ui', () => ({
+  Host: 'Host',
+  TextField: 'TextField',
+  SecureField: 'SecureField',
+  Switch: 'Switch',
+}));
+
+// Mock expo-router to prevent loading app structure
+jest.mock('expo-router', () => ({
+  Stack: 'Stack',
+  useRouter: jest.fn(() => ({
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+  })),
+  useLocalSearchParams: jest.fn(() => ({})),
+  useFocusEffect: jest.fn(),
+  router: {
+    push: jest.fn(),
+    replace: jest.fn(),
+    back: jest.fn(),
+  },
 }));
 
 // Mock InteractionManager - must happen before React Native imports

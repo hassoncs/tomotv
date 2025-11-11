@@ -180,7 +180,7 @@ describe('LoadingContext Pattern', () => {
       };
 
       const mockRouter = {
-        push: jest.fn(() => events.push('navigation_started')),
+        push: jest.fn((_: any) => events.push('navigation_started')),
       };
 
       // Step 1: User taps video in grid
@@ -238,7 +238,7 @@ describe('LoadingContext Pattern', () => {
       };
 
       const mockRouter = {
-        push: jest.fn(() => {
+        push: jest.fn((_: any) => {
           throw new Error('Navigation failed');
         }),
       };

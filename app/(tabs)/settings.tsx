@@ -1,4 +1,6 @@
 import { fetchVideos, refreshConfig } from "@/services/jellyfinApi";
+import { useLibrary } from "@/contexts/LibraryContext";
+import { logger } from "@/utils/logger";
 import {
   Host,
   SecureField,
@@ -77,7 +79,7 @@ const getInitialEnvValues = () => {
       devIp = url.hostname;
       devPort = url.port || "8096";
     } catch (e) {
-      console.warn("Failed to parse dev server URL:", e);
+      logger.warn("Failed to parse dev server URL", e);
     }
   }
 
@@ -92,6 +94,7 @@ const getInitialEnvValues = () => {
 
 export default function SettingsScreen() {
   const initialEnv = getInitialEnvValues();
+  const { refreshLibrary } = useLibrary();
 
   const [serverIp, setServerIp] = useState(initialEnv.ip);
   const [serverPort, setServerPort] = useState(initialEnv.port);
@@ -162,7 +165,7 @@ export default function SettingsScreen() {
       }
       if (savedQuality) setVideoQuality(parseInt(savedQuality, 10));
 
-      console.log("Loading settings:", {
+      logger.debug("Loading settings", {
         hasSavedIp: !!savedIp,
         hasSavedKey: !!savedKey,
         hasSavedUserId: !!savedUserId,
@@ -170,7 +173,7 @@ export default function SettingsScreen() {
         currentPort: savedPort || serverPort,
       });
     } catch (error) {
-      console.error("Error loading settings:", error);
+      logger.error("Error loading settings", error);
       Alert.alert("Error", "Failed to load settings from iCloud");
     } finally {
       setIsLoading(false);
@@ -294,13 +297,16 @@ export default function SettingsScreen() {
       await refreshConfig();
       const videos = await fetchVideos();
 
+      // Trigger library refresh in background
+      refreshLibrary();
+
       Alert.alert(
         "Connection Successful!",
         `Successfully connected to Jellyfin server.\n\nFound ${videos.length} video(s) in your library.`,
         [{ text: "OK" }],
       );
     } catch (error) {
-      console.error("Connection test failed:", error);
+      logger.error("Connection test failed", error);
       Alert.alert(
         "Connection Failed",
         `Unable to connect to Jellyfin server.\n\nPlease check:\n• Server IP is correct\n• Jellyfin is running\n• API key and User ID are valid\n\nError: ${
@@ -350,11 +356,14 @@ export default function SettingsScreen() {
       // Refresh the API service config cache
       await refreshConfig();
 
+      // Trigger library refresh in background
+      refreshLibrary();
+
       Alert.alert("Success", "Jellyfin settings saved successfully!", [
         { text: "OK" },
       ]);
     } catch (error) {
-      console.error("Error saving settings:", error);
+      logger.error("Error saving settings", error);
       Alert.alert("Error", "Failed to save settings to iCloud");
     } finally {
       setIsSaving(false);
@@ -374,7 +383,7 @@ export default function SettingsScreen() {
       const qualityLabel = QUALITY_PRESETS[qualityValue]?.label || "Unknown";
       Alert.alert("Success", `Video quality set to ${qualityLabel}`);
     } catch (error) {
-      console.error("Error saving video quality:", error);
+      logger.error("Error saving video quality", error);
       Alert.alert("Error", "Failed to save video quality");
     }
   };
@@ -416,7 +425,7 @@ Video Quality: ${qualityLabel}
 
       Alert.alert("Debug Info", debugInfo, [{ text: "OK", style: "default" }]);
     } catch (error) {
-      console.error("Error loading debug info:", error);
+      logger.error("Error loading debug info", error);
       Alert.alert("Error", "Failed to load debug information");
     }
   };
@@ -459,9 +468,12 @@ Video Quality: ${qualityLabel}
               // Refresh config to reset to defaults
               await refreshConfig();
 
+              // Trigger library refresh to show error state
+              refreshLibrary();
+
               Alert.alert("Success", "Settings cleared, using default values");
             } catch (error) {
-              console.error("Error clearing settings:", error);
+              logger.error("Error clearing settings", error);
               Alert.alert("Error", "Failed to clear settings");
             }
           },
@@ -593,9 +605,6 @@ Video Quality: ${qualityLabel}
                     }
                     label="Use HTTPS"
                     variant="switch"
-                    systemImage={
-                      serverProtocol === "https" ? "lock.fill" : "lock.open"
-                    }
                   />
                 </Host>
               </View>
