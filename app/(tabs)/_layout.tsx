@@ -1,15 +1,15 @@
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import {Icon, Label, NativeTabs} from "expo-router/unstable-native-tabs"
 
 export default function TabLayout() {
   return (
     <NativeTabs>
+      <NativeTabs.Trigger name="search">
+        <Icon sf="magnifyingglass" />
+        <Label> </Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="index">
         <Label>Library</Label>
         <Icon sf="film.fill" />
-      </NativeTabs.Trigger>
-      <NativeTabs.Trigger name="search">
-        <Label>Search</Label>
-        <Icon sf="magnifyingglass" />
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="settings">
         <Label>Settings</Label>
@@ -20,5 +20,5 @@ export default function TabLayout() {
         <Icon sf="questionmark.circle.fill" />
       </NativeTabs.Trigger>
     </NativeTabs>
-  );
+  )
 }

@@ -47,6 +47,16 @@ class LibraryManager {
   subscribe(listener: LibraryListener): () => void {
     this.listeners.add(listener)
 
+    logger.debug("New subscriber added", {
+      service: "LibraryManager",
+      totalSubscribers: this.listeners.size,
+      currentState: {
+        videoCount: this.videos.length,
+        isLoading: this.isLoading,
+        hasError: !!this.error
+      }
+    })
+
     // Immediately notify with current state
     listener({
       videos: this.videos,
@@ -58,6 +68,10 @@ class LibraryManager {
     // Return unsubscribe function
     return () => {
       this.listeners.delete(listener)
+      logger.debug("Subscriber removed", {
+        service: "LibraryManager",
+        totalSubscribers: this.listeners.size
+      })
     }
   }
 
@@ -71,6 +85,15 @@ class LibraryManager {
       error: this.error,
       libraryName: this.libraryName
     }
+
+    logger.debug("Notifying listeners", {
+      service: "LibraryManager",
+      listenerCount: this.listeners.size,
+      videoCount: state.videos.length,
+      isLoading: state.isLoading,
+      hasError: !!state.error,
+      libraryName: state.libraryName
+    })
 
     this.listeners.forEach(listener => listener(state))
   }

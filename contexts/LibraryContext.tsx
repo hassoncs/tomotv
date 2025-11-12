@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { libraryManager } from "@/services/libraryManager";
 import { JellyfinVideoItem } from "@/types/jellyfin";
+import { logger } from "@/utils/logger";
 
 interface LibraryContextType {
   videos: JellyfinVideoItem[];
@@ -44,8 +45,19 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       // Skip first call since we already initialized from getState()
       if (isFirstCall) {
         isFirstCall = false;
+        logger.debug("Skipping first notification (already initialized)", {
+          context: "LibraryContext",
+        });
         return;
       }
+
+      logger.debug("Received state update", {
+        context: "LibraryContext",
+        videoCount: state.videos.length,
+        isLoading: state.isLoading,
+        hasError: !!state.error,
+        libraryName: state.libraryName,
+      });
 
       setVideos(state.videos);
       setIsLoading(state.isLoading);
@@ -68,6 +80,7 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   );
 
   const refreshLibrary = useCallback(async () => {
+    logger.debug("refreshLibrary called", { context: "LibraryContext" });
     await libraryManager.refreshLibrary();
   }, []);
 

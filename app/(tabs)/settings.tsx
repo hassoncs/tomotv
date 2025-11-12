@@ -357,6 +357,9 @@ export default function SettingsScreen() {
       await refreshConfig();
 
       // Trigger library refresh in background
+      logger.info("Settings saved - triggering library refresh", {
+        screen: "settings",
+      });
       refreshLibrary();
 
       Alert.alert("Success", "Jellyfin settings saved successfully!", [
