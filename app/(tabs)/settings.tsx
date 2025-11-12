@@ -1,3 +1,4 @@
+import { FocusableButton } from "@/components/FocusableButton";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { fetchVideos, refreshConfig } from "@/services/jellyfinApi";
 import { logger } from "@/utils/logger";
@@ -14,7 +15,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -665,57 +665,51 @@ Video Quality: ${qualityLabel}
 
           {/* Action Buttons */}
           <View style={styles.buttonGroup}>
-            <TouchableOpacity
-              style={styles.secondaryButton}
+            <FocusableButton
+              title="Test Connection"
+              variant="secondary"
               onPress={testConnection}
               disabled={isTesting || isSaving}
-              activeOpacity={0.6}
-              isTVSelectable={true}
-            >
-              {isTesting ? (
-                <ActivityIndicator color="#FFC312" />
-              ) : (
-                <Text style={styles.secondaryButtonText}>Test Connection</Text>
-              )}
-            </TouchableOpacity>
+              isLoading={isTesting}
+              style={{ width: "100%", maxWidth: 400, marginHorizontal: "auto" }}
+            />
 
-            <TouchableOpacity
-              style={styles.primaryButton}
+            <FocusableButton
+              title="Save Server Settings"
+              variant="primary"
               onPress={saveJellyfinSettings}
               disabled={isSaving || isTesting}
-              activeOpacity={0.6}
-              isTVSelectable={true}
-            >
-              {isSaving ? (
-                <ActivityIndicator color="#000" />
-              ) : (
-                <Text style={styles.primaryButtonText}>
-                  Save Server Settings
-                </Text>
-              )}
-            </TouchableOpacity>
+              isLoading={isSaving}
+              style={{ width: "100%", maxWidth: 400, marginHorizontal: "auto" }}
+            />
           </View>
 
           {/* Debug Info */}
-          <TouchableOpacity
-            style={styles.debugButton}
+          <FocusableButton
+            title="View iCloud Sync Status"
+            variant="debug"
             onPress={viewDebugInfo}
-            activeOpacity={0.6}
-            isTVSelectable={true}
-          >
-            <Text style={styles.debugButtonText}>View iCloud Sync Status</Text>
-          </TouchableOpacity>
+            style={{
+              marginTop: Platform.isTV ? 32 : 24,
+              width: "100%",
+              maxWidth: 400,
+              marginHorizontal: "auto",
+            }}
+          />
 
           {/* Clear Settings */}
-          <TouchableOpacity
-            style={styles.destructiveButton}
+          <FocusableButton
+            title="Clear All Settings"
+            variant="destructive"
             onPress={clearSettings}
             disabled={isSaving || isTesting}
-            activeOpacity={0.6}
-            isTVSelectable={true}
-          >
-            <Text style={styles.destructiveButtonText}>Clear All Settings</Text>
-          </TouchableOpacity>
+            style={{
+              marginTop: Platform.isTV ? 16 : 12,
+              width: "100%",
+              maxWidth: 400,
+              marginHorizontal: "auto",
+            }}
+          />
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -835,76 +829,5 @@ const styles = StyleSheet.create({
   buttonGroup: {
     gap: Platform.isTV ? 16 : 12,
     marginTop: Platform.isTV ? 24 : 16,
-  },
-  primaryButton: {
-    backgroundColor: "#FFC312",
-    paddingVertical: Platform.isTV ? 20 : 14,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: Platform.isTV ? 24 : 16,
-    minHeight: Platform.isTV ? 60 : 50,
-    maxWidth: 400,
-    width: "100%",
-    marginHorizontal: "auto",
-  },
-  primaryButtonText: {
-    fontSize: Platform.isTV ? 25 : 17,
-    fontWeight: "600",
-    color: "#000000",
-  },
-  secondaryButton: {
-    backgroundColor: "transparent",
-    borderWidth: 1.5,
-    borderColor: "#FFC312",
-    paddingVertical: Platform.isTV ? 20 : 14,
-    paddingHorizontal: Platform.isTV ? 28 : 20,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: Platform.isTV ? 60 : 50,
-    maxWidth: 400,
-    width: "100%",
-    marginHorizontal: "auto",
-  },
-  secondaryButtonText: {
-    fontSize: Platform.isTV ? 24 : 17,
-    fontWeight: "600",
-    color: "#FFC312",
-  },
-  debugButton: {
-    backgroundColor: "transparent",
-    paddingVertical: Platform.isTV ? 20 : 14,
-    paddingHorizontal: Platform.isTV ? 28 : 20,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: Platform.isTV ? 32 : 24,
-    minHeight: Platform.isTV ? 60 : 50,
-    borderWidth: 1,
-    borderColor: "#8E8E93",
-    maxWidth: 400,
-    width: "100%",
-    marginHorizontal: "auto",
-  },
-  debugButtonText: {
-    fontSize: Platform.isTV ? 20 : 17,
-    fontWeight: "600",
-    color: "#8E8E93",
-  },
-  destructiveButton: {
-    backgroundColor: "transparent",
-    paddingVertical: Platform.isTV ? 20 : 14,
-    paddingHorizontal: Platform.isTV ? 28 : 20,
-    borderRadius: 999,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: Platform.isTV ? 16 : 12,
-    minHeight: Platform.isTV ? 60 : 50,
-  },
-  destructiveButtonText: {
-    fontSize: Platform.isTV ? 20 : 17,
-    fontWeight: "600",
-    color: "#FF3B30",
   },
 });

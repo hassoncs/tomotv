@@ -1,3 +1,4 @@
+import { FocusableButton } from "@/components/FocusableButton";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
@@ -12,7 +13,6 @@ import {
   Platform,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -67,22 +67,26 @@ export default function VideoLibraryScreen() {
           <Text style={styles.errorText}>{error}</Text>
           <Text style={styles.errorText}>Check Settings</Text>
           {isConfigError ? (
-            <TouchableOpacity
-              style={[styles.retryButton, styles.settingsButton]}
+            <FocusableButton
+              title="Go to Settings"
+              variant="primary"
               onPress={() => router.push("/(tabs)/settings")}
-              isTVSelectable={true}
-            >
-              <Ionicons name="settings-outline" size={20} color="#FFFFFF" />
-              <Text style={styles.retryButtonText}>Go to Settings</Text>
-            </TouchableOpacity>
+              icon={
+                <Ionicons
+                  name="settings-outline"
+                  size={Platform.isTV ? 24 : 20}
+                  color="#000000"
+                />
+              }
+              hasTVPreferredFocus={true}
+            />
           ) : (
-            <TouchableOpacity
-              style={styles.retryButton}
+            <FocusableButton
+              title="Retry"
+              variant="retry"
               onPress={handleRefresh}
-              isTVSelectable={true}
-            >
-              <Text style={styles.retryButtonText}>Retry</Text>
-            </TouchableOpacity>
+              hasTVPreferredFocus={true}
+            />
           )}
         </View>
       );
@@ -92,13 +96,12 @@ export default function VideoLibraryScreen() {
       <View style={styles.centerContainer}>
         <Ionicons name="film-outline" size={64} color="#98989D" />
         <Text style={styles.emptyText}>No videos found</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
+        <FocusableButton
+          title="Refresh"
+          variant="retry"
           onPress={handleRefresh}
-          isTVSelectable={true}
-        >
-          <Text style={styles.retryButtonText}>Refresh</Text>
-        </TouchableOpacity>
+          hasTVPreferredFocus={true}
+        />
       </View>
     );
   }, [isLoading, error, router, handleRefresh]);
@@ -233,23 +236,5 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#98989D",
     textAlign: "center",
-  },
-  retryButton: {
-    marginTop: 24,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    backgroundColor: "#007AFF",
-    borderRadius: 32,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  retryButtonText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  settingsButton: {
-    backgroundColor: "#FFC312",
   },
 });

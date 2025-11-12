@@ -1,12 +1,7 @@
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from "react-native";
+import { View, Text, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { FocusableButton } from "./FocusableButton";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -87,22 +82,20 @@ export class ErrorBoundary extends React.Component<
               </View>
             )}
 
-            <TouchableOpacity
-              style={styles.primaryButton}
+            <FocusableButton
+              title="Try Again"
+              variant="primary"
               onPress={this.handleRetry}
-              isTVSelectable={true}
               hasTVPreferredFocus={true}
-            >
-              <Text style={styles.primaryButtonText}>Try Again</Text>
-            </TouchableOpacity>
+              style={{ marginTop: Platform.isTV ? 48 : 32 }}
+            />
 
-            <TouchableOpacity
-              style={styles.secondaryButton}
+            <FocusableButton
+              title="Reload App"
+              variant="secondary"
               onPress={this.handleReload}
-              isTVSelectable={true}
-            >
-              <Text style={styles.secondaryButtonText}>Reload App</Text>
-            </TouchableOpacity>
+              style={{ marginTop: Platform.isTV ? 20 : 16 }}
+            />
           </View>
         </View>
       );
@@ -161,32 +154,5 @@ const styles = StyleSheet.create({
     fontFamily: Platform.select({ ios: "Menlo", default: "monospace" }),
     color: "#98989D",
     lineHeight: Platform.isTV ? 22 : 18,
-  },
-  primaryButton: {
-    marginTop: Platform.isTV ? 48 : 32,
-    paddingVertical: Platform.isTV ? 20 : 16,
-    paddingHorizontal: Platform.isTV ? 48 : 32,
-    backgroundColor: "#FFC312",
-    borderRadius: 999,
-    minWidth: Platform.isTV ? 300 : 200,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    fontSize: Platform.isTV ? 24 : 18,
-    fontWeight: "600",
-    color: "#000000",
-  },
-  secondaryButton: {
-    marginTop: Platform.isTV ? 20 : 16,
-    paddingVertical: Platform.isTV ? 20 : 16,
-    paddingHorizontal: Platform.isTV ? 48 : 32,
-    borderRadius: 999,
-    minWidth: Platform.isTV ? 300 : 200,
-    alignItems: "center",
-  },
-  secondaryButtonText: {
-    fontSize: Platform.isTV ? 20 : 16,
-    fontWeight: "600",
-    color: "#98989D",
   },
 });
