@@ -29,8 +29,6 @@ jest.mock('expo-video', () => ({
 // Mock @expo/ui/swift-ui
 jest.mock('@expo/ui/swift-ui', () => ({
   Host: 'Host',
-  TextField: 'TextField',
-  SecureField: 'SecureField',
   Switch: 'Switch',
 }));
 

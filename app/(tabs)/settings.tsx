@@ -1,13 +1,7 @@
-import { fetchVideos, refreshConfig } from "@/services/jellyfinApi";
 import { useLibrary } from "@/contexts/LibraryContext";
+import { fetchVideos, refreshConfig } from "@/services/jellyfinApi";
 import { logger } from "@/utils/logger";
-import {
-  Host,
-  SecureField,
-  Switch,
-  TextField,
-  TextFieldRef,
-} from "@expo/ui/swift-ui";
+import { Host, Switch } from "@expo/ui/swift-ui";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useRef, useState } from "react";
@@ -19,6 +13,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -109,10 +104,10 @@ export default function SettingsScreen() {
   const [isTesting, setIsTesting] = useState(false);
 
   // Refs for text fields
-  const serverIpRef = useRef<TextFieldRef>(null);
-  const serverPortRef = useRef<TextFieldRef>(null);
-  const apiKeyRef = useRef<TextFieldRef>(null);
-  const userIdRef = useRef<TextFieldRef>(null);
+  const serverIpRef = useRef<TextInput>(null);
+  const serverPortRef = useRef<TextInput>(null);
+  const apiKeyRef = useRef<TextInput>(null);
+  const userIdRef = useRef<TextInput>(null);
 
   // Refs to store current values without causing re-renders
   const currentServerIp = useRef(serverIp);
@@ -462,11 +457,11 @@ Video Quality: ${qualityLabel}
               setUserId("");
               setVideoQuality(2); // Reset to 720p default
 
-              // Clear text in TextField refs
-              serverIpRef.current?.setText("");
-              serverPortRef.current?.setText("8096");
-              apiKeyRef.current?.setText("");
-              userIdRef.current?.setText("");
+              // Update current refs to match state
+              currentServerIp.current = "";
+              currentServerPort.current = "8096";
+              currentApiKey.current = "";
+              currentUserId.current = "";
 
               // Refresh config to reset to defaults
               await refreshConfig();
@@ -564,17 +559,21 @@ Video Quality: ${qualityLabel}
             <View style={[styles.listItem, styles.listItemFirst]}>
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Server IP / Hostname</Text>
-                <Host style={styles.inputHost}>
-                  <TextField
-                    ref={serverIpRef}
-                    defaultValue={serverIp}
-                    placeholder="IP Address"
-                    autocorrection={false}
-                    onChangeText={(value) => {
-                      currentServerIp.current = value;
-                    }}
-                  />
-                </Host>
+                <TextInput
+                  ref={serverIpRef}
+                  value={serverIp}
+                  placeholder="IP Address"
+                  placeholderTextColor="#8E8E93"
+                  autoCorrect={false}
+                  onChangeText={(value) => {
+                    setServerIp(value);
+                    currentServerIp.current = value;
+                  }}
+                  style={styles.textInput}
+                  autoFocus={false}
+                  numberOfLines={1}
+                  multiline={false}
+                />
               </View>
             </View>
 
@@ -582,17 +581,22 @@ Video Quality: ${qualityLabel}
             <View style={styles.listItem}>
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Port</Text>
-                <Host style={styles.inputHost}>
-                  <TextField
-                    ref={serverPortRef}
-                    defaultValue={serverPort}
-                    placeholder="8096"
-                    autocorrection={false}
-                    onChangeText={(value) => {
-                      currentServerPort.current = value;
-                    }}
-                  />
-                </Host>
+                <TextInput
+                  ref={serverPortRef}
+                  value={serverPort}
+                  placeholder="8096"
+                  placeholderTextColor="#8E8E93"
+                  autoCorrect={false}
+                  keyboardType="number-pad"
+                  onChangeText={(value) => {
+                    setServerPort(value);
+                    currentServerPort.current = value;
+                  }}
+                  style={styles.textInput}
+                  autoFocus={false}
+                  numberOfLines={1}
+                  multiline={false}
+                />
               </View>
             </View>
 
@@ -617,17 +621,21 @@ Video Quality: ${qualityLabel}
             <View style={styles.listItem}>
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>User ID</Text>
-                <Host style={styles.inputHost}>
-                  <TextField
-                    ref={userIdRef}
-                    defaultValue={userId}
-                    placeholder="Enter your user ID"
-                    autocorrection={false}
-                    onChangeText={(value) => {
-                      currentUserId.current = value;
-                    }}
-                  />
-                </Host>
+                <TextInput
+                  ref={userIdRef}
+                  value={userId}
+                  placeholder="Enter your user ID"
+                  placeholderTextColor="#8E8E93"
+                  autoCorrect={false}
+                  onChangeText={(value) => {
+                    setUserId(value);
+                    currentUserId.current = value;
+                  }}
+                  style={styles.textInput}
+                  autoFocus={false}
+                  multiline={false}
+                  numberOfLines={1}
+                />
               </View>
             </View>
 
@@ -635,28 +643,22 @@ Video Quality: ${qualityLabel}
             <View style={[styles.listItem, styles.listItemLast]}>
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>API Key</Text>
-                <Host style={styles.inputHost}>
-                  {Platform.isTV ? (
-                    <TextField
-                      ref={apiKeyRef}
-                      defaultValue={apiKey}
-                      placeholder="Enter your API key"
-                      autocorrection={false}
-                      onChangeText={(value) => {
-                        currentApiKey.current = value;
-                      }}
-                    />
-                  ) : (
-                    <SecureField
-                      ref={apiKeyRef}
-                      defaultValue={apiKey}
-                      placeholder="Enter your API key"
-                      onChangeText={(value) => {
-                        currentApiKey.current = value;
-                      }}
-                    />
-                  )}
-                </Host>
+                <TextInput
+                  ref={apiKeyRef}
+                  value={apiKey}
+                  placeholder="Enter your API key"
+                  placeholderTextColor="#8E8E93"
+                  autoCorrect={false}
+                  secureTextEntry={!Platform.isTV}
+                  onChangeText={(value) => {
+                    setApiKey(value);
+                    currentApiKey.current = value;
+                  }}
+                  style={styles.textInput}
+                  autoFocus={false}
+                  numberOfLines={1}
+                  multiline={false}
+                />
               </View>
             </View>
           </View>
@@ -819,6 +821,15 @@ const styles = StyleSheet.create({
   inputHost: {
     width: "100%",
     minHeight: Platform.isTV ? 52 : 44,
+  },
+  textInput: {
+    width: "100%",
+    minHeight: Platform.isTV ? 56 : 50,
+    // backgroundColor: "#2C2C2E",
+    borderRadius: Platform.isTV ? 12 : 8,
+    paddingHorizontal: Platform.isTV ? 16 : 12,
+    fontSize: Platform.isTV ? 24 : 20,
+    color: "#FFFFFF",
   },
   // Buttons
   buttonGroup: {
