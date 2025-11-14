@@ -501,46 +501,6 @@ Video Quality: ${qualityLabel}
         contentInsetAdjustmentBehavior="automatic"
       >
         <View style={styles.contentContainer}>
-          {/* Section Header */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionHeaderText}>VIDEO QUALITY</Text>
-          </View>
-
-          {/* Quality Buttons */}
-          <View style={styles.section}>
-            {QUALITY_PRESETS.map((preset, index) => (
-              <Pressable
-                key={preset.value}
-                style={({ focused }) => [
-                  styles.listItem,
-                  index === 0 && styles.listItemFirst,
-                  index === QUALITY_PRESETS.length - 1 && styles.listItemLast,
-                  focused && { backgroundColor: "rgba(255, 255, 255, 0.1)" },
-                ]}
-                onPress={() => handleQualityChange(preset.value)}
-                tvParallaxProperties={{ magnification: 1.01 }}
-                isTVSelectable={true}
-                hasTVPreferredFocus={index === 0}
-              >
-                <View style={styles.listItemContent}>
-                  <View style={styles.listItemLeft}>
-                    <Text style={styles.listItemTitle}>{preset.label}</Text>
-                    <Text style={styles.listItemSubtitle}>
-                      {preset.description}
-                    </Text>
-                  </View>
-                  {videoQuality === preset.value && (
-                    <Ionicons
-                      name="checkmark"
-                      size={Platform.isTV ? 28 : 24}
-                      color="#FFC312"
-                    />
-                  )}
-                </View>
-              </Pressable>
-            ))}
-          </View>
-
           {/* Jellyfin Server Section */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderText}>JELLYFIN SERVER</Text>
@@ -661,6 +621,46 @@ Video Quality: ${qualityLabel}
                 />
               </View>
             </View>
+          </View>
+
+          {/* Section Header */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionHeaderText}>VIDEO QUALITY</Text>
+          </View>
+
+          {/* Quality Buttons */}
+          <View style={styles.section}>
+            {QUALITY_PRESETS.map((preset, index) => (
+              <Pressable
+                key={preset.value}
+                style={({ focused }) => [
+                  styles.listItem,
+                  index === 0 && styles.listItemFirst,
+                  index === QUALITY_PRESETS.length - 1 && styles.listItemLast,
+                  focused && { backgroundColor: "rgba(255, 255, 255, 0.1)" },
+                ]}
+                onPress={() => handleQualityChange(preset.value)}
+                tvParallaxProperties={{ magnification: 1.01 }}
+                isTVSelectable={true}
+                hasTVPreferredFocus={false}
+              >
+                <View style={styles.listItemContent}>
+                  <View style={styles.listItemLeft}>
+                    <Text style={styles.listItemTitle}>{preset.label}</Text>
+                    <Text style={styles.listItemSubtitle}>
+                      {preset.description}
+                    </Text>
+                  </View>
+                  {videoQuality === preset.value && (
+                    <Ionicons
+                      name="checkmark"
+                      size={Platform.isTV ? 28 : 24}
+                      color="#FFC312"
+                    />
+                  )}
+                </View>
+              </Pressable>
+            ))}
           </View>
 
           {/* Action Buttons */}

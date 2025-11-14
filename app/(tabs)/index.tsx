@@ -1,59 +1,43 @@
-import { FocusableButton } from "@/components/FocusableButton";
-import { VideoGridItem } from "@/components/video-grid-item";
-import { useLibrary } from "@/contexts/LibraryContext";
-import { useLoading } from "@/contexts/LoadingContext";
-import { syncDevCredentials } from "@/services/jellyfinApi";
-import { JellyfinVideoItem } from "@/types/jellyfin";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo } from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {FocusableButton} from "@/components/FocusableButton"
+import {VideoGridItem} from "@/components/video-grid-item"
+import {useLibrary} from "@/contexts/LibraryContext"
+import {useLoading} from "@/contexts/LoadingContext"
+import {syncDevCredentials} from "@/services/jellyfinApi"
+import {JellyfinVideoItem} from "@/types/jellyfin"
+import {Ionicons} from "@expo/vector-icons"
+import {useRouter} from "expo-router"
+import React, {useCallback, useEffect, useMemo} from "react"
+import {ActivityIndicator, FlatList, Platform, StyleSheet, Text, View} from "react-native"
+import {SafeAreaView} from "react-native-safe-area-context"
 
 export default function VideoLibraryScreen() {
-  const router = useRouter();
-  const { showGlobalLoader } = useLoading();
-  const {
-    videos,
-    isLoading,
-    isLoadingMore,
-    hasMoreResults,
-    error,
-    libraryName,
-    refreshLibrary,
-    loadMore,
-  } = useLibrary();
+  const router = useRouter()
+  const {showGlobalLoader} = useLoading()
+  const {videos, isLoading, isLoadingMore, hasMoreResults, error, libraryName, refreshLibrary, loadMore} = useLibrary()
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
-      showGlobalLoader();
+      showGlobalLoader()
 
       router.push({
         pathname: "/player" as const,
         params: {
           videoId: video.Id,
-          videoName: video.Name,
-        },
-      });
+          videoName: video.Name
+        }
+      })
     },
-    [router, showGlobalLoader],
-  );
+    [router, showGlobalLoader]
+  )
 
   const handleRefresh = useCallback(() => {
-    refreshLibrary();
-  }, [refreshLibrary]);
+    refreshLibrary()
+  }, [refreshLibrary])
 
   // Sync dev credentials on mount (only once)
   useEffect(() => {
-    syncDevCredentials();
-  }, []);
+    syncDevCredentials()
+  }, [])
 
   const renderEmpty = useCallback(() => {
     if (isLoading) {
@@ -62,90 +46,71 @@ export default function VideoLibraryScreen() {
           <ActivityIndicator size="large" color="#007AFF" />
           <Text style={styles.loadingText}>Loading videos...</Text>
         </View>
-      );
+      )
     }
 
     if (error) {
-      const isConfigError = error.includes("not configured");
+      const isConfigError = error.includes("not configured")
 
       return (
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
           <Text style={styles.errorTitle}>Unable to Load Videos</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.errorText}>Check Settings</Text>
+          <Text style={styles.errorText}></Text>
           {isConfigError ? (
             <FocusableButton
               title="Go to Settings"
               variant="primary"
               onPress={() => router.push("/(tabs)/settings")}
-              icon={
-                <Ionicons
-                  name="settings-outline"
-                  size={Platform.isTV ? 24 : 20}
-                  color="#000000"
-                />
-              }
+              icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
               hasTVPreferredFocus={true}
             />
           ) : (
-            <FocusableButton
-              title="Retry"
-              variant="retry"
-              onPress={handleRefresh}
-              hasTVPreferredFocus={true}
-            />
+            <FocusableButton title="Retry" variant="retry" onPress={handleRefresh} hasTVPreferredFocus={true} />
           )}
         </View>
-      );
+      )
     }
 
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="film-outline" size={64} color="#98989D" />
         <Text style={styles.emptyText}>No videos found</Text>
-        <FocusableButton
-          title="Refresh"
-          variant="retry"
-          onPress={handleRefresh}
-          hasTVPreferredFocus={true}
-        />
+        <FocusableButton title="Refresh" variant="retry" onPress={handleRefresh} hasTVPreferredFocus={true} />
       </View>
-    );
-  }, [isLoading, error, router, handleRefresh]);
+    )
+  }, [isLoading, error, router, handleRefresh])
 
-  const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
+  const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), [])
 
   const itemDimensions = useMemo(() => {
-    const screenWidth = Math.min(
-      Platform.isTV ? 1920 : 1080,
-      Platform.isTV ? 1080 : 1920,
-    );
-    const itemWidth = screenWidth / numColumns;
-    const itemHeight = itemWidth * (3 / 2) + 40;
+    const screenWidth = Math.min(Platform.isTV ? 1920 : 1080, Platform.isTV ? 1080 : 1920)
+    const itemWidth = screenWidth / numColumns
+    const itemHeight = itemWidth * (3 / 2) + 40
 
-    return { itemHeight };
-  }, [numColumns]);
+    return {itemHeight}
+  }, [numColumns])
 
   const getItemLayout = useCallback(
     (_: ArrayLike<JellyfinVideoItem> | null | undefined, index: number) => ({
       length: itemDimensions.itemHeight,
       offset: itemDimensions.itemHeight * Math.floor(index / numColumns),
-      index,
+      index
     }),
-    [itemDimensions, numColumns],
-  );
+    [itemDimensions, numColumns]
+  )
 
   const renderItem = useCallback(
-    ({ item, index }: { item: JellyfinVideoItem; index: number }) => (
+    ({item, index}: {item: JellyfinVideoItem; index: number}) => (
       <VideoGridItem video={item} onPress={handleVideoPress} index={index} />
     ),
-    [handleVideoPress],
-  );
+    [handleVideoPress]
+  )
 
   const renderFooter = useCallback(() => {
     if (!isLoadingMore) {
-      return null;
+      return null
     }
 
     return (
@@ -153,14 +118,14 @@ export default function VideoLibraryScreen() {
         <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.footerLoadingText}>Loading more...</Text>
       </View>
-    );
-  }, [isLoadingMore]);
+    )
+  }, [isLoadingMore])
 
   const handleLoadMore = useCallback(() => {
     if (hasMoreResults && !isLoadingMore && !isLoading) {
-      loadMore();
+      loadMore()
     }
-  }, [hasMoreResults, isLoadingMore, isLoading, loadMore]);
+  }, [hasMoreResults, isLoadingMore, isLoading, loadMore])
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -178,7 +143,7 @@ export default function VideoLibraryScreen() {
           testID="library-list"
           data={videos}
           renderItem={renderItem}
-          keyExtractor={(item) => item.Id}
+          keyExtractor={item => item.Id}
           getItemLayout={getItemLayout}
           numColumns={numColumns}
           key={numColumns}
@@ -197,13 +162,13 @@ export default function VideoLibraryScreen() {
         />
       )}
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3d3d3d",
+    backgroundColor: "#3d3d3d"
   },
   serverLabelContainer: {
     position: "absolute",
@@ -213,11 +178,11 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     alignItems: "flex-end",
     zIndex: 999,
-    pointerEvents: "none",
+    pointerEvents: "none"
   },
   serverLabelWrapper: {
     justifyContent: "center",
-    alignItems: "center",
+    alignItems: "center"
   },
   serverLabel: {
     color: "#a3cb38",
@@ -226,58 +191,58 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     letterSpacing: 1.5,
     textAlign: "center",
-    textTransform: "uppercase",
+    textTransform: "uppercase"
   },
   gridContent: {
     paddingTop: Platform.isTV ? 40 : 20,
-    paddingBottom: 60,
+    paddingBottom: 60
   },
   columnWrapper: {
     justifyContent: "flex-start",
-    paddingVertical: 24,
+    paddingVertical: 24
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 40,
+    padding: 40
   },
   loadingText: {
     marginTop: 36,
     fontSize: 20,
     color: "#98989D",
-    fontWeight: "500",
+    fontWeight: "500"
   },
   errorTitle: {
     marginTop: 16,
     fontSize: 24,
     fontWeight: "700",
     color: "#FFFFFF",
-    textAlign: "center",
+    textAlign: "center"
   },
   errorText: {
-    marginTop: 8,
+    marginTop: 18,
     fontSize: 17,
     color: "#98989D",
     textAlign: "center",
-    lineHeight: 24,
+    lineHeight: 24
   },
   emptyText: {
     marginTop: 16,
     fontSize: 20,
     color: "#98989D",
-    textAlign: "center",
+    textAlign: "center"
   },
   footerLoading: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 30,
-    gap: 12,
+    gap: 12
   },
   footerLoadingText: {
     fontSize: Platform.isTV ? 20 : 16,
     color: "#98989D",
-    fontWeight: "500",
-  },
-});
+    fontWeight: "500"
+  }
+})

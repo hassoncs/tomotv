@@ -42,9 +42,7 @@ npm run prebuild:tv    # Prebuild with Apple TV support (EXPO_TV=1)
 ### Development Setup
 
 1. Copy `.env.example` to `.env.local`
-2. Add Jellyfin credentials (API key and User ID)
-3. `scripts/update-dev-ip.js` writes your active LAN IP (falls back to `http://localhost:8096`) so simulators and on-network devices target the same machine
-4. The `prestart`/`preios`/`preandroid` hooks automatically refresh the value before each run
+2. Add Jellyfin credentials (server URL, API key, and User ID)
 
 ## Architecture
 
@@ -221,7 +219,6 @@ mv .env.local.backup .env.local
 
 - **iOS/tvOS:** `NSAppTransportSecurity` allows local HTTP connections
 - **iOS/tvOS:** `NSLocalNetworkUsageDescription` for Bonjour discovery
-- The `scripts/update-dev-ip.js` auto-detects Mac IP before each start
 
 ### Apple TV Specific
 
@@ -337,3 +334,4 @@ npm run test:coverage # Check coverage
 
 1. Unless intentionally, DO NOT run commands on the `node_modules` directory, it only wates tokens.
 - stop searching node_modules unless required to inspect current lib implementation, I feel you are wasting token by doing this
+- your initial code proposed for any solution needs to be prod ready, you can not relay on running a linter to make sure the code adhers to current code conventions and prod readines

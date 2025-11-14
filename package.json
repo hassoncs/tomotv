@@ -4,11 +4,8 @@
   "version": "1.0.5",
   "scripts": {
     "postinstall": "patch-package",
-    "prestart": "node scripts/update-dev-ip.js",
     "start": "expo start",
-    "preandroid": "node scripts/update-dev-ip.js",
     "android": "expo run:android",
-    "preios": "node scripts/update-dev-ip.js",
     "ios": "expo run:ios",
     "lint": "npx expo lint --fix",
     "test": "jest",
