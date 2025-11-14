@@ -1,7 +1,7 @@
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
-import { syncDevCredentials } from "@/services/jellyfinApi";
+import { searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -27,12 +27,15 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function SearchScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
-  const { videos, isLoading, error, refreshLibrary } = useLibrary();
-  const [filteredVideos, setFilteredVideos] = useState<JellyfinVideoItem[]>([]);
+  const { isLoading, error, refreshLibrary } = useLibrary();
+  const [searchResults, setSearchResults] = useState<JellyfinVideoItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const searchInputRef = useRef<TextInput>(null);
   const focusedGridItemsCountRef = useRef(0);
   const [isGridFocused, setIsGridFocused] = useState(false);
+  const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
@@ -83,24 +86,66 @@ export default function SearchScreen() {
     }
   }, []);
 
-  // Filter videos based on search query
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredVideos([]);
+  const handleRetrySearch = useCallback(() => {
+    const trimmed = searchQuery.trim();
+    if (trimmed.length >= 2) {
+      executeSearch(trimmed);
+    }
+  }, [searchQuery, executeSearch]);
+
+  const executeSearch = useCallback(async (term: string) => {
+    const trimmed = term.trim();
+    if (!trimmed) {
       return;
     }
 
-    const query = searchQuery.toLowerCase();
-    const filtered = videos.filter((video) => {
-      const name = video.Name?.toLowerCase() || "";
-      const overview = video.Overview?.toLowerCase() || "";
+    setIsSearching(true);
+    setSearchError(null);
 
-      return name.includes(query) || overview.includes(query);
-    });
+    try {
+      const results = await searchVideos(trimmed, 60);
+      setSearchResults(results);
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Unable to search library. Please try again.";
+      setSearchError(message);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
 
-    setFilteredVideos(filtered);
-  }, [searchQuery, videos]);
+  useEffect(() => {
+    if (searchDelayRef.current) {
+      clearTimeout(searchDelayRef.current);
+      searchDelayRef.current = null;
+    }
 
+    const trimmed = searchQuery.trim();
+
+    if (trimmed.length < 2) {
+      setSearchResults([]);
+      setSearchError(null);
+      setIsSearching(false);
+      return;
+    }
+
+    searchDelayRef.current = setTimeout(() => {
+      executeSearch(trimmed);
+    }, 300);
+
+    return () => {
+      if (searchDelayRef.current) {
+        clearTimeout(searchDelayRef.current);
+        searchDelayRef.current = null;
+      }
+    };
+  }, [searchQuery, executeSearch]);
+
+  const hasSearchQuery = searchQuery.trim().length >= 2;
+  const shouldShowResults = hasSearchQuery && searchResults.length > 0;
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
 
   const itemDimensions = useMemo(() => {
@@ -137,6 +182,42 @@ export default function SearchScreen() {
   );
 
   const renderEmpty = useCallback(() => {
+    if (hasSearchQuery) {
+      if (isSearching) {
+        return (
+          <View style={styles.centerContainer}>
+            <ActivityIndicator size="large" color="#007AFF" />
+            <Text style={styles.loadingText}>Searching Jellyfin...</Text>
+          </View>
+        );
+      }
+
+      if (searchError) {
+        return (
+          <View style={styles.centerContainer}>
+            <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
+            <Text style={styles.errorTitle}>Search Failed</Text>
+            <Text style={styles.errorText}>{searchError}</Text>
+            <TouchableOpacity
+              style={styles.retryButton}
+              onPress={handleRetrySearch}
+              isTVSelectable={true}
+            >
+              <Text style={styles.retryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
+        );
+      }
+
+      return (
+        <View style={styles.centerContainer}>
+          <Ionicons name="search-outline" size={64} color="#98989D" />
+          <Text style={styles.emptyText}>No results found for</Text>
+          <Text style={styles.emptyQueryText}>&quot;{searchQuery}&quot;</Text>
+        </View>
+      );
+    }
+
     if (isLoading) {
       return (
         <View style={styles.centerContainer}>
@@ -177,23 +258,23 @@ export default function SearchScreen() {
       );
     }
 
-    if (searchQuery.trim()) {
-      return (
-        <View style={styles.centerContainer}>
-          <Ionicons name="search-outline" size={64} color="#98989D" />
-          <Text style={styles.emptyText}>No results found for</Text>
-          <Text style={styles.emptyQueryText}>&quot;{searchQuery}&quot;</Text>
-        </View>
-      );
-    }
-
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="search-outline" size={64} color="#98989D" />
         <Text style={styles.emptyText}>Search your library</Text>
       </View>
     );
-  }, [isLoading, error, searchQuery, router, handleRefresh]);
+  }, [
+    hasSearchQuery,
+    isSearching,
+    searchError,
+    searchQuery,
+    isLoading,
+    error,
+    router,
+    handleRefresh,
+    handleRetrySearch,
+  ]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
@@ -215,11 +296,9 @@ export default function SearchScreen() {
         </View>
       )}
 
-      {filteredVideos.length === 0 ? (
-        renderEmpty()
-      ) : (
+      {shouldShowResults ? (
         <FlatList
-          data={filteredVideos}
+          data={searchResults}
           renderItem={renderItem}
           keyExtractor={(item) => item.Id}
           getItemLayout={getItemLayout}
@@ -236,11 +315,12 @@ export default function SearchScreen() {
           removeClippedSubviews={true}
           ListFooterComponent={
             <Text style={styles.resultsLabel}>
-              {filteredVideos.length}{" "}
-              {filteredVideos.length === 1 ? "result" : "results"}
+              {searchResults.length} {searchResults.length === 1 ? "result" : "results"}
             </Text>
           }
         />
+      ) : (
+        renderEmpty()
       )}
     </SafeAreaView>
   );

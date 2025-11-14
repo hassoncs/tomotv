@@ -69,7 +69,10 @@ export interface VideoPlaybackResult {
 /**
  * State machine reducer for video playback
  */
-function videoPlayerReducer(state: VideoPlayerState, action: VideoPlayerAction): VideoPlayerState {
+export function videoPlayerReducer(
+  state: VideoPlayerState,
+  action: VideoPlayerAction,
+): VideoPlayerState {
   logger.debug('State machine transition', {
     service: 'VideoStateMachine',
     from: state.type,

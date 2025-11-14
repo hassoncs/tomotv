@@ -39,10 +39,10 @@ function getLocalIP() {
 }
 
 /**
- * Ensure .env.local has localhost configured
- * Simple: always use localhost for development
+ * Ensure .env.local points at a reachable development server
+ * Uses LAN IP when available so physical devices just work.
  */
-function ensureLocalhost() {
+function ensureReachableServer() {
   // Check if .env.local exists
   if (!fs.existsSync(ENV_FILE)) {
     console.log('⚠️  .env.local not found');
@@ -59,7 +59,9 @@ function ensureLocalhost() {
     line.startsWith('EXPO_PUBLIC_DEV_JELLYFIN_SERVER=http')
   );
 
-  const targetServer = 'http://localhost:8096';
+  const detectedIp = getLocalIP();
+  const targetHost = detectedIp || 'localhost';
+  const targetServer = `http://${targetHost}:8096`;
   const currentServer = serverLineIndex >= 0
     ? lines[serverLineIndex].split('=')[1].trim()
     : '';
@@ -82,13 +84,16 @@ function ensureLocalhost() {
   // Write updated file
   fs.writeFileSync(ENV_FILE, envContent, 'utf8');
 
-  console.log('✅ Updated development server to localhost:8096');
-  if (currentServer) {
+  console.log(`✅ Development server set to ${targetServer}`);
+  if (!detectedIp) {
+    console.log('   (LAN IP not detected, defaulting to localhost)');
+  }
+  if (currentServer && currentServer !== targetServer) {
     console.log('   (previous:', currentServer + ')');
   }
 }
 
 // Run the check
 console.log('\n🔄 Configuring development server...\n');
-ensureLocalhost();
-console.log('💡 Physical devices: Configure via Settings screen in app\n');
+ensureReachableServer();
+console.log('💡 Physical devices can now use the detected LAN IP without manual edits.\n');

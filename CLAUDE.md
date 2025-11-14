@@ -11,10 +11,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Starting Development
 
 ```bash
-npm start              # Auto-detects Mac IP and starts dev server
+npm start              # Refreshes dev IP and starts Metro/Expo
 npm run ios            # Build and run on iOS simulator
 npm run android        # Build and run on Android
-npm run web            # Start web version
 ```
 
 ### Testing
@@ -36,15 +35,16 @@ npm run lint           # Lint and auto-fix code with ESLint
 ```bash
 npm run prebuild       # Clean native prebuild
 npm run prebuild:tv    # Prebuild with Apple TV support (EXPO_TV=1)
-npm run deploy         # Export web and deploy
 ```
+
+> Builds are produced locally via `expo run:*`; there is no remote deploy script.
 
 ### Development Setup
 
 1. Copy `.env.example` to `.env.local`
 2. Add Jellyfin credentials (API key and User ID)
-3. Server URL is auto-configured to `http://localhost:8096` by `scripts/update-dev-ip.js`
-4. The `prestart`/`preios`/`preandroid` hooks automatically update the IP before starting
+3. `scripts/update-dev-ip.js` writes your active LAN IP (falls back to `http://localhost:8096`) so simulators and on-network devices target the same machine
+4. The `prestart`/`preios`/`preandroid` hooks automatically refresh the value before each run
 
 ## Architecture
 

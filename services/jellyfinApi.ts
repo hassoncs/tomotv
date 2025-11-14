@@ -312,50 +312,152 @@ export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
       );
     }
 
-    // Wrap the fetch operation with retry logic
-    return await retryWithBackoff(
-      async () => {
-        const url = `${config.server}/Users/${config.userId}/Items?Recursive=true&IncludeItemTypes=Movie,Video&Fields=Path,MediaStreams,Genres`;
+    const pageSize = 200;
+    const maxBatches = 50;
+    const aggregated: JellyfinVideoItem[] = [];
+    let startIndex = 0;
+    let totalRecordCount: number | undefined;
+    let batches = 0;
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    while (batches < maxBatches) {
+      batches += 1;
+      const { items, total } = await retryWithBackoff(
+        () =>
+          requestLibraryItems(config, {
+            startIndex,
+            limit: pageSize,
+          }),
+        { maxAttempts: 3 },
+      );
 
-        try {
-          const response = await fetch(url, {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              Authorization: `MediaBrowser Token="${config.apiKey}"`,
-            },
-            signal: controller.signal,
-          });
+      totalRecordCount = total ?? totalRecordCount;
+      aggregated.push(...items);
 
-          clearTimeout(timeoutId);
+      if (items.length < pageSize) {
+        break;
+      }
 
-          if (!response.ok) {
-            throw new Error(
-              `Failed to fetch videos: ${response.status} ${response.statusText}`,
-            );
-          }
+      if (totalRecordCount !== undefined && aggregated.length >= totalRecordCount) {
+        break;
+      }
 
-          const data: JellyfinVideosResponse = await response.json();
-          return data.Items || [];
-        } catch (error) {
-          clearTimeout(timeoutId);
-          if (error instanceof Error && error.name === "AbortError") {
-            throw new Error(
-              "Request timed out. Please check your network connection and Jellyfin server.",
-            );
-          }
-          throw error;
-        }
-      },
-      { maxAttempts: 3 },
-    );
+      startIndex += items.length;
+
+      if (batches === maxBatches) {
+        logger.warn("Reached library fetch batch limit", {
+          service: "JellyfinAPI",
+          fetched: aggregated.length,
+        });
+      }
+    }
+
+    return aggregated;
   } catch (error) {
     logger.error("Error fetching videos from Jellyfin", error, {
       service: "JellyfinAPI",
     });
+    throw error;
+  }
+}
+
+/**
+ * Remote search for videos using Jellyfin's SearchTerm filter
+ */
+export async function searchVideos(
+  searchTerm: string,
+  limit: number = 60,
+): Promise<JellyfinVideoItem[]> {
+  const trimmed = searchTerm.trim();
+  if (!trimmed) {
+    return [];
+  }
+
+  const config = await getConfig();
+  if (!config.server || !config.apiKey || !config.userId) {
+    throw new Error("Jellyfin server not configured. Update settings before searching.");
+  }
+
+  return retryWithBackoff(
+    async () => {
+      const { items } = await requestLibraryItems(config, {
+        startIndex: 0,
+        limit,
+        searchTerm: trimmed,
+        timeoutMs: 15000,
+      });
+      return items;
+    },
+    { maxAttempts: 3 },
+  );
+}
+
+type JellyfinConfig = {
+  server: string;
+  apiKey: string;
+  userId: string;
+};
+
+async function requestLibraryItems(
+  config: JellyfinConfig,
+  {
+    startIndex = 0,
+    limit = 200,
+    searchTerm,
+    timeoutMs = 30000,
+  }: {
+    startIndex?: number;
+    limit?: number;
+    searchTerm?: string;
+    timeoutMs?: number;
+  },
+): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
+  const query = new URLSearchParams({
+    Recursive: "true",
+    IncludeItemTypes: "Movie,Video",
+    Fields: "Path,MediaStreams,Genres",
+    StartIndex: String(startIndex),
+    Limit: String(limit),
+  });
+
+  if (searchTerm) {
+    query.append("SearchTerm", searchTerm);
+  }
+
+  const url = `${config.server}/Users/${config.userId}/Items?${query.toString()}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `MediaBrowser Token="${config.apiKey}"`,
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch videos: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data: JellyfinVideosResponse = await response.json();
+    return {
+      items: data.Items || [],
+      total: data.TotalRecordCount,
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(
+        "Request timed out. Please check your network connection and Jellyfin server.",
+      );
+    }
     throw error;
   }
 }

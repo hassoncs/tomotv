@@ -22,9 +22,8 @@
    ```
 
 That's it! The app will:
-- ✅ **Auto-detect** your Mac's network IP
-- ✅ Use `localhost` for simulator (default)
-- ✅ Update `.env.local` automatically before each start
+- ✅ **Auto-detect** your Mac's network IP (falling back to `localhost` if needed)
+- ✅ Keep `.env.local` in sync before each start so simulators and TVs point at the same machine
 
 ---
 
@@ -61,10 +60,9 @@ DEV_JELLYFIN_SERVER=http://10.81.1.112:8096
 ## Getting Jellyfin Credentials
 
 ### 1. Server IP (Auto-Configured!)
-Server URL is **automatically set** to `http://localhost:8096`:
-- ✅ Works perfectly for iOS Simulator development
-- ✅ No manual configuration needed
-- ✅ Automatically set before `npm start`
+Server URL is **automatically set** to your active LAN IP (`http://<ip>:8096`) when available, otherwise `http://localhost:8096`:
+- ✅ Works for both simulators and on-network Apple/Android TVs without manual edits
+- ✅ Updates before every `npm start`, `npm run ios`, or `npm run android`
 
 **For Physical Devices (Apple TV, iPhone):**
 Use the Settings screen in the app (just like production users):
