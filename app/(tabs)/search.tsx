@@ -398,7 +398,7 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#3d3d3d",
   },
   searchContainer: {
     position: "absolute",

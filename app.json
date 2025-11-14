@@ -3,7 +3,7 @@
     "name": "tomotv",
     "slug": "tomotv",
     "description": "Play videos from your Mac on your Apple TV",
-    "version": "1.0.1",
+    "version": "1.0.5",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
     "scheme": "tomotv",

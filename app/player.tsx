@@ -282,7 +282,7 @@ export default function VideoPlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: "#3d3d3d",
   },
   video: {
     flex: 1,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#000000",
+    backgroundColor: "#3d3d3d",
     zIndex: 100,
   },
   encodingMessageContainer: {
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#000000",
+    backgroundColor: "#3d3d3d",
     padding: 40,
   },
   audioTitle: {
@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: "#3d3d3d",
     justifyContent: "center",
     alignItems: "center",
     padding: 40,

@@ -7,12 +7,20 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import { LibraryProvider } from "@/contexts/LibraryContext";
 
+const CustomDarkTheme = {
+  ...DarkTheme,
+  colors: {
+    ...DarkTheme.colors,
+    background: "#3d3d3d",
+  },
+};
+
 export default function RootLayout() {
   return (
     <ErrorBoundary>
       <LoadingProvider>
         <LibraryProvider>
-          <ThemeProvider value={DarkTheme}>
+          <ThemeProvider value={CustomDarkTheme}>
             <Stack>
               <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
               <Stack.Screen

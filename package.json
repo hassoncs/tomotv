@@ -1,7 +1,7 @@
 {
   "name": "tomotv",
   "main": "expo-router/entry",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "scripts": {
     "postinstall": "patch-package",
     "prestart": "node scripts/update-dev-ip.js",

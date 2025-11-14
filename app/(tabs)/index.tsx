@@ -203,7 +203,7 @@ export default function VideoLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000",
+    backgroundColor: "#3d3d3d",
   },
   serverLabelContainer: {
     position: "absolute",

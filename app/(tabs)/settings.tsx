@@ -719,7 +719,7 @@ Video Quality: ${qualityLabel}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#000000",
+    backgroundColor: "#3d3d3d",
   },
   scrollView: {
     flex: 1,
