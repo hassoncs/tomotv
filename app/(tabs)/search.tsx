@@ -193,7 +193,7 @@ export default function SearchScreen() {
         searchDelayRef.current = null;
       }
     };
-  }, [searchQuery, executeSearch]);
+  }, [searchQuery]);
 
   const hasSearchQuery = searchQuery.trim().length >= 2;
   const shouldShowResults = hasSearchQuery && searchResults.length > 0;
