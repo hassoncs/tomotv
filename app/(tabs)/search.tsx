@@ -350,7 +350,7 @@ export default function SearchScreen() {
           <TextInput
             ref={searchInputRef}
             value={searchQuery}
-            placeholder="Search library"
+            placeholder="Enter file name or keyword"
             placeholderTextColor="#8E8E93"
             autoCorrect={false}
             onChangeText={setSearchQuery}

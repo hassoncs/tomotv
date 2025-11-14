@@ -1,7 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -42,7 +41,7 @@ export default function HelpScreen() {
   const { version = "0.0.0" } = appFile?.expo || {};
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
+    <View style={styles.container}>
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="automatic" focusable={false}>
         <View style={styles.contentContainer}>
           {/* Hero Section */}
@@ -269,7 +268,7 @@ export default function HelpScreen() {
           </View>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 
