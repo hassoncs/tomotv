@@ -43,6 +43,7 @@ export type VideoPlayerAction =
 export interface VideoPlaybackConfig {
   videoId: string;
   videoName: string;
+  onPlaybackEnd?: () => void;
 }
 
 export interface VideoPlaybackResult {
@@ -139,7 +140,7 @@ export function videoPlayerReducer(
  * Handles codec checking, transcoding decisions, and player lifecycle
  */
 export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResult {
-  const { videoId, videoName } = config;
+  const { videoId, videoName, onPlaybackEnd } = config;
 
   // State machine
   const [state, dispatch] = useReducer(videoPlayerReducer, { type: 'IDLE' });
@@ -536,6 +537,19 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         if (stablePlaybackTimerRef.current && !hasStablePlaybackRef.current) {
           clearTimeout(stablePlaybackTimerRef.current);
           stablePlaybackTimerRef.current = null;
+        }
+
+        // Check if video ended - when currentTime is near duration and not playing
+        if (player.currentTime > 0 && player.duration > 0) {
+          const timeRemaining = player.duration - player.currentTime;
+          // Consider video ended if less than 1 second remaining
+          if (timeRemaining < 1 && onPlaybackEnd) {
+            logger.info('Video playback ended, triggering callback', {service: 'useVideoPlayback'});
+            InteractionManager.runAfterInteractions(() => {
+              if (!isMountedRef.current) return;
+              onPlaybackEnd();
+            });
+          }
         }
       }
     });

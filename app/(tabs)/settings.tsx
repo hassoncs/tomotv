@@ -452,6 +452,7 @@ Video Quality: ${qualityLabel}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentInsetAdjustmentBehavior="automatic"
+        focusable={false}
       >
         <View style={styles.contentContainer}>
           {/* Jellyfin Server Section */}

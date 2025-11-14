@@ -19,15 +19,19 @@ export default function VideoLibraryScreen() {
     (video: JellyfinVideoItem) => {
       showGlobalLoader()
 
+      // Find current video index in the list
+      const currentIndex = videos.findIndex(v => v.Id === video.Id)
+
       router.push({
         pathname: "/player" as const,
         params: {
           videoId: video.Id,
-          videoName: video.Name
+          videoName: video.Name,
+          playlistIndex: currentIndex.toString()
         }
       })
     },
-    [router, showGlobalLoader]
+    [router, showGlobalLoader, videos]
   )
 
   const handleRefresh = useCallback(() => {
@@ -67,7 +71,7 @@ export default function VideoLibraryScreen() {
               hasTVPreferredFocus={true}
             />
           ) : (
-            <FocusableButton title="Retry" variant="retry" onPress={handleRefresh} hasTVPreferredFocus={true} />
+            <FocusableButton title="Retry" variant="primary" onPress={handleRefresh} hasTVPreferredFocus={true} />
           )}
         </View>
       )

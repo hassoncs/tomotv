@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { useLoading } from "@/contexts/LoadingContext";
+import { useLibrary } from "@/contexts/LibraryContext";
 
 // Suppress known warnings
 LogBox.ignoreLogs([
@@ -29,9 +30,45 @@ LogBox.ignoreLogs([
 ]);
 
 export default function VideoPlayerScreen() {
-  const params = useLocalSearchParams<{ videoId: string; videoName: string }>();
+  const params = useLocalSearchParams<{
+    videoId: string;
+    videoName: string;
+    playlistIndex?: string;
+  }>();
   const router = useRouter();
-  const { hideGlobalLoader } = useLoading();
+  const { hideGlobalLoader, showGlobalLoader } = useLoading();
+  const { videos } = useLibrary();
+
+  // Parse playlist index
+  const currentPlaylistIndex = params.playlistIndex
+    ? parseInt(params.playlistIndex, 10)
+    : -1;
+
+  // Handle playback end - auto-play next video
+  const handlePlaybackEnd = useCallback(() => {
+    // Check if there's a next video in the playlist
+    if (currentPlaylistIndex >= 0 && currentPlaylistIndex < videos.length - 1) {
+      const nextVideo = videos[currentPlaylistIndex + 1];
+      if (nextVideo) {
+        console.log("[VideoPlayer] Auto-playing next video:", nextVideo.Name);
+        showGlobalLoader();
+
+        // Navigate to next video with updated playlist index
+        router.replace({
+          pathname: "/player" as const,
+          params: {
+            videoId: nextVideo.Id,
+            videoName: nextVideo.Name,
+            playlistIndex: (currentPlaylistIndex + 1).toString(),
+          },
+        });
+      }
+    } else {
+      console.log("[VideoPlayer] End of playlist, going back to library");
+      // End of playlist, return to library
+      router.back();
+    }
+  }, [currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
   const {
@@ -44,6 +81,7 @@ export default function VideoPlayerScreen() {
   } = useVideoPlayback({
     videoId: params.videoId,
     videoName: params.videoName,
+    onPlaybackEnd: handlePlaybackEnd,
   });
 
   // Track playing state for audio UI

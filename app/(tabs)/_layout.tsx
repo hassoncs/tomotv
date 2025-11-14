@@ -5,7 +5,7 @@ export default function TabLayout() {
     <NativeTabs blurEffect="systemChromeMaterial">
       <NativeTabs.Trigger name="search">
         <Icon sf="magnifyingglass" />
-        <Label> </Label>
+        <Label>Search</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="index">
         <Label>Library</Label>
