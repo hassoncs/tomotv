@@ -1,15 +1,5 @@
 import React from "react";
-import {
-  ActivityIndicator,
-  Platform,
-  Pressable,
-  PressableProps,
-  StyleSheet,
-  Text,
-  View,
-  ViewStyle,
-  TextStyle,
-} from "react-native";
+import { ActivityIndicator, Platform, Pressable, PressableProps, StyleSheet, Text, TextStyle, View, ViewStyle } from "react-native";
 
 export type ButtonVariant =
   | "primary"
@@ -135,24 +125,17 @@ export function FocusableButton({
   return (
     <Pressable
       {...pressableProps}
-      style={({ pressed, focused }) => [
-        getButtonStyle(focused || false),
-        pressed && styles.buttonPressed,
-      ]}
+      style={({ pressed, focused }) => [getButtonStyle(focused || false), pressed && styles.buttonPressed]}
       disabled={disabled || isLoading}
       isTVSelectable={true}
       hasTVPreferredFocus={hasTVPreferredFocus}
       tvParallaxProperties={{
         magnification: 1.05,
         pressMagnification: 1.0,
-      }}
-    >
+      }}>
       <View style={styles.buttonContent}>
         {isLoading ? (
-          <ActivityIndicator
-            color={variant === "primary" ? "#000000" : "#FFC312"}
-            size={Platform.isTV ? "large" : "small"}
-          />
+          <ActivityIndicator color={variant === "primary" ? "#000000" : "#FFC312"} size={"small"} />
         ) : (
           <>
             {icon}

@@ -47,7 +47,7 @@ export default function VideoLibraryScreen() {
     if (isLoading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#FFC312" />
+          <ActivityIndicator size="small" color="#FFC312" />
           <Text style={styles.loadingText}>Loading videos...</Text>
         </View>
       );
@@ -114,7 +114,7 @@ export default function VideoLibraryScreen() {
 
     return (
       <View style={styles.footerLoading}>
-        <ActivityIndicator size="large" color="#FFC312" />
+        <ActivityIndicator size="small" color="#FFC312" />
         <Text style={styles.footerLoadingText}>Loading more...</Text>
       </View>
     );

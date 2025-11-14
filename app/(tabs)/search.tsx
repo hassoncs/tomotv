@@ -256,7 +256,7 @@ export default function SearchScreen() {
       if (isSearching) {
         return (
           <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#FFC312" />
+            <ActivityIndicator size="small" color="#FFC312" />
             <Text style={styles.loadingText}>Searching Jellyfin...</Text>
           </View>
         );
@@ -268,12 +268,7 @@ export default function SearchScreen() {
             <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
             <Text style={styles.errorTitle}>Search Failed</Text>
             <Text style={styles.errorText}>{searchError}</Text>
-            <FocusableButton
-              title="Try Again"
-              variant="retry"
-              onPress={handleRetrySearch}
-              hasTVPreferredFocus={true}
-            />
+            <FocusableButton title="Try Again" variant="retry" onPress={handleRetrySearch} hasTVPreferredFocus={true} />
           </View>
         );
       }
@@ -290,7 +285,7 @@ export default function SearchScreen() {
     if (isLoading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#FFC312" />
+          <ActivityIndicator size="small" color="#FFC312" />
           <Text style={styles.loadingText}>Loading videos...</Text>
         </View>
       );

@@ -1,22 +1,11 @@
+import { useLibrary } from "@/contexts/LibraryContext";
+import { useLoading } from "@/contexts/LoadingContext";
 import { useVideoPlayback } from "@/hooks/useVideoPlayback";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { VideoView } from "expo-video";
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  BackHandler,
-  InteractionManager,
-  LogBox,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  useTVEventHandler,
-  View,
-} from "react-native";
-import { useLoading } from "@/contexts/LoadingContext";
-import { useLibrary } from "@/contexts/LibraryContext";
+import { ActivityIndicator, BackHandler, InteractionManager, LogBox, Platform, StyleSheet, Text, TouchableOpacity, useTVEventHandler, View } from "react-native";
 
 // Suppress known warnings
 LogBox.ignoreLogs([
@@ -40,9 +29,7 @@ export default function VideoPlayerScreen() {
   const { videos } = useLibrary();
 
   // Parse playlist index
-  const currentPlaylistIndex = params.playlistIndex
-    ? parseInt(params.playlistIndex, 10)
-    : -1;
+  const currentPlaylistIndex = params.playlistIndex ? parseInt(params.playlistIndex, 10) : -1;
 
   // Handle playback end - auto-play next video
   const handlePlaybackEnd = useCallback(() => {
@@ -71,14 +58,7 @@ export default function VideoPlayerScreen() {
   }, [currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
-  const {
-    player,
-    state,
-    videoDetails,
-    isAudioOnly,
-    showLoadingOverlay,
-    retry,
-  } = useVideoPlayback({
+  const { player, state, videoDetails, isAudioOnly, showLoadingOverlay, retry } = useVideoPlayback({
     videoId: params.videoId,
     videoName: params.videoName,
     onPlaybackEnd: handlePlaybackEnd,
@@ -116,13 +96,10 @@ export default function VideoPlayerScreen() {
   // Handle Android TV back button
   useEffect(() => {
     if (Platform.OS === "android") {
-      const backHandler = BackHandler.addEventListener(
-        "hardwareBackPress",
-        () => {
-          handleBack();
-          return true;
-        },
-      );
+      const backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
+        handleBack();
+        return true;
+      });
 
       return () => backHandler.remove();
     }
@@ -178,22 +155,12 @@ export default function VideoPlayerScreen() {
       return (
         <View style={styles.container}>
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <ActivityIndicator size="small" color="#FFFFFF" />
             <View style={styles.encodingMessageContainer}>
-              <Text style={styles.encodingTitle}>
-                Retrying with Transcoding
-              </Text>
-              <Text style={styles.encodingSubtitle}>
-                Direct play failed • Converting to H.264
-              </Text>
+              <Text style={styles.encodingTitle}>Transcoding</Text>
+              <Text style={styles.encodingSubtitle}>Video codec is not compatible • Streaming</Text>
             </View>
           </View>
-          {/* Back button for iOS */}
-          {!Platform.isTV && (
-            <TouchableOpacity style={styles.iosBackButton} onPress={handleBack}>
-              <Ionicons name="close" size={30} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
         </View>
       );
     }
@@ -208,14 +175,12 @@ export default function VideoPlayerScreen() {
 
     if (mode === "Transcoding") {
       errorDetails += "⚠️ TRANSCODING FAILED\n\n";
-      errorDetails +=
-        "Your Jellyfin server may not have transcoding enabled.\n\n";
+      errorDetails += "Your Jellyfin server may not have transcoding enabled.\n\n";
       errorDetails += "To fix this:\n";
       errorDetails += "1. Open Jellyfin Dashboard\n";
       errorDetails += "2. Go to Playback → Transcoding\n";
       errorDetails += "3. Enable hardware acceleration or install FFmpeg\n\n";
-      errorDetails +=
-        "Alternative: Try a device that supports this codec directly.";
+      errorDetails += "Alternative: Try a device that supports this codec directly.";
     } else {
       errorDetails += "Video codec not supported for direct play.";
     }
@@ -228,10 +193,7 @@ export default function VideoPlayerScreen() {
         <TouchableOpacity style={styles.retryButton} onPress={retry}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.retryButton, styles.backButton]}
-          onPress={handleBack}
-        >
+        <TouchableOpacity style={[styles.retryButton, styles.backButton]} onPress={handleBack}>
           <Text style={styles.retryButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -244,27 +206,14 @@ export default function VideoPlayerScreen() {
       <View style={styles.container}>
         {/* Audio UI - No VideoView component */}
         <View style={styles.audioContainer}>
-          <Ionicons
-            name="musical-notes"
-            size={Platform.isTV ? 120 : 80}
-            color="rgba(255, 255, 255, 0.8)"
-          />
+          <Ionicons name="musical-notes" size={Platform.isTV ? 120 : 80} color="rgba(255, 255, 255, 0.8)" />
           <Text style={styles.audioTitle}>{params.videoName}</Text>
           <Text style={styles.audioSubtitle}>Audio File</Text>
 
           {/* Play/Pause Button */}
           {!showLoadingOverlay && (
-            <TouchableOpacity
-              style={styles.playPauseButton}
-              onPress={handlePlayPause}
-              isTVSelectable={true}
-              hasTVPreferredFocus={true}
-            >
-              <Ionicons
-                name={isPlaying ? "pause" : "play"}
-                size={Platform.isTV ? 48 : 36}
-                color="#FFFFFF"
-              />
+            <TouchableOpacity style={styles.playPauseButton} onPress={handlePlayPause} isTVSelectable={true} hasTVPreferredFocus={true}>
+              <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
             </TouchableOpacity>
           )}
         </View>
@@ -283,25 +232,17 @@ export default function VideoPlayerScreen() {
   return (
     <View style={styles.container}>
       {/* Video Player with Native Controls */}
-      <VideoView
-        player={player}
-        style={styles.video}
-        contentFit="contain"
-        nativeControls={true}
-        allowsPictureInPicture={Platform.OS === "ios"}
-      />
+      <VideoView player={player} style={styles.video} contentFit="contain" nativeControls={true} allowsPictureInPicture={Platform.OS === "ios"} />
 
       {/* Loading Overlay */}
       {showLoadingOverlay && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
+          <ActivityIndicator size="small" color="#FFFFFF" />
           {/* Show encoding message only during transcoding */}
           {"mode" in state && state.mode === "transcode" && (
             <View style={styles.encodingMessageContainer}>
-              <Text style={styles.encodingTitle}>Transcoding Video</Text>
-              <Text style={styles.encodingSubtitle}>
-                Codec not compatible • Converting to H.264
-              </Text>
+              <Text style={styles.encodingTitle}>Transcoding</Text>
+              <Text style={styles.encodingSubtitle}>Video codec is not compatible • Streaming</Text>
             </View>
           )}
         </View>

@@ -356,7 +356,7 @@ Video Quality: ${qualityLabel}
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FFC312" />
+          <ActivityIndicator size="small" color="#FFC312" />
           <Text style={styles.loadingText}>Loading settings...</Text>
         </View>
       </SafeAreaView>

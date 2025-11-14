@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode, useMemo, useCallback } from 'react';
-import { View, ActivityIndicator, StyleSheet, Modal } from 'react-native';
+import React, { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react";
+import { ActivityIndicator, Modal, StyleSheet, View } from "react-native";
 
 interface LoadingContextType {
   showGlobalLoader: () => void;
@@ -20,22 +20,14 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const value = useMemo(
-    () => ({ showGlobalLoader, hideGlobalLoader, isLoading }),
-    [showGlobalLoader, hideGlobalLoader, isLoading]
-  );
+  const value = useMemo(() => ({ showGlobalLoader, hideGlobalLoader, isLoading }), [showGlobalLoader, hideGlobalLoader, isLoading]);
 
   return (
     <LoadingContext.Provider value={value}>
       {children}
-      <Modal
-        visible={isLoading}
-        transparent={true}
-        animationType="none"
-        statusBarTranslucent={true}
-      >
+      <Modal visible={isLoading} transparent={true} animationType="slide" statusBarTranslucent={true}>
         <View style={styles.globalLoader}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
+          <ActivityIndicator size="small" color="#FFFFFF" />
         </View>
       </Modal>
     </LoadingContext.Provider>
@@ -45,7 +37,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 export function useLoading() {
   const context = useContext(LoadingContext);
   if (context === undefined) {
-    throw new Error('useLoading must be used within a LoadingProvider');
+    throw new Error("useLoading must be used within a LoadingProvider");
   }
   return context;
 }
@@ -53,8 +45,8 @@ export function useLoading() {
 const styles = StyleSheet.create({
   globalLoader: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.95)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.95)",
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
