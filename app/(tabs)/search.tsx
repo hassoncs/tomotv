@@ -22,7 +22,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -345,7 +344,7 @@ export default function SearchScreen() {
   ]);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <View style={styles.container}>
       {!isGridFocused && (
         <View style={styles.searchContainer} focusable>
           <TextInput
@@ -389,7 +388,7 @@ export default function SearchScreen() {
       ) : (
         renderEmpty()
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -427,6 +426,7 @@ const styles = StyleSheet.create({
   gridContent: {
     paddingTop: Platform.isTV ? 60 : 20,
     paddingBottom: 60,
+    paddingHorizontal: Platform.isTV ? 40 : 20,
   },
   columnWrapper: {
     justifyContent: "flex-start",

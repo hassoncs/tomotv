@@ -8,7 +8,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo } from "react";
 import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VideoLibraryScreen() {
   const router = useRouter();
@@ -127,7 +126,7 @@ export default function VideoLibraryScreen() {
   }, [hasMoreResults, isLoadingMore, isLoading, loadMore]);
 
   return (
-    <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
+    <View style={styles.container}>
       <View style={styles.serverLabelContainer}>
         <View style={styles.serverLabelWrapper}>
           <Text style={styles.serverLabel} numberOfLines={1}>
@@ -160,7 +159,7 @@ export default function VideoLibraryScreen() {
           ListFooterComponent={renderFooter}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -195,6 +194,7 @@ const styles = StyleSheet.create({
   gridContent: {
     paddingTop: Platform.isTV ? 40 : 20,
     paddingBottom: 60,
+    paddingHorizontal: Platform.isTV ? 40 : 20,
   },
   columnWrapper: {
     justifyContent: "flex-start",
