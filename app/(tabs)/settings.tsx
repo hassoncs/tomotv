@@ -71,7 +71,7 @@ const getInitialEnvValues = () => {
     try {
       const url = new URL(devServerUrl)
       devProtocol = url.protocol.replace(":", "") as "http" | "https"
-      devIp = url.hostname
+      devIp = url.hostname + url.pathname.replace(/\/$/, "") // Include path (e.g., /stable)
       devPort = url.port || "8096"
     } catch (e) {
       logger.warn("Failed to parse dev server URL", e)
