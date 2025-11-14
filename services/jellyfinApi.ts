@@ -297,8 +297,38 @@ export async function fetchLibraryName(): Promise<string> {
 }
 
 /**
+ * Fetch library videos with pagination support
+ * Use this for incremental loading with infinite scroll
+ */
+export async function fetchLibraryVideos(
+  {
+    limit = 60,
+    startIndex = 0,
+  }: { limit?: number; startIndex?: number } = {},
+): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
+  const config = await getConfig();
+
+  if (!config.server || !config.apiKey || !config.userId) {
+    throw new Error(
+      "Jellyfin server not configured. Please go to Settings and configure your server connection.",
+    );
+  }
+
+  return retryWithBackoff(
+    async () =>
+      requestLibraryItems(config, {
+        startIndex,
+        limit,
+        timeoutMs: 30000,
+      }),
+    { maxAttempts: 3 },
+  );
+}
+
+/**
  * Fetch all videos from Jellyfin server
- * Throws error if server is not configured (in production) or connection fails
+ * Loads all videos at once - use fetchLibraryVideos() for paginated loading
+ * @deprecated Use fetchLibraryVideos() with pagination for better performance
  */
 export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
   try {
@@ -365,11 +395,14 @@ export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
  */
 export async function searchVideos(
   searchTerm: string,
-  limit: number = 60,
-): Promise<JellyfinVideoItem[]> {
+  {
+    limit = 60,
+    startIndex = 0,
+  }: { limit?: number; startIndex?: number } = {},
+): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
   const trimmed = searchTerm.trim();
   if (!trimmed) {
-    return [];
+    return { items: [], total: 0 };
   }
 
   const config = await getConfig();
@@ -378,15 +411,13 @@ export async function searchVideos(
   }
 
   return retryWithBackoff(
-    async () => {
-      const { items } = await requestLibraryItems(config, {
-        startIndex: 0,
+    async () =>
+      requestLibraryItems(config, {
+        startIndex,
         limit,
         searchTerm: trimmed,
         timeoutMs: 15000,
-      });
-      return items;
-    },
+      }),
     { maxAttempts: 3 },
   );
 }

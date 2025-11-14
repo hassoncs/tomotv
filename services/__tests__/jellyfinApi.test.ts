@@ -3,9 +3,16 @@ import {
   needsTranscoding,
   isAudioOnly,
   formatDuration,
-  hasPoster
+  hasPoster,
+  searchVideos
 } from '../jellyfinApi';
 import {JellyfinVideoItem} from '@/types/jellyfin';
+
+// Mock expo-secure-store
+jest.mock('expo-secure-store', () => ({
+  getItemAsync: jest.fn().mockResolvedValue(null),
+  setItemAsync: jest.fn().mockResolvedValue(undefined),
+}));
 
 describe('jellyfinApi', () => {
   describe('isCodecSupported', () => {
@@ -177,6 +184,219 @@ describe('jellyfinApi', () => {
       } as any;
 
       expect(hasPoster(item)).toBe(false);
+    });
+  });
+
+  describe('searchVideos pagination', () => {
+    const mockSecureStore = require('expo-secure-store');
+
+    beforeEach(() => {
+      // Mock fetch globally
+      global.fetch = jest.fn();
+
+      // Mock SecureStore to return valid config
+      mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+        const mockConfig: Record<string, string> = {
+          jellyfin_server_ip: '192.168.1.100',
+          jellyfin_server_port: '8096',
+          jellyfin_server_protocol: 'http',
+          jellyfin_api_key: 'test-api-key',
+          jellyfin_user_id: 'test-user-id',
+        };
+        return Promise.resolve(mockConfig[key] || null);
+      });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('should return empty array for empty search term', async () => {
+      const result = await searchVideos('');
+      expect(result).toEqual({ items: [], total: 0 });
+    });
+
+    it('should return empty array for whitespace-only search term', async () => {
+      const result = await searchVideos('   ');
+      expect(result).toEqual({ items: [], total: 0 });
+    });
+
+    it('should call API with correct pagination parameters', async () => {
+      const mockResponse = {
+        Items: [
+          { Id: '1', Name: 'Video 1' },
+          { Id: '2', Name: 'Video 2' }
+        ],
+        TotalRecordCount: 100,
+        StartIndex: 0
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await searchVideos('test', { limit: 20, startIndex: 0 });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('SearchTerm=test'),
+        expect.any(Object)
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('Limit=20'),
+        expect.any(Object)
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('StartIndex=0'),
+        expect.any(Object)
+      );
+      expect(result.items).toHaveLength(2);
+      expect(result.total).toBe(100);
+    });
+
+    it('should handle pagination with custom startIndex', async () => {
+      const mockResponse = {
+        Items: [
+          { Id: '21', Name: 'Video 21' },
+          { Id: '22', Name: 'Video 22' }
+        ],
+        TotalRecordCount: 100,
+        StartIndex: 20
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await searchVideos('test', { limit: 20, startIndex: 20 });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('StartIndex=20'),
+        expect.any(Object)
+      );
+      expect(result.items).toHaveLength(2);
+      expect(result.total).toBe(100);
+    });
+
+    it('should use default pagination values when not specified', async () => {
+      const mockResponse = {
+        Items: [],
+        TotalRecordCount: 0,
+        StartIndex: 0
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      await searchVideos('test');
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('Limit=60'),
+        expect.any(Object)
+      );
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('StartIndex=0'),
+        expect.any(Object)
+      );
+    });
+
+    it('should return correct structure with items and total', async () => {
+      const mockResponse = {
+        Items: [
+          { Id: '1', Name: 'Video 1' },
+          { Id: '2', Name: 'Video 2' },
+          { Id: '3', Name: 'Video 3' }
+        ],
+        TotalRecordCount: 150
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await searchVideos('action', { limit: 3, startIndex: 0 });
+
+      expect(result).toEqual({
+        items: mockResponse.Items,
+        total: 150
+      });
+    });
+
+    it('should handle response without TotalRecordCount', async () => {
+      const mockResponse = {
+        Items: [{ Id: '1', Name: 'Video 1' }]
+        // TotalRecordCount is optional in the API
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await searchVideos('test');
+
+      expect(result.items).toHaveLength(1);
+      expect(result.total).toBeUndefined();
+    });
+
+    it('should trim search term before sending to API', async () => {
+      const mockResponse = {
+        Items: [],
+        TotalRecordCount: 0
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      await searchVideos('  test query  ');
+
+      // URLSearchParams encodes spaces as '+' which is valid
+      const callUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+      expect(callUrl).toMatch(/SearchTerm=test(\+|%20)query/);
+    });
+
+    it('should handle empty results correctly', async () => {
+      const mockResponse = {
+        Items: [],
+        TotalRecordCount: 0
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await searchVideos('nonexistent');
+
+      expect(result.items).toEqual([]);
+      expect(result.total).toBe(0);
+    });
+
+    it('should handle last page of results correctly', async () => {
+      const mockResponse = {
+        Items: [
+          { Id: '96', Name: 'Video 96' },
+          { Id: '97', Name: 'Video 97' }
+        ],
+        TotalRecordCount: 97,
+        StartIndex: 95
+      };
+
+      (global.fetch as jest.Mock).mockResolvedValueOnce({
+        ok: true,
+        json: async () => mockResponse,
+      });
+
+      const result = await searchVideos('test', { limit: 60, startIndex: 95 });
+
+      expect(result.items).toHaveLength(2);
+      expect(result.total).toBe(97);
     });
   });
 });

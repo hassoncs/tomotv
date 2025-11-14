@@ -1,16 +1,18 @@
-import {fetchLibraryName, fetchVideos} from "@/services/jellyfinApi"
+import {fetchLibraryName, fetchLibraryVideos} from "@/services/jellyfinApi"
 import {JellyfinVideoItem} from "@/types/jellyfin"
 import {logger} from "@/utils/logger"
 
 type LibraryListener = (data: {
   videos: JellyfinVideoItem[]
   isLoading: boolean
+  isLoadingMore: boolean
+  hasMoreResults: boolean
   error: string | null
   libraryName: string
 }) => void
 
 /**
- * Singleton service for managing library data
+ * Singleton service for managing library data with pagination support
  * Handles caching, deduplication, and state updates
  */
 class LibraryManager {
@@ -19,8 +21,12 @@ class LibraryManager {
   private videos: JellyfinVideoItem[] = []
   private libraryName: string = ""
   private isLoading: boolean = false
+  private isLoadingMore: boolean = false
+  private hasMoreResults: boolean = false
   private error: string | null = null
 
+  private nextStartIndex: number = 0
+  private totalRecordCount: number | undefined = undefined
   private isLoadingRef: boolean = false
   private lastFetchTime: number = 0
   private libraryNameLoaded: boolean = false
@@ -29,6 +35,7 @@ class LibraryManager {
 
   // Cache TTL: 5 minutes
   private readonly CACHE_TTL = 5 * 60 * 1000
+  private readonly PAGE_SIZE = 60
 
   private constructor() {
     // Private constructor for singleton
@@ -53,6 +60,8 @@ class LibraryManager {
       currentState: {
         videoCount: this.videos.length,
         isLoading: this.isLoading,
+        isLoadingMore: this.isLoadingMore,
+        hasMoreResults: this.hasMoreResults,
         hasError: !!this.error
       }
     })
@@ -61,6 +70,8 @@ class LibraryManager {
     listener({
       videos: this.videos,
       isLoading: this.isLoading,
+      isLoadingMore: this.isLoadingMore,
+      hasMoreResults: this.hasMoreResults,
       error: this.error,
       libraryName: this.libraryName
     })
@@ -82,6 +93,8 @@ class LibraryManager {
     const state = {
       videos: this.videos,
       isLoading: this.isLoading,
+      isLoadingMore: this.isLoadingMore,
+      hasMoreResults: this.hasMoreResults,
       error: this.error,
       libraryName: this.libraryName
     }
@@ -91,6 +104,8 @@ class LibraryManager {
       listenerCount: this.listeners.size,
       videoCount: state.videos.length,
       isLoading: state.isLoading,
+      isLoadingMore: state.isLoadingMore,
+      hasMoreResults: state.hasMoreResults,
       hasError: !!state.error,
       libraryName: state.libraryName
     })
@@ -105,6 +120,8 @@ class LibraryManager {
     return {
       videos: this.videos,
       isLoading: this.isLoading,
+      isLoadingMore: this.isLoadingMore,
+      hasMoreResults: this.hasMoreResults,
       error: this.error,
       libraryName: this.libraryName
     }
@@ -132,7 +149,7 @@ class LibraryManager {
   }
 
   /**
-   * Load library data with caching
+   * Load initial page of library data
    */
   async loadLibrary(force = false): Promise<void> {
     // Prevent duplicate loads
@@ -159,16 +176,26 @@ class LibraryManager {
       this.isLoadingRef = true
       this.isLoading = true
       this.error = null
+      this.nextStartIndex = 0
+      this.hasMoreResults = false
       this.notifyListeners()
 
-      logger.info("Loading library...", {
+      logger.info("Loading library (first page)...", {
         service: "LibraryManager",
-        forced: force
+        forced: force,
+        pageSize: this.PAGE_SIZE
       })
 
-      // Fetch videos
-      const fetchedVideos = await fetchVideos()
-      this.videos = fetchedVideos
+      // Fetch first page
+      const { items, total } = await fetchLibraryVideos({
+        limit: this.PAGE_SIZE,
+        startIndex: 0
+      })
+
+      this.videos = items
+      this.totalRecordCount = total
+      this.nextStartIndex = items.length
+      this.hasMoreResults = total !== undefined && items.length < total
       this.lastFetchTime = now
 
       // Load library name (force reload if this is a forced refresh)
@@ -177,9 +204,11 @@ class LibraryManager {
       this.isLoading = false
       this.notifyListeners()
 
-      logger.info("Successfully loaded library", {
+      logger.info("Successfully loaded library (first page)", {
         service: "LibraryManager",
-        videoCount: fetchedVideos.length
+        videoCount: items.length,
+        totalCount: total,
+        hasMore: this.hasMoreResults
       })
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to load videos"
@@ -196,10 +225,72 @@ class LibraryManager {
   }
 
   /**
-   * Force refresh library (bypass cache)
+   * Load next page of library data (pagination)
+   */
+  async loadMore(): Promise<void> {
+    // Guard conditions
+    if (this.isLoadingMore || this.isLoading || !this.hasMoreResults) {
+      logger.debug("Skipping loadMore", {
+        service: "LibraryManager",
+        isLoadingMore: this.isLoadingMore,
+        isLoading: this.isLoading,
+        hasMoreResults: this.hasMoreResults
+      })
+      return
+    }
+
+    try {
+      this.isLoadingMore = true
+      this.error = null
+      this.notifyListeners()
+
+      logger.info("Loading more library items...", {
+        service: "LibraryManager",
+        startIndex: this.nextStartIndex,
+        currentCount: this.videos.length
+      })
+
+      // Fetch next page
+      const { items, total } = await fetchLibraryVideos({
+        limit: this.PAGE_SIZE,
+        startIndex: this.nextStartIndex
+      })
+
+      // Append new items
+      this.videos = [...this.videos, ...items]
+      this.totalRecordCount = total
+      this.nextStartIndex = this.nextStartIndex + items.length
+      this.hasMoreResults = total !== undefined && this.videos.length < total
+
+      this.isLoadingMore = false
+      this.notifyListeners()
+
+      logger.info("Successfully loaded more library items", {
+        service: "LibraryManager",
+        newItems: items.length,
+        totalLoaded: this.videos.length,
+        totalCount: total,
+        hasMore: this.hasMoreResults
+      })
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to load more videos"
+      this.error = errorMessage
+      this.isLoadingMore = false
+      // Don't clear videos on pagination error
+      this.notifyListeners()
+
+      logger.error("Error loading more library items", err, {
+        service: "LibraryManager"
+      })
+    }
+  }
+
+  /**
+   * Force refresh library (bypass cache, reload from start)
    */
   async refreshLibrary(): Promise<void> {
     logger.info("Forcing library refresh", {service: "LibraryManager"})
+    this.clearCache()
     await this.loadLibrary(true)
   }
 
@@ -208,6 +299,9 @@ class LibraryManager {
    */
   clearCache(): void {
     this.videos = []
+    this.nextStartIndex = 0
+    this.hasMoreResults = false
+    this.totalRecordCount = undefined
     this.lastFetchTime = 0
     this.error = null
     this.libraryNameLoaded = false

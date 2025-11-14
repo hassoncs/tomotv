@@ -30,8 +30,12 @@ export default function SearchScreen() {
   const { isLoading, error, refreshLibrary } = useLibrary();
   const [searchResults, setSearchResults] = useState<JellyfinVideoItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeQuery, setActiveQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [nextStartIndex, setNextStartIndex] = useState(0);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
   const focusedGridItemsCountRef = useRef(0);
   const [isGridFocused, setIsGridFocused] = useState(false);
@@ -86,6 +90,71 @@ export default function SearchScreen() {
     }
   }, []);
 
+  const executeSearch = useCallback(
+    async (term: string, append: boolean = false) => {
+      const trimmed = term.trim();
+      if (!trimmed) {
+        return;
+      }
+
+      // Determine if this is initial search or load more
+      if (append) {
+        setIsLoadingMore(true);
+      } else {
+        setIsSearching(true);
+        setSearchError(null);
+        setNextStartIndex(0);
+        setHasMoreResults(false);
+      }
+
+      try {
+        const startIndex = append ? nextStartIndex : 0;
+        const pageSize = 60;
+
+        const { items, total } = await searchVideos(trimmed, {
+          limit: pageSize,
+          startIndex,
+        });
+
+        if (append) {
+          // Append to existing results
+          setSearchResults((prev) => {
+            const newResults = [...prev, ...items];
+            // Calculate pagination state using updated array
+            const hasMore = total !== undefined && newResults.length < total;
+            setHasMoreResults(hasMore);
+            return newResults;
+          });
+        } else {
+          // Replace results (new search)
+          setSearchResults(items);
+          // Calculate pagination state for new search
+          const hasMore = total !== undefined && items.length < total;
+          setHasMoreResults(hasMore);
+        }
+
+        setNextStartIndex(startIndex + items.length);
+        setActiveQuery(trimmed);
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? err.message
+            : "Unable to search library. Please try again.";
+        setSearchError(message);
+        if (!append) {
+          setSearchResults([]);
+        }
+      } finally {
+        if (append) {
+          setIsLoadingMore(false);
+        } else {
+          setIsSearching(false);
+        }
+      }
+    },
+    [nextStartIndex],
+  );
+
   const handleRetrySearch = useCallback(() => {
     const trimmed = searchQuery.trim();
     if (trimmed.length >= 2) {
@@ -93,29 +162,12 @@ export default function SearchScreen() {
     }
   }, [searchQuery, executeSearch]);
 
-  const executeSearch = useCallback(async (term: string) => {
-    const trimmed = term.trim();
-    if (!trimmed) {
-      return;
+  const handleLoadMore = useCallback(() => {
+    // Only load more if we have more results, not currently loading, and have an active query
+    if (hasMoreResults && !isLoadingMore && !isSearching && activeQuery) {
+      executeSearch(activeQuery, true);
     }
-
-    setIsSearching(true);
-    setSearchError(null);
-
-    try {
-      const results = await searchVideos(trimmed, 60);
-      setSearchResults(results);
-    } catch (err) {
-      const message =
-        err instanceof Error
-          ? err.message
-          : "Unable to search library. Please try again.";
-      setSearchError(message);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  }, []);
+  }, [hasMoreResults, isLoadingMore, isSearching, activeQuery, executeSearch]);
 
   useEffect(() => {
     if (searchDelayRef.current) {
@@ -180,6 +232,24 @@ export default function SearchScreen() {
     ),
     [handleVideoPress, handleGridItemFocus, handleGridItemBlur],
   );
+
+  const renderFooter = useCallback(() => {
+    if (isLoadingMore) {
+      return (
+        <View style={styles.footerLoading}>
+          <ActivityIndicator size="small" color="#007AFF" />
+          <Text style={styles.footerLoadingText}>Loading more...</Text>
+        </View>
+      );
+    }
+
+    return (
+      <Text style={styles.resultsLabel}>
+        {searchResults.length}{" "}
+        {searchResults.length === 1 ? "result" : "results"}
+      </Text>
+    );
+  }, [isLoadingMore, searchResults.length]);
 
   const renderEmpty = useCallback(() => {
     if (hasSearchQuery) {
@@ -298,6 +368,7 @@ export default function SearchScreen() {
 
       {shouldShowResults ? (
         <FlatList
+          testID="search-results-list"
           data={searchResults}
           renderItem={renderItem}
           keyExtractor={(item) => item.Id}
@@ -313,11 +384,9 @@ export default function SearchScreen() {
           windowSize={3}
           contentInsetAdjustmentBehavior="automatic"
           removeClippedSubviews={true}
-          ListFooterComponent={
-            <Text style={styles.resultsLabel}>
-              {searchResults.length} {searchResults.length === 1 ? "result" : "results"}
-            </Text>
-          }
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       ) : (
         renderEmpty()
@@ -421,5 +490,17 @@ const styles = StyleSheet.create({
   },
   settingsButton: {
     backgroundColor: "#FFC312",
+  },
+  footerLoading: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
+    gap: 12,
+  },
+  footerLoadingText: {
+    fontSize: Platform.isTV ? 18 : 15,
+    color: "#98989D",
+    fontWeight: "500",
   },
 });

@@ -14,10 +14,13 @@ import { logger } from "@/utils/logger";
 interface LibraryContextType {
   videos: JellyfinVideoItem[];
   isLoading: boolean;
+  isLoadingMore: boolean;
+  hasMoreResults: boolean;
   error: string | null;
   libraryName: string;
   refreshLibrary: () => Promise<void>;
   loadLibrary: (force?: boolean) => Promise<void>;
+  loadMore: () => Promise<void>;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(
@@ -32,6 +35,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     initialState.videos,
   );
   const [isLoading, setIsLoading] = useState(initialState.isLoading);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMoreResults, setHasMoreResults] = useState(false);
   const [error, setError] = useState<string | null>(initialState.error);
   const [libraryName, setLibraryName] = useState<string>(
     initialState.libraryName,
@@ -55,12 +60,16 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
         context: "LibraryContext",
         videoCount: state.videos.length,
         isLoading: state.isLoading,
+        isLoadingMore: state.isLoadingMore,
+        hasMoreResults: state.hasMoreResults,
         hasError: !!state.error,
         libraryName: state.libraryName,
       });
 
       setVideos(state.videos);
       setIsLoading(state.isLoading);
+      setIsLoadingMore(state.isLoadingMore);
+      setHasMoreResults(state.hasMoreResults);
       setError(state.error);
       setLibraryName(state.libraryName);
     });
@@ -84,16 +93,24 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     await libraryManager.refreshLibrary();
   }, []);
 
+  const loadMore = useCallback(async () => {
+    logger.debug("loadMore called", { context: "LibraryContext" });
+    await libraryManager.loadMore();
+  }, []);
+
   const value = useMemo(
     () => ({
       videos,
       isLoading,
+      isLoadingMore,
+      hasMoreResults,
       error,
       libraryName,
       refreshLibrary,
       loadLibrary,
+      loadMore,
     }),
-    [videos, isLoading, error, libraryName, refreshLibrary, loadLibrary],
+    [videos, isLoading, isLoadingMore, hasMoreResults, error, libraryName, refreshLibrary, loadLibrary, loadMore],
   );
 
   return (

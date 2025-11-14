@@ -336,3 +336,4 @@ npm run test:coverage # Check coverage
 ## RULES
 
 1. Unless intentionally, DO NOT run commands on the `node_modules` directory, it only wates tokens.
+- stop searching node_modules unless required to inspect current lib implementation, I feel you are wasting token by doing this

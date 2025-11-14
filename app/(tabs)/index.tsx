@@ -20,8 +20,16 @@ import { SafeAreaView } from "react-native-safe-area-context";
 export default function VideoLibraryScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
-  const { videos, isLoading, error, libraryName, refreshLibrary } =
-    useLibrary();
+  const {
+    videos,
+    isLoading,
+    isLoadingMore,
+    hasMoreResults,
+    error,
+    libraryName,
+    refreshLibrary,
+    loadMore,
+  } = useLibrary();
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
@@ -135,6 +143,25 @@ export default function VideoLibraryScreen() {
     [handleVideoPress],
   );
 
+  const renderFooter = useCallback(() => {
+    if (!isLoadingMore) {
+      return null;
+    }
+
+    return (
+      <View style={styles.footerLoading}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.footerLoadingText}>Loading more...</Text>
+      </View>
+    );
+  }, [isLoadingMore]);
+
+  const handleLoadMore = useCallback(() => {
+    if (hasMoreResults && !isLoadingMore && !isLoading) {
+      loadMore();
+    }
+  }, [hasMoreResults, isLoadingMore, isLoading, loadMore]);
+
   return (
     <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
       <View style={styles.serverLabelContainer}>
@@ -148,6 +175,7 @@ export default function VideoLibraryScreen() {
         renderEmpty()
       ) : (
         <FlatList
+          testID="library-list"
           data={videos}
           renderItem={renderItem}
           keyExtractor={(item) => item.Id}
@@ -163,6 +191,9 @@ export default function VideoLibraryScreen() {
           windowSize={3}
           contentInsetAdjustmentBehavior="automatic"
           removeClippedSubviews={true}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
         />
       )}
     </SafeAreaView>
@@ -236,5 +267,17 @@ const styles = StyleSheet.create({
     fontSize: 20,
     color: "#98989D",
     textAlign: "center",
+  },
+  footerLoading: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 30,
+    gap: 12,
+  },
+  footerLoadingText: {
+    fontSize: Platform.isTV ? 20 : 16,
+    color: "#98989D",
+    fontWeight: "500",
   },
 });
