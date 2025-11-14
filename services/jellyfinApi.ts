@@ -1,7 +1,7 @@
 import { JellyfinVideoItem, JellyfinVideosResponse } from "@/types/jellyfin";
-import * as SecureStore from "expo-secure-store";
 import { logger } from "@/utils/logger";
 import { retryWithBackoff } from "@/utils/retry";
+import * as SecureStore from "expo-secure-store";
 
 // Development fallback credentials from .env.local
 // These are ONLY used during local development if user hasn't configured settings
@@ -12,9 +12,7 @@ const DEV_API_KEY = process.env.EXPO_PUBLIC_DEV_JELLYFIN_API_KEY || "";
 const DEV_USER_ID = process.env.EXPO_PUBLIC_DEV_JELLYFIN_USER_ID || "";
 
 const STORAGE_KEYS = {
-  SERVER_IP: "jellyfin_server_ip",
-  SERVER_PORT: "jellyfin_server_port",
-  SERVER_PROTOCOL: "jellyfin_server_protocol",
+  SERVER_URL: "jellyfin_server_url",
   API_KEY: "jellyfin_api_key",
   USER_ID: "jellyfin_user_id",
   VIDEO_QUALITY: "app_video_quality",
@@ -49,28 +47,47 @@ async function getConfig(): Promise<{
   userId: string;
 }> {
   try {
-    const [serverIp, serverPort, serverProtocol, apiKey, userId] =
+    // First, check if migration is needed (old format to new format)
+    let [serverUrl, apiKey, userId, oldIp, oldPort, oldProtocol] = await Promise.all([
+      SecureStore.getItemAsync(STORAGE_KEYS.SERVER_URL),
+      SecureStore.getItemAsync(STORAGE_KEYS.API_KEY),
+      SecureStore.getItemAsync(STORAGE_KEYS.USER_ID),
+      SecureStore.getItemAsync("jellyfin_server_ip"),
+      SecureStore.getItemAsync("jellyfin_server_port"),
+      SecureStore.getItemAsync("jellyfin_server_protocol"),
+    ]);
+
+    // Migrate old format to new format if needed
+    if (!serverUrl && oldIp) {
+      const protocol = oldProtocol || "http";
+      const port = oldPort || "8096";
+      const migratedUrl = `${protocol}://${oldIp}:${port}`;
+
+      logger.info("Migrating old server config to new format", {
+        service: "JellyfinAPI",
+        oldIp,
+        oldPort: port,
+        oldProtocol: protocol,
+        newUrl: migratedUrl,
+      });
+
+      await SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, migratedUrl);
+      serverUrl = migratedUrl;
+
+      // Clean up old keys
       await Promise.all([
-        SecureStore.getItemAsync(STORAGE_KEYS.SERVER_IP),
-        SecureStore.getItemAsync(STORAGE_KEYS.SERVER_PORT),
-        SecureStore.getItemAsync(STORAGE_KEYS.SERVER_PROTOCOL),
-        SecureStore.getItemAsync(STORAGE_KEYS.API_KEY),
-        SecureStore.getItemAsync(STORAGE_KEYS.USER_ID),
+        SecureStore.deleteItemAsync("jellyfin_server_ip").catch(() => {}),
+        SecureStore.deleteItemAsync("jellyfin_server_port").catch(() => {}),
+        SecureStore.deleteItemAsync("jellyfin_server_protocol").catch(() => {}),
       ]);
-
-    // Build server URL from IP, port, and protocol settings
-    let server = "";
-    if (serverIp && serverIp.trim()) {
-      const ip = serverIp.trim();
-      const port = serverPort?.trim() || "8096";
-      const protocol = serverProtocol?.trim() || "http";
-
-      server = `${protocol}://${ip}:${port}`;
     }
+
+    // Remove trailing slashes from server URL
+    const cleanServerUrl = (serverUrl?.trim() || DEV_SERVER).replace(/\/+$/, "");
 
     const config = {
       // Use user settings if available, otherwise fall back to dev env vars
-      server: server || DEV_SERVER,
+      server: cleanServerUrl,
       apiKey: apiKey?.trim() || DEV_API_KEY,
       userId: userId?.trim() || DEV_USER_ID,
     };
@@ -78,8 +95,17 @@ async function getConfig(): Promise<{
     // Update cache for synchronous functions
     cachedConfig = config;
 
+    logger.debug("Config loaded", {
+      service: "JellyfinAPI",
+      hasStoredUrl: !!serverUrl,
+      hasDevServer: !!DEV_SERVER,
+      server: config.server,
+      hasApiKey: !!config.apiKey,
+      hasUserId: !!config.userId,
+    });
+
     // Log when using dev credentials (helpful for debugging)
-    if (!server && DEV_SERVER) {
+    if (!serverUrl && DEV_SERVER) {
       logger.debug("Using development credentials from .env.local", {
         service: "JellyfinAPI",
       });
@@ -109,10 +135,45 @@ export async function refreshConfig(): Promise<void> {
 /**
  * Sync dev environment variables to SecureStore if not already set
  * This ensures dev credentials are visible in SecureStore for debugging
+ * Also handles migration from old storage format (IP/port/protocol) to new format (full URL)
  */
 export async function syncDevCredentials(): Promise<void> {
   try {
-    // Only sync if we have dev credentials
+    // First, check if we need to migrate old settings to new format
+    const [existingUrl, existingIp, existingPort, existingProtocol] = await Promise.all([
+      SecureStore.getItemAsync(STORAGE_KEYS.SERVER_URL),
+      SecureStore.getItemAsync("jellyfin_server_ip"),
+      SecureStore.getItemAsync("jellyfin_server_port"),
+      SecureStore.getItemAsync("jellyfin_server_protocol"),
+    ]);
+
+    // Migrate old format to new format if needed
+    if (!existingUrl && existingIp) {
+      const protocol = existingProtocol || "http";
+      const port = existingPort || "8096";
+      const migratedUrl = `${protocol}://${existingIp}:${port}`;
+
+      logger.info("Migrating old server config to new format", {
+        service: "JellyfinAPI",
+        oldIp: existingIp,
+        oldPort: port,
+        oldProtocol: protocol,
+        newUrl: migratedUrl,
+      });
+
+      await SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, migratedUrl);
+
+      // Clean up old keys
+      await Promise.all([
+        SecureStore.deleteItemAsync("jellyfin_server_ip").catch(() => {}),
+        SecureStore.deleteItemAsync("jellyfin_server_port").catch(() => {}),
+        SecureStore.deleteItemAsync("jellyfin_server_protocol").catch(() => {}),
+      ]);
+
+      return; // Migration done, no need to sync dev credentials
+    }
+
+    // Only sync dev credentials if we have them
     if (!DEV_SERVER || !DEV_API_KEY || !DEV_USER_ID) {
       return;
     }
@@ -124,21 +185,15 @@ export async function syncDevCredentials(): Promise<void> {
       return;
     }
 
-    // Parse dev server URL to extract protocol, IP, and port
-    const urlMatch = DEV_SERVER.match(/^(https?):\/\/([^:]+):(\d+)/);
-    if (urlMatch) {
-      const [, protocol, ip, port] = urlMatch;
-      await Promise.all([
-        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_PROTOCOL, protocol),
-        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_IP, ip),
-        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_PORT, port),
-        SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, DEV_API_KEY),
-        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, DEV_USER_ID),
-      ]);
-      logger.debug("Synced dev credentials to SecureStore", {
-        service: "JellyfinAPI",
-      });
-    }
+    // Store the full server URL directly
+    await Promise.all([
+      SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, DEV_SERVER),
+      SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, DEV_API_KEY),
+      SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, DEV_USER_ID),
+    ]);
+    logger.debug("Synced dev credentials to SecureStore", {
+      service: "JellyfinAPI",
+    });
   } catch (error) {
     logger.error("Error syncing dev credentials", error, {
       service: "JellyfinAPI",
@@ -158,18 +213,11 @@ async function getQualitySettings(): Promise<{
   label: string;
 }> {
   try {
-    const savedQuality = await SecureStore.getItemAsync(
-      STORAGE_KEYS.VIDEO_QUALITY,
-    );
-    const qualityIndex = savedQuality
-      ? parseInt(savedQuality, 10)
-      : DEFAULT_QUALITY;
+    const savedQuality = await SecureStore.getItemAsync(STORAGE_KEYS.VIDEO_QUALITY);
+    const qualityIndex = savedQuality ? parseInt(savedQuality, 10) : DEFAULT_QUALITY;
 
     // Validate index is within bounds
-    const validIndex =
-      qualityIndex >= 0 && qualityIndex < QUALITY_PRESETS.length
-        ? qualityIndex
-        : DEFAULT_QUALITY;
+    const validIndex = qualityIndex >= 0 && qualityIndex < QUALITY_PRESETS.length ? qualityIndex : DEFAULT_QUALITY;
     const preset = QUALITY_PRESETS[validIndex];
 
     return {
@@ -249,11 +297,7 @@ export async function fetchLibraryName(): Promise<string> {
           });
 
           // Find first Movie or mixed collection, or just any library with content
-          let library = data.Items?.find(
-            (item: any) =>
-              item.CollectionType === "movies" ||
-              item.CollectionType === "mixed",
-          );
+          let library = data.Items?.find((item: any) => item.CollectionType === "movies" || item.CollectionType === "mixed");
 
           // If no movie/mixed library, just use the first one
           if (!library && data.Items && data.Items.length > 0) {
@@ -300,19 +344,26 @@ export async function fetchLibraryName(): Promise<string> {
  * Fetch library videos with pagination support
  * Use this for incremental loading with infinite scroll
  */
-export async function fetchLibraryVideos(
-  {
-    limit = 60,
-    startIndex = 0,
-  }: { limit?: number; startIndex?: number } = {},
-): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
+export async function fetchLibraryVideos({ limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {}): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
   const config = await getConfig();
 
   if (!config.server || !config.apiKey || !config.userId) {
-    throw new Error(
-      "Jellyfin server not configured. Please go to Settings and configure your server connection.",
-    );
+    logger.error("Jellyfin server not configured", {
+      service: "JellyfinAPI",
+      hasServer: !!config.server,
+      hasApiKey: !!config.apiKey,
+      hasUserId: !!config.userId,
+      server: config.server || "not set",
+    });
+    throw new Error("Jellyfin server not configured. Please go to Settings and configure your server connection.");
   }
+
+  logger.debug("Fetching library videos", {
+    service: "JellyfinAPI",
+    server: config.server,
+    limit,
+    startIndex,
+  });
 
   return retryWithBackoff(
     async () =>
@@ -337,9 +388,7 @@ export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
     // Validate configuration before making request
     // This will only fail in production when user hasn't configured AND no dev credentials
     if (!config.server || !config.apiKey || !config.userId) {
-      throw new Error(
-        "Jellyfin server not configured. Please go to Settings and configure your server connection.",
-      );
+      throw new Error("Jellyfin server not configured. Please go to Settings and configure your server connection.");
     }
 
     const pageSize = 200;
@@ -393,13 +442,7 @@ export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
 /**
  * Remote search for videos using Jellyfin's SearchTerm filter
  */
-export async function searchVideos(
-  searchTerm: string,
-  {
-    limit = 60,
-    startIndex = 0,
-  }: { limit?: number; startIndex?: number } = {},
-): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
+export async function searchVideos(searchTerm: string, { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {}): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
   const trimmed = searchTerm.trim();
   if (!trimmed) {
     return { items: [], total: 0 };
@@ -456,6 +499,13 @@ async function requestLibraryItems(
 
   const url = `${config.server}/Users/${config.userId}/Items?${query.toString()}`;
 
+  logger.debug("Requesting library items", {
+    service: "JellyfinAPI",
+    url,
+    server: config.server,
+    userId: config.userId,
+  });
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -472,9 +522,13 @@ async function requestLibraryItems(
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(
-        `Failed to fetch videos: ${response.status} ${response.statusText}`,
-      );
+      logger.error("Failed to fetch videos", {
+        service: "JellyfinAPI",
+        status: response.status,
+        statusText: response.statusText,
+        url,
+      });
+      throw new Error(`Failed to fetch videos: ${response.status} ${response.statusText}`);
     }
 
     const data: JellyfinVideosResponse = await response.json();
@@ -485,9 +539,7 @@ async function requestLibraryItems(
   } catch (error) {
     clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error(
-        "Request timed out. Please check your network connection and Jellyfin server.",
-      );
+      throw new Error("Request timed out. Please check your network connection and Jellyfin server.");
     }
     throw error;
   }
@@ -499,10 +551,7 @@ async function requestLibraryItems(
  * @param itemId - The video item ID
  * @param videoItem - Optional video item (unused)
  */
-export function getVideoStreamUrl(
-  itemId: string,
-  videoItem?: JellyfinVideoItem | null,
-): string {
+export function getVideoStreamUrl(itemId: string, videoItem?: JellyfinVideoItem | null): string {
   // Use direct download endpoint with API key in URL
   return `${cachedConfig.server}/Items/${itemId}/Download?api_key=${cachedConfig.apiKey}`;
 }
@@ -523,10 +572,7 @@ export function getVideoStreamUrl(
  * @param itemId - The video item ID
  * @param videoItem - Optional video item with MediaStreams for subtitle detection
  */
-export async function getTranscodingStreamUrl(
-  itemId: string,
-  videoItem?: JellyfinVideoItem | null,
-): Promise<string> {
+export async function getTranscodingStreamUrl(itemId: string, videoItem?: JellyfinVideoItem | null): Promise<string> {
   // Get user's quality preferences
   const quality = await getQualitySettings();
 
@@ -554,12 +600,7 @@ export async function getTranscodingStreamUrl(
 
   // Check for external subtitles and burn them in
   if (videoItem && videoItem.MediaStreams) {
-    const subtitleStreams = videoItem.MediaStreams.filter(
-      (stream) =>
-        stream.Type === "Subtitle" &&
-        stream.IsExternal &&
-        stream.Index !== undefined,
-    );
+    const subtitleStreams = videoItem.MediaStreams.filter((stream) => stream.Type === "Subtitle" && stream.IsExternal && stream.Index !== undefined);
 
     if (subtitleStreams.length > 0) {
       const firstSubIndex = subtitleStreams[0].Index;
@@ -620,9 +661,7 @@ export function formatDuration(ticks: number): string {
 /**
  * Fetch detailed video item information including media streams
  */
-export async function fetchVideoDetails(
-  itemId: string,
-): Promise<JellyfinVideoItem | null> {
+export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoItem | null> {
   try {
     const config = await getConfig();
 
@@ -647,9 +686,7 @@ export async function fetchVideoDetails(
           clearTimeout(timeoutId);
 
           if (!response.ok) {
-            throw new Error(
-              `Failed to fetch video details: ${response.status} ${response.statusText}`,
-            );
+            throw new Error(`Failed to fetch video details: ${response.status} ${response.statusText}`);
           }
 
           const data: JellyfinVideoItem = await response.json();
@@ -657,9 +694,7 @@ export async function fetchVideoDetails(
         } catch (error) {
           clearTimeout(timeoutId);
           if (error instanceof Error && error.name === "AbortError") {
-            throw new Error(
-              "Request timed out. Please check your network connection.",
-            );
+            throw new Error("Request timed out. Please check your network connection.");
           }
           throw error;
         }
@@ -744,12 +779,8 @@ export function isAudioOnly(videoItem: JellyfinVideoItem | null): boolean {
   }
 
   // Check if there's a video stream
-  const hasVideo = videoItem.MediaStreams.some(
-    (stream) => stream.Type === "Video",
-  );
-  const hasAudio = videoItem.MediaStreams.some(
-    (stream) => stream.Type === "Audio",
-  );
+  const hasVideo = videoItem.MediaStreams.some((stream) => stream.Type === "Video");
+  const hasAudio = videoItem.MediaStreams.some((stream) => stream.Type === "Audio");
 
   // Audio-only: has audio but no video
   return !hasVideo && hasAudio;
@@ -765,9 +796,7 @@ export function needsTranscoding(videoItem: JellyfinVideoItem | null): boolean {
   }
 
   // Find the video stream
-  const videoStream = videoItem.MediaStreams.find(
-    (stream) => stream.Type === "Video",
-  );
+  const videoStream = videoItem.MediaStreams.find((stream) => stream.Type === "Video");
 
   if (!videoStream || !videoStream.Codec) {
     return false; // No video stream info, try direct play
@@ -799,17 +828,13 @@ export interface SubtitleTrack {
  * Get all subtitle tracks available for a video
  * Returns external subtitle files in VTT format for expo-video
  */
-export function getSubtitleTracks(
-  videoItem: JellyfinVideoItem | null,
-): SubtitleTrack[] {
+export function getSubtitleTracks(videoItem: JellyfinVideoItem | null): SubtitleTrack[] {
   if (!videoItem || !videoItem.MediaStreams) {
     return [];
   }
 
   // Find all subtitle streams
-  const subtitleStreams = videoItem.MediaStreams.filter(
-    (stream) => stream.Type === "Subtitle",
-  );
+  const subtitleStreams = videoItem.MediaStreams.filter((stream) => stream.Type === "Subtitle");
 
   if (subtitleStreams.length === 0) {
     return [];
@@ -848,11 +873,7 @@ export function getSubtitleTracks(
  * @param streamIndex - The subtitle stream index from MediaStreams
  * @param format - Subtitle format (default: 'vtt' for best compatibility)
  */
-export function getSubtitleUrl(
-  itemId: string,
-  streamIndex: number,
-  format: string = "vtt",
-): string {
+export function getSubtitleUrl(itemId: string, streamIndex: number, format: string = "vtt"): string {
   // Jellyfin subtitle stream endpoint (from SubtitleController.cs)
   // Format: /Videos/{itemId}/{mediaSourceId}/Subtitles/{index}/Stream.{format}
   // The format extension is required (e.g., .vtt, .srt)

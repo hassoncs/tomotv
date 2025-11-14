@@ -32,13 +32,8 @@ jest.mock("react-native-safe-area-context", () => ({
 }));
 
 describe("Search Screen Pagination", () => {
-  const mockSearchVideos = jellyfinApi.searchVideos as jest.MockedFunction<
-    typeof jellyfinApi.searchVideos
-  >;
-  const mockSyncDevCredentials =
-    jellyfinApi.syncDevCredentials as jest.MockedFunction<
-      typeof jellyfinApi.syncDevCredentials
-    >;
+  const mockSearchVideos = jellyfinApi.searchVideos as jest.MockedFunction<typeof jellyfinApi.searchVideos>;
+  const mockSyncDevCredentials = jellyfinApi.syncDevCredentials as jest.MockedFunction<typeof jellyfinApi.syncDevCredentials>;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -54,10 +49,7 @@ describe("Search Screen Pagination", () => {
   describe("API Integration", () => {
     it("should call searchVideos with correct initial parameters", async () => {
       mockSearchVideos.mockResolvedValueOnce({
-        items: [
-          { Id: "1", Name: "Video 1", ImageTags: { Primary: "abc" } } as any,
-          { Id: "2", Name: "Video 2", ImageTags: { Primary: "def" } } as any,
-        ],
+        items: [{ Id: "1", Name: "Video 1", ImageTags: { Primary: "abc" } } as any, { Id: "2", Name: "Video 2", ImageTags: { Primary: "def" } } as any],
         total: 100,
       });
 
@@ -100,11 +92,7 @@ describe("Search Screen Pagination", () => {
 
     it("should return correct structure with items and total", async () => {
       const mockResponse = {
-        items: [
-          { Id: "1", Name: "Video 1" } as any,
-          { Id: "2", Name: "Video 2" } as any,
-          { Id: "3", Name: "Video 3" } as any,
-        ],
+        items: [{ Id: "1", Name: "Video 1" } as any, { Id: "2", Name: "Video 2" } as any, { Id: "3", Name: "Video 3" } as any],
         total: 150,
       };
 
@@ -175,9 +163,7 @@ describe("Search Screen Pagination", () => {
       ];
 
       const append = true;
-      const finalResults = append
-        ? [...existingResults, ...newResults]
-        : newResults;
+      const finalResults = append ? [...existingResults, ...newResults] : newResults;
 
       expect(finalResults).toHaveLength(4);
       expect(finalResults[0].Id).toBe("1");
@@ -192,9 +178,7 @@ describe("Search Screen Pagination", () => {
       ];
 
       const append = false;
-      const finalResults = append
-        ? [...existingResults, ...newResults]
-        : newResults;
+      const finalResults = append ? [...existingResults, ...newResults] : newResults;
 
       expect(finalResults).toEqual(newResults);
       expect(finalResults).toHaveLength(2);
@@ -210,12 +194,7 @@ describe("Search Screen Pagination", () => {
         activeQuery: "test",
       };
 
-      const shouldLoadMore = !!(
-        state.hasMoreResults &&
-        !state.isLoadingMore &&
-        !state.isSearching &&
-        state.activeQuery
-      );
+      const shouldLoadMore = !!(state.hasMoreResults && !state.isLoadingMore && !state.isSearching && state.activeQuery);
 
       expect(shouldLoadMore).toBe(false);
     });
@@ -228,12 +207,7 @@ describe("Search Screen Pagination", () => {
         activeQuery: "test",
       };
 
-      const shouldLoadMore = !!(
-        state.hasMoreResults &&
-        !state.isLoadingMore &&
-        !state.isSearching &&
-        state.activeQuery
-      );
+      const shouldLoadMore = !!(state.hasMoreResults && !state.isLoadingMore && !state.isSearching && state.activeQuery);
 
       expect(shouldLoadMore).toBe(false);
     });
@@ -246,12 +220,7 @@ describe("Search Screen Pagination", () => {
         activeQuery: "",
       };
 
-      const shouldLoadMore = !!(
-        state.hasMoreResults &&
-        !state.isLoadingMore &&
-        !state.isSearching &&
-        state.activeQuery
-      );
+      const shouldLoadMore = !!(state.hasMoreResults && !state.isLoadingMore && !state.isSearching && state.activeQuery);
 
       expect(shouldLoadMore).toBe(false);
     });
@@ -264,12 +233,7 @@ describe("Search Screen Pagination", () => {
         activeQuery: "test",
       };
 
-      const shouldLoadMore = !!(
-        state.hasMoreResults &&
-        !state.isLoadingMore &&
-        !state.isSearching &&
-        state.activeQuery
-      );
+      const shouldLoadMore = !!(state.hasMoreResults && !state.isLoadingMore && !state.isSearching && state.activeQuery);
 
       expect(shouldLoadMore).toBe(false);
     });
@@ -282,12 +246,7 @@ describe("Search Screen Pagination", () => {
         activeQuery: "test",
       };
 
-      const shouldLoadMore = !!(
-        state.hasMoreResults &&
-        !state.isLoadingMore &&
-        !state.isSearching &&
-        state.activeQuery
-      );
+      const shouldLoadMore = !!(state.hasMoreResults && !state.isLoadingMore && !state.isSearching && state.activeQuery);
 
       expect(shouldLoadMore).toBe(true);
     });
@@ -307,7 +266,7 @@ describe("Search Screen Pagination", () => {
 
       try {
         await jellyfinApi.searchVideos("test", { limit: 60, startIndex: 60 });
-      } catch (err) {
+      } catch (_err) {
         // On pagination error (append=true), don't clear existing results
         if (!append) {
           finalResults = [];
@@ -326,7 +285,7 @@ describe("Search Screen Pagination", () => {
 
       try {
         await jellyfinApi.searchVideos("test", { limit: 60, startIndex: 0 });
-      } catch (err) {
+      } catch (_err) {
         // On initial search error (append=false), clear results
         if (!append) {
           finalResults = [];
@@ -387,8 +346,7 @@ describe("Search Screen Pagination", () => {
 
         allResults = [...allResults, ...result.items];
 
-        const hasMore =
-          result.total !== undefined && allResults.length < result.total;
+        const hasMore = result.total !== undefined && allResults.length < result.total;
 
         if (scenario.startIndex === 0) {
           expect(allResults).toHaveLength(60);
@@ -408,7 +366,6 @@ describe("Search Screen Pagination", () => {
     });
 
     it("should handle last page with fewer items than limit", () => {
-      const pageSize = 60;
       const lastPageItems = 15;
       const totalRecordCount = 195; // 3 full pages + 15 items
 
@@ -427,7 +384,6 @@ describe("Search Screen Pagination", () => {
     });
 
     it("should handle exact page boundary", () => {
-      const pageSize = 60;
       const totalRecordCount = 180; // Exactly 3 pages
 
       const lastPageStartIndex = 120;

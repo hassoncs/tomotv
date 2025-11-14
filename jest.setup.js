@@ -26,12 +26,6 @@ jest.mock('expo-video', () => ({
   VideoView: 'VideoView'
 }));
 
-// Mock @expo/ui/swift-ui
-jest.mock('@expo/ui/swift-ui', () => ({
-  Host: 'Host',
-  Switch: 'Switch',
-}));
-
 // Mock expo-router to prevent loading app structure
 jest.mock('expo-router', () => ({
   Stack: 'Stack',

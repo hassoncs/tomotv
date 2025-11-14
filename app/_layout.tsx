@@ -32,11 +32,7 @@ export default function RootLayout() {
                 }}
               />
             </Stack>
-            <StatusBar
-              style="light"
-              backgroundColor="transparent"
-              translucent={true}
-            />
+            <StatusBar style="light" backgroundColor="transparent" translucent={true} />
           </ThemeProvider>
         </LibraryProvider>
       </LoadingProvider>

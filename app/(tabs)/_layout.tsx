@@ -1,4 +1,4 @@
-import {Icon, Label, NativeTabs} from "expo-router/unstable-native-tabs"
+import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
   return (
@@ -20,5 +20,5 @@ export default function TabLayout() {
         <Icon sf="questionmark.circle.fill" />
       </NativeTabs.Trigger>
     </NativeTabs>
-  )
+  );
 }
