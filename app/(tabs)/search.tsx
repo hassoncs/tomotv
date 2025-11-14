@@ -237,7 +237,7 @@ export default function SearchScreen() {
     if (isLoadingMore) {
       return (
         <View style={styles.footerLoading}>
-          <ActivityIndicator size="small" color="#007AFF" />
+          <ActivityIndicator size="small" color="#FFC312" />
           <Text style={styles.footerLoadingText}>Loading more...</Text>
         </View>
       );
@@ -256,7 +256,7 @@ export default function SearchScreen() {
       if (isSearching) {
         return (
           <View style={styles.centerContainer}>
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color="#FFC312" />
             <Text style={styles.loadingText}>Searching Jellyfin...</Text>
           </View>
         );
@@ -290,7 +290,7 @@ export default function SearchScreen() {
     if (isLoading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#007AFF" />
+          <ActivityIndicator size="large" color="#FFC312" />
           <Text style={styles.loadingText}>Loading videos...</Text>
         </View>
       );

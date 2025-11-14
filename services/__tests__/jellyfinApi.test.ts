@@ -194,12 +194,10 @@ describe('jellyfinApi', () => {
       // Mock fetch globally
       global.fetch = jest.fn();
 
-      // Mock SecureStore to return valid config
+      // Mock SecureStore to return valid config (new format with SERVER_URL)
       mockSecureStore.getItemAsync.mockImplementation((key: string) => {
         const mockConfig: Record<string, string> = {
-          jellyfin_server_ip: '192.168.1.100',
-          jellyfin_server_port: '8096',
-          jellyfin_server_protocol: 'http',
+          jellyfin_server_url: 'http://192.168.1.100:8096',
           jellyfin_api_key: 'test-api-key',
           jellyfin_user_id: 'test-user-id',
         };

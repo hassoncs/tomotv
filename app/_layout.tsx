@@ -1,11 +1,17 @@
 import { DarkTheme, ThemeProvider } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Platform, LogBox } from "react-native";
 import "react-native-reanimated";
 
 import { ErrorBoundary } from "@/components/error-boundary";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import { LibraryProvider } from "@/contexts/LibraryContext";
+
+// Suppress yellow box warnings on TV platforms
+if (Platform.isTV) {
+  LogBox.ignoreAllLogs(true);
+}
 
 const CustomDarkTheme = {
   ...DarkTheme,

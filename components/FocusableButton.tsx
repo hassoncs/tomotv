@@ -278,21 +278,21 @@ const styles = StyleSheet.create({
     fontSize: Platform.isTV ? 20 : 17,
   },
 
-  // Retry variant (Blue background)
+  // Retry variant (Yellow background)
   retryButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#FFC312",
     borderColor: "transparent",
   },
   retryButtonFocused: {
-    backgroundColor: "#0A84FF",
+    backgroundColor: "#FFD54F",
     borderColor: "#FFFFFF",
-    shadowColor: "#007AFF",
+    shadowColor: "#FFC312",
     shadowOpacity: 0.5,
     shadowRadius: Platform.isTV ? 20 : 12,
     elevation: 8,
     transform: [{ scale: Platform.isTV ? 1.05 : 1.02 }],
   },
   retryButtonText: {
-    color: "#FFFFFF",
+    color: "#000000",
   },
 });
