@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
   searchInput: {
     width: "100%",
     height: Platform.isTV ? 56 : 44,
-    backgroundColor: "#1C1C1E",
+    // backgroundColor: "#1C1C1E",
     borderRadius: 100,
     paddingHorizontal: Platform.isTV ? 24 : 16,
     fontSize: Platform.isTV ? 24 : 20,

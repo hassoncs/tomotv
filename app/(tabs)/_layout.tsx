@@ -1,8 +1,8 @@
-import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
+import {Icon, Label, NativeTabs} from "expo-router/unstable-native-tabs"
 
 export default function TabLayout() {
   return (
-    <NativeTabs>
+    <NativeTabs blurEffect="systemChromeMaterial">
       <NativeTabs.Trigger name="search">
         <Icon sf="magnifyingglass" />
         <Label> </Label>
@@ -20,5 +20,5 @@ export default function TabLayout() {
         <Icon sf="questionmark.circle.fill" />
       </NativeTabs.Trigger>
     </NativeTabs>
-  );
+  )
 }
