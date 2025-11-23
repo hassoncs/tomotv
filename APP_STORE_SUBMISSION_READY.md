@@ -9,16 +9,11 @@ All required pages have been created and the app.json has been updated with the 
 ## 📱 App Store URLs (REQUIRED)
 
 ### Privacy Policy
-- **URL:** `https://keiver.dev/lab/tomotv-privacy`
-- **Location:** `~/keiver.dev/pages/lab/tomotv-privacy.tsx`
-- **Status:** ✅ Created
 
 ### Support Page
-- **URL:** `https://keiver.dev/lab/tomotv-support`
-- **Location:** `~/keiver.dev/pages/lab/tomotv-support.tsx`
-- **Status:** ✅ Created
 
 ### Marketing/Landing Page
+
 - **URL:** `https://keiver.dev/lab/tomotv`
 - **Location:** `~/keiver.dev/pages/lab/tomotv.tsx`
 - **Status:** ✅ Created
@@ -28,9 +23,11 @@ All required pages have been created and the app.json has been updated with the 
 ## 📝 What's Been Done
 
 ### 1. Created TomoTV Landing Page
+
 **File:** `~/keiver.dev/pages/lab/tomotv.tsx`
 
 Features:
+
 - Engaging hero section with TomoTV branding
 - Key features and additional capabilities sections
 - 3-step setup guide
@@ -43,9 +40,11 @@ Features:
 - Placeholder for screenshots (you'll add these)
 
 ### 2. Created Privacy Policy Page
+
 **File:** `~/keiver.dev/pages/lab/tomotv-privacy.tsx`
 
 Includes:
+
 - Complete "no data collection" policy
 - Credential storage explanation (iCloud Keychain)
 - Direct device-to-server communication clarification
@@ -55,9 +54,11 @@ Includes:
 - Legal requirements for App Store submission
 
 ### 3. Created Support Page
+
 **File:** `~/keiver.dev/pages/lab/tomotv-support.tsx`
 
 Includes:
+
 - Getting started guide (3-step setup)
 - Common issues and solutions (6 major issues covered)
 - Finding credentials tutorial (server URL, API key, User ID)
@@ -69,9 +70,11 @@ Includes:
 - Additional resources
 
 ### 4. Updated app.json
+
 **File:** `/Users/keiverhernandez/wn/app.json`
 
 Changes:
+
 - ✅ Updated description (better App Store copy)
 - ✅ Added privacy URL: `https://keiver.dev/lab/tomotv-privacy`
 - ✅ Added `usesNonExemptEncryption: false` (required for App Store submission)
@@ -81,6 +84,7 @@ Changes:
 ## 🚀 Next Steps (Before Submission)
 
 ### 1. Deploy Website Pages ⚠️ **CRITICAL**
+
 Before submitting to App Store, you MUST deploy your keiver.dev website so the URLs are live:
 
 ```bash
@@ -91,17 +95,19 @@ npm run build
 ```
 
 **Verify these URLs work:**
-- https://keiver.dev/lab/tomotv
-- https://keiver.dev/lab/tomotv-privacy
-- https://keiver.dev/lab/tomotv-support
+
+- <https://keiver.dev/lab/tomotv>
 
 ### 2. Add Screenshots
+
 **Action Required:** Add TomoTV screenshots to `~/keiver.dev/public/screenshots/tomotv/`
 
 You mentioned you'll add screenshots—place them in the directory that was created:
+
 - `~/keiver.dev/public/screenshots/tomotv/`
 
 Recommended screenshots:
+
 - `1.webp` - Library grid view
 - `2.webp` - Video player with controls
 - `3.webp` - Search screen with results
@@ -111,20 +117,25 @@ Recommended screenshots:
 Then update `tomotv.tsx` to use real screenshots instead of placeholders (lines 139-167).
 
 ### 3. Update Apple App ID
+
 **Action Required:** Once you create the app in App Store Connect, update:
 
 1. `~/keiver.dev/pages/lab/tomotv.tsx` line 106:
+
    ```tsx
    <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID_HERE" />
    ```
 
 2. Update App Store button URLs in `tomotv.tsx` line 128:
+
    ```tsx
    appStoreUrl="https://apps.apple.com/us/app/tomotv/YOUR_APP_ID"
    ```
 
 ### 4. Take Apple TV Screenshots (1920x1080)
+
 For App Store Connect, you need actual Apple TV screenshots:
+
 - Size: 1920x1080 pixels
 - Required: 3-5 screenshots
 - Take screenshots showing:
@@ -135,6 +146,7 @@ For App Store Connect, you need actual Apple TV screenshots:
   5. Help screen
 
 ### 5. Optional: Create App Icon for Website
+
 Consider creating a TomoTV icon for the website (currently using emoji 📺).
 
 Upload to: `~/keiver.dev/public/screenshots/tomotv/icon.png`
@@ -144,6 +156,7 @@ Upload to: `~/keiver.dev/public/screenshots/tomotv/icon.png`
 ## 📋 App Store Connect Submission Checklist
 
 ### Metadata (Copy from APP_STORE_COPY.md)
+
 - [ ] App Name: "TomoTV - Jellyfin Player"
 - [ ] Subtitle: "Stream from your media server"
 - [ ] Privacy Policy URL: `https://keiver.dev/lab/tomotv-privacy`
@@ -155,20 +168,24 @@ Upload to: `~/keiver.dev/public/screenshots/tomotv/icon.png`
 - [ ] What's New (from APP_STORE_COPY.md:106-134)
 
 ### Build & Binary
+
 - [ ] Build version: 1.0.5
 - [ ] Build number: 1
 - [ ] Export compliance: usesNonExemptEncryption: false (already in app.json)
 - [ ] Upload build via Xcode or Application Loader
 
 ### Screenshots
+
 - [ ] 3-5 Apple TV screenshots (1920x1080)
 
 ### App Information
+
 - [ ] Category: Photo & Video (primary), Entertainment (secondary)
 - [ ] Age Rating: 4+
 - [ ] Copyright: © 2025 Keiver Hernandez (or your name/company)
 
 ### Review Information
+
 - [ ] Demo credentials for Apple reviewers (see APP_STORE_COPY.md:289-311)
 - [ ] Contact information
 - [ ] Notes about requiring Jellyfin server
@@ -178,7 +195,9 @@ Upload to: `~/keiver.dev/public/screenshots/tomotv/icon.png`
 ## 🧪 Pre-Submission Testing
 
 ### Test URLs
+
 Once deployed, verify these work:
+
 ```bash
 curl -I https://keiver.dev/lab/tomotv
 curl -I https://keiver.dev/lab/tomotv-privacy
@@ -188,6 +207,7 @@ curl -I https://keiver.dev/lab/tomotv-support
 All should return `200 OK`.
 
 ### Test App
+
 1. Build app for Apple TV device (not simulator)
 2. Test without .env.local to ensure production behavior
 3. Verify Settings screen works
@@ -216,6 +236,7 @@ All should return `200 OK`.
 ✅ All App Store metadata prepared in APP_STORE_COPY.md
 
 **What You Need to Do:**
+
 1. Deploy keiver.dev website (so URLs are live)
 2. Add screenshots to website
 3. Update App ID placeholders
@@ -230,6 +251,7 @@ All should return `200 OK`.
 ## 🆘 Need Help?
 
 If you encounter issues:
+
 1. Check that all URLs return 200 OK
 2. Verify app.json is valid JSON
 3. Test app on physical Apple TV device
