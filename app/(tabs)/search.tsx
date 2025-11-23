@@ -6,22 +6,8 @@ import { searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -36,8 +22,6 @@ export default function SearchScreen() {
   const [nextStartIndex, setNextStartIndex] = useState(0);
   const [hasMoreResults, setHasMoreResults] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
-  const focusedGridItemsCountRef = useRef(0);
-  const [isGridFocused, setIsGridFocused] = useState(false);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleVideoPress = useCallback(
@@ -78,23 +62,6 @@ export default function SearchScreen() {
       // tvOS focus engine will handle this
     }, []),
   );
-
-  const handleGridItemFocus = useCallback(() => {
-    focusedGridItemsCountRef.current += 1;
-    if (focusedGridItemsCountRef.current > 0) {
-      setIsGridFocused(true);
-    }
-  }, []);
-
-  const handleGridItemBlur = useCallback(() => {
-    focusedGridItemsCountRef.current = Math.max(
-      0,
-      focusedGridItemsCountRef.current - 1,
-    );
-    if (focusedGridItemsCountRef.current === 0) {
-      setIsGridFocused(false);
-    }
-  }, []);
 
   const executeSearch = useCallback(
     async (term: string, append: boolean = false) => {
@@ -142,10 +109,7 @@ export default function SearchScreen() {
         setNextStartIndex(startIndex + items.length);
         setActiveQuery(trimmed);
       } catch (err) {
-        const message =
-          err instanceof Error
-            ? err.message
-            : "Unable to search library. Please try again.";
+        const message = err instanceof Error ? err.message : "Unable to search library. Please try again.";
         setSearchError(message);
         if (!append) {
           setSearchResults([]);
@@ -200,17 +164,14 @@ export default function SearchScreen() {
         searchDelayRef.current = null;
       }
     };
-  }, [searchQuery]);
+  }, [searchQuery, executeSearch]);
 
   const hasSearchQuery = searchQuery.trim().length >= 2;
   const shouldShowResults = hasSearchQuery && searchResults.length > 0;
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
 
   const itemDimensions = useMemo(() => {
-    const screenWidth = Math.min(
-      Platform.isTV ? 1920 : 1080,
-      Platform.isTV ? 1080 : 1920,
-    );
+    const screenWidth = Math.min(Platform.isTV ? 1920 : 1080, Platform.isTV ? 1080 : 1920);
     const itemWidth = screenWidth / numColumns;
     const itemHeight = itemWidth * (3 / 2) + 40;
 
@@ -226,18 +187,7 @@ export default function SearchScreen() {
     [itemDimensions, numColumns],
   );
 
-  const renderItem = useCallback(
-    ({ item, index }: { item: JellyfinVideoItem; index: number }) => (
-      <VideoGridItem
-        video={item}
-        onPress={handleVideoPress}
-        index={index}
-        onItemFocus={handleGridItemFocus}
-        onItemBlur={handleGridItemBlur}
-      />
-    ),
-    [handleVideoPress, handleGridItemFocus, handleGridItemBlur],
-  );
+  const renderItem = useCallback(({ item, index }: { item: JellyfinVideoItem; index: number }) => <VideoGridItem video={item} onPress={handleVideoPress} index={index} />, [handleVideoPress]);
 
   const renderFooter = useCallback(() => {
     if (isLoadingMore) {
@@ -251,8 +201,7 @@ export default function SearchScreen() {
 
     return (
       <Text style={styles.resultsLabel}>
-        {searchResults.length}{" "}
-        {searchResults.length === 1 ? "result" : "results"}
+        {searchResults.length} {searchResults.length === 1 ? "result" : "results"}
       </Text>
     );
   }, [isLoadingMore, searchResults.length]);
@@ -311,22 +260,11 @@ export default function SearchScreen() {
               title="Go to Settings"
               variant="primary"
               onPress={() => router.push("/(tabs)/settings")}
-              icon={
-                <Ionicons
-                  name="settings-outline"
-                  size={Platform.isTV ? 24 : 20}
-                  color="#000000"
-                />
-              }
+              icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
               hasTVPreferredFocus={true}
             />
           ) : (
-            <FocusableButton
-              title="Retry"
-              variant="retry"
-              onPress={handleRefresh}
-              hasTVPreferredFocus={true}
-            />
+            <FocusableButton title="Retry" variant="retry" onPress={handleRefresh} hasTVPreferredFocus={true} />
           )}
         </View>
       );
@@ -338,37 +276,26 @@ export default function SearchScreen() {
         <Text style={styles.emptyText}>Search your library</Text>
       </View>
     );
-  }, [
-    hasSearchQuery,
-    isSearching,
-    searchError,
-    searchQuery,
-    isLoading,
-    error,
-    router,
-    handleRefresh,
-    handleRetrySearch,
-  ]);
+  }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, router, handleRefresh, handleRetrySearch]);
 
   return (
     <View style={styles.container}>
-      {!isGridFocused && (
-        <View style={styles.searchContainer} focusable>
-          <TextInput
-            ref={searchInputRef}
-            value={searchQuery}
-            placeholder="Enter file name or keyword"
-            placeholderTextColor="#8E8E93"
-            autoCorrect={false}
-            onChangeText={setSearchQuery}
-            style={styles.searchInput}
-            multiline={false}
-            autoFocus={false}
-            numberOfLines={1}
-            returnKeyType="search"
-          />
-        </View>
-      )}
+      <View style={styles.searchContainer}>
+        <TextInput
+          ref={searchInputRef}
+          value={searchQuery}
+          placeholder="Enter file name or keyword"
+          placeholderTextColor="#8E8E93"
+          autoCorrect={false}
+          onChangeText={setSearchQuery}
+          style={styles.searchInput}
+          multiline={false}
+          autoFocus={false}
+          numberOfLines={1}
+          returnKeyType="search"
+          blurOnSubmit={Platform.isTV}
+        />
+      </View>
 
       {shouldShowResults ? (
         <FlatList
@@ -411,7 +338,6 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: Platform.isTV ? 80 : 16,
     zIndex: 999,
-    pointerEvents: "box-none",
   },
   searchInput: {
     width: "100%",
@@ -431,8 +357,8 @@ const styles = StyleSheet.create({
     fontWeight: "400",
   },
   gridContent: {
-    paddingTop: Platform.isTV ? 60 : 20,
-    paddingBottom: 60,
+    paddingTop: Platform.isTV ? 240 : 100,
+    paddingBottom: Platform.isTV ? 120 : 100,
     paddingHorizontal: Platform.isTV ? 40 : 20,
   },
   columnWrapper: {

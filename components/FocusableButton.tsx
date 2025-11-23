@@ -1,12 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Platform, Pressable, PressableProps, StyleSheet, Text, TextStyle, View, ViewStyle } from "react-native";
 
-export type ButtonVariant =
-  | "primary"
-  | "secondary"
-  | "destructive"
-  | "debug"
-  | "retry";
+export type ButtonVariant = "primary" | "secondary" | "destructive" | "debug" | "retry";
 
 interface FocusableButtonProps extends Omit<PressableProps, "style"> {
   /** Button text label */
@@ -36,17 +31,7 @@ interface FocusableButtonProps extends Omit<PressableProps, "style"> {
  * - Platform-specific sizing (larger on TV)
  * - Proper accessibility with isTVSelectable
  */
-export function FocusableButton({
-  title,
-  variant = "primary",
-  isLoading = false,
-  icon,
-  hasTVPreferredFocus = false,
-  disabled = false,
-  style,
-  textStyle,
-  ...pressableProps
-}: FocusableButtonProps) {
+export function FocusableButton({ title, variant = "primary", isLoading = false, icon, hasTVPreferredFocus = false, disabled = false, style, textStyle, ...pressableProps }: FocusableButtonProps) {
   const getButtonStyle = (focused: boolean): ViewStyle => {
     const baseStyle = [styles.button];
 

@@ -3,14 +3,7 @@ import { JellyfinVideoItem } from "@/types/jellyfin";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import {
-  Animated,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 // Cache platform values at module level for better performance
 const IS_TV = Platform.isTV;
@@ -39,13 +32,7 @@ interface VideoGridItemProps {
  * - Platform values cached at module level
  * - BlurView only rendered when focused
  */
-function VideoGridItemComponent({
-  video,
-  onPress,
-  index,
-  onItemFocus,
-  onItemBlur,
-}: VideoGridItemProps) {
+function VideoGridItemComponent({ video, onPress, index, onItemFocus, onItemBlur }: VideoGridItemProps) {
   const [focused, setFocused] = useState(false);
 
   // Single animated value with native driver for 60fps performance
@@ -61,19 +48,12 @@ function VideoGridItemComponent({
   const metadata = useMemo(() => {
     if (!focused) return null;
 
-    const videoStream = video.MediaStreams?.find(
-      (stream) => stream.Type === "Video",
-    );
-    const audioStream = video.MediaStreams?.find(
-      (stream) => stream.Type === "Audio",
-    );
+    const videoStream = video.MediaStreams?.find((stream) => stream.Type === "Video");
+    const audioStream = video.MediaStreams?.find((stream) => stream.Type === "Audio");
 
     const videoCodec = videoStream?.Codec?.toUpperCase() || "Unknown";
     const audioCodec = audioStream?.Codec?.toUpperCase() || "Unknown";
-    const resolution =
-      videoStream?.Width && videoStream?.Height
-        ? `${videoStream.Width}x${videoStream.Height}`
-        : "Unknown";
+    const resolution = videoStream?.Width && videoStream?.Height ? `${videoStream.Width}x${videoStream.Height}` : "Unknown";
 
     // Calculate file size
     let fileSize = null;
@@ -82,10 +62,7 @@ function VideoGridItemComponent({
       const durationSeconds = video.RunTimeTicks / 10000000;
       const sizeBytes = (videoStream.BitRate * durationSeconds) / 8;
       const sizeGB = sizeBytes / (1024 * 1024 * 1024);
-      fileSize =
-        sizeGB >= 1
-          ? `${sizeGB.toFixed(1)} GB`
-          : `${(sizeBytes / (1024 * 1024)).toFixed(0)} MB`;
+      fileSize = sizeGB >= 1 ? `${sizeGB.toFixed(1)} GB` : `${(sizeBytes / (1024 * 1024)).toFixed(0)} MB`;
 
       // Format duration
       const totalMinutes = Math.floor(durationSeconds / 60);
@@ -123,18 +100,8 @@ function VideoGridItemComponent({
   }, [onPress, video]);
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      onFocus={handleFocus}
-      onBlur={handleBlur}
-      activeOpacity={0.95}
-      isTVSelectable={true}
-      hasTVPreferredFocus={index === 0}
-      style={styles.container}
-    >
-      <Animated.View
-        style={[styles.card, { transform: [{ scale: scaleAnim }] }]}
-      >
+    <TouchableOpacity onPress={handlePress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={index === 0} style={styles.container}>
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <View style={styles.imageContainer}>
           {posterUrl ? (
             <Image
@@ -165,11 +132,7 @@ function VideoGridItemComponent({
                 </Text>
                 <Text style={styles.infoValue}>{metadata.resolution}</Text>
                 <Text style={styles.infoValue}>{metadata?.duration}</Text>
-                <Text
-                  style={styles.infoValue}
-                  numberOfLines={1}
-                  lineBreakMode="clip"
-                >
+                <Text style={styles.infoValue} numberOfLines={1} lineBreakMode="clip">
                   {video?.Name || "Unknown"}
                 </Text>
               </BlurView>
@@ -184,24 +147,14 @@ function VideoGridItemComponent({
                     {metadata.fileSize} / {metadata.duration}
                   </Text>
                 )}
-                <Text
-                  style={styles.infoValue}
-                  numberOfLines={1}
-                  lineBreakMode="clip"
-                >
+                <Text style={styles.infoValue} numberOfLines={1} lineBreakMode="clip">
                   {video?.Name || "Unknown"}
                 </Text>
               </View>
             ))}
 
           {/* Border overlay - rendered on top to avoid gaps */}
-          <View
-            style={[
-              styles.borderOverlay,
-              focused && styles.borderOverlayFocused,
-            ]}
-            pointerEvents="none"
-          />
+          <View style={[styles.borderOverlay, focused && styles.borderOverlayFocused]} pointerEvents="none" />
         </View>
       </Animated.View>
     </TouchableOpacity>
@@ -213,10 +166,7 @@ function VideoGridItemComponent({
  * Only re-render when video.Id or index changes
  * Removed checks for RunTimeTicks and MediaStreams since we compute lazily now
  */
-function arePropsEqual(
-  prevProps: VideoGridItemProps,
-  nextProps: VideoGridItemProps,
-): boolean {
+function arePropsEqual(prevProps: VideoGridItemProps, nextProps: VideoGridItemProps): boolean {
   return (
     prevProps.video.Id === nextProps.video.Id &&
     prevProps.index === nextProps.index &&
