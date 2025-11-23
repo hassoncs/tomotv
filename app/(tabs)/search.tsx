@@ -64,6 +64,13 @@ export default function SearchScreen() {
     syncDevCredentials();
   }, []);
 
+  // Clear search error when library starts loading (e.g., after settings save)
+  useEffect(() => {
+    if (isLoading && searchError) {
+      setSearchError(null);
+    }
+  }, [isLoading, searchError]);
+
   // Focus search input when screen comes into focus
   useFocusEffect(
     useCallback(() => {
