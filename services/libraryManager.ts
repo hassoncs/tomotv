@@ -298,6 +298,7 @@ class LibraryManager {
    * Clear cache and reset state
    */
   clearCache(): void {
+    this.isLoadingRef = false
     this.videos = []
     this.nextStartIndex = 0
     this.hasMoreResults = false
