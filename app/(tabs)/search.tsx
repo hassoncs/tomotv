@@ -164,7 +164,8 @@ export default function SearchScreen() {
         searchDelayRef.current = null;
       }
     };
-  }, [searchQuery, executeSearch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery]);
 
   const hasSearchQuery = searchQuery.trim().length >= 2;
   const shouldShowResults = hasSearchQuery && searchResults.length > 0;
