@@ -66,7 +66,7 @@ export default function HelpScreen() {
           </Pressable>
 
           {/* Quick Start Section */}
-          <Pressable style={styles.card} isTVSelectable={true}>
+          {/* <Pressable style={styles.card} isTVSelectable={true}>
             <View style={styles.cardHeader}>
               <View style={styles.cardIconBadge}>
                 <Ionicons name="rocket-outline" size={Platform.isTV ? 28 : 22} color="#FFC312" />
@@ -108,7 +108,7 @@ export default function HelpScreen() {
                 <Text style={styles.circleLabel}>Videos</Text>
               </View>
             </View>
-          </Pressable>
+          </Pressable> */}
 
           {/* Codec Support Card */}
           <Pressable style={styles.helpCard} isTVSelectable={true}>

@@ -144,11 +144,11 @@ const styles = StyleSheet.create({
     // Add transparent border to prevent layout shift on focus
     borderWidth: Platform.isTV ? 4 : 3,
     borderColor: "transparent",
-    // Add shadow for depth
+    // Use consistent shadowRadius to prevent layout shift when focus changes
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: Platform.isTV ? 20 : 12,
     elevation: 2,
   },
   buttonContent: {
@@ -182,9 +182,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     shadowColor: "#FFC312",
     shadowOpacity: 0.5,
-    shadowRadius: Platform.isTV ? 20 : 12,
     elevation: 8,
-    transform: [{ scale: Platform.isTV ? 1.05 : 1.02 }],
   },
   primaryButtonText: {
     color: "#000000",
@@ -200,9 +198,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFD54F",
     shadowColor: "#FFC312",
     shadowOpacity: 0.4,
-    shadowRadius: Platform.isTV ? 16 : 10,
     elevation: 6,
-    transform: [{ scale: Platform.isTV ? 1.05 : 1.02 }],
   },
   secondaryButtonText: {
     color: "#FFC312",
@@ -218,9 +214,7 @@ const styles = StyleSheet.create({
     borderColor: "#FF3B30",
     shadowColor: "#FF3B30",
     shadowOpacity: 0.4,
-    shadowRadius: Platform.isTV ? 16 : 10,
     elevation: 6,
-    transform: [{ scale: Platform.isTV ? 1.05 : 1.02 }],
   },
   destructiveButtonText: {
     color: "#FF3B30",
@@ -237,9 +231,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     shadowColor: "#8E8E93",
     shadowOpacity: 0.4,
-    shadowRadius: Platform.isTV ? 16 : 10,
     elevation: 6,
-    transform: [{ scale: Platform.isTV ? 1.05 : 1.02 }],
   },
   debugButtonText: {
     color: "#8E8E93",
@@ -256,9 +248,7 @@ const styles = StyleSheet.create({
     borderColor: "#FFFFFF",
     shadowColor: "#FFC312",
     shadowOpacity: 0.5,
-    shadowRadius: Platform.isTV ? 20 : 12,
     elevation: 8,
-    transform: [{ scale: Platform.isTV ? 1.05 : 1.02 }],
   },
   retryButtonText: {
     color: "#000000",
