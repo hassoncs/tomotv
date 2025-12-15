@@ -491,6 +491,8 @@ async function requestLibraryItems(
     Fields: "Path,MediaStreams,Genres",
     StartIndex: String(startIndex),
     Limit: String(limit),
+    SortBy: "DateCreated",
+    SortOrder: "Descending",
   });
 
   if (searchTerm) {

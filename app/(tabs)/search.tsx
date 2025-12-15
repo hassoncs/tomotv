@@ -12,7 +12,7 @@ import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, TextInput, Vie
 export default function SearchScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
-  const { isLoading, error, refreshLibrary } = useLibrary();
+  const { isLoading, error } = useLibrary();
   const [searchResults, setSearchResults] = useState<JellyfinVideoItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
@@ -38,10 +38,6 @@ export default function SearchScreen() {
     },
     [router, showGlobalLoader],
   );
-
-  const handleRefresh = useCallback(() => {
-    refreshLibrary();
-  }, [refreshLibrary]);
 
   // Sync dev credentials on mount (only once)
   useEffect(() => {
@@ -248,25 +244,19 @@ export default function SearchScreen() {
     }
 
     if (error) {
-      const isConfigError = error.includes("not configured");
-
       return (
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
           <Text style={styles.errorTitle}>Unable to Load Videos</Text>
           <Text style={styles.errorText}>{error}</Text>
           <Text style={styles.errorText}></Text>
-          {isConfigError ? (
-            <FocusableButton
-              title="Go to Settings"
-              variant="primary"
-              onPress={() => router.push("/(tabs)/settings")}
-              icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
-              hasTVPreferredFocus={true}
-            />
-          ) : (
-            <FocusableButton title="Retry" variant="retry" onPress={handleRefresh} hasTVPreferredFocus={true} />
-          )}
+          <FocusableButton
+            title="Go to Settings"
+            variant="primary"
+            onPress={() => router.push("/(tabs)/settings")}
+            icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
+            hasTVPreferredFocus={true}
+          />
         </View>
       );
     }
@@ -277,7 +267,7 @@ export default function SearchScreen() {
         <Text style={styles.emptyText}>Search your library</Text>
       </View>
     );
-  }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, router, handleRefresh, handleRetrySearch]);
+  }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, router, handleRetrySearch]);
 
   return (
     <View style={styles.container}>

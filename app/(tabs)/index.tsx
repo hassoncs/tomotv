@@ -12,7 +12,7 @@ import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, View } from "r
 export default function VideoLibraryScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
-  const { videos, isLoading, isLoadingMore, hasMoreResults, error, libraryName, refreshLibrary, loadMore } = useLibrary();
+  const { videos, isLoading, isLoadingMore, hasMoreResults, error, libraryName, loadMore } = useLibrary();
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
@@ -33,10 +33,6 @@ export default function VideoLibraryScreen() {
     [router, showGlobalLoader, videos],
   );
 
-  const handleRefresh = useCallback(() => {
-    refreshLibrary();
-  }, [refreshLibrary]);
-
   // Sync dev credentials on mount (only once)
   useEffect(() => {
     syncDevCredentials();
@@ -53,25 +49,19 @@ export default function VideoLibraryScreen() {
     }
 
     if (error) {
-      const isConfigError = error.includes("not configured");
-
       return (
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
           <Text style={styles.errorTitle}>Unable to Load Videos</Text>
           <Text style={styles.errorText}>{error}</Text>
           <Text style={styles.errorText}></Text>
-          {isConfigError ? (
-            <FocusableButton
-              title="Go to Settings"
-              variant="primary"
-              onPress={() => router.push("/(tabs)/settings")}
-              icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
-              hasTVPreferredFocus={true}
-            />
-          ) : (
-            <FocusableButton title="Retry" variant="primary" onPress={handleRefresh} hasTVPreferredFocus={true} />
-          )}
+          <FocusableButton
+            title="Go to Settings"
+            variant="primary"
+            onPress={() => router.push("/(tabs)/settings")}
+            icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
+            hasTVPreferredFocus={true}
+          />
         </View>
       );
     }
@@ -80,10 +70,17 @@ export default function VideoLibraryScreen() {
       <View style={styles.centerContainer}>
         <Ionicons name="film-outline" size={64} color="#98989D" />
         <Text style={styles.emptyText}>No videos found</Text>
-        <FocusableButton title="Refresh" variant="retry" onPress={handleRefresh} hasTVPreferredFocus={true} />
+        <Text style={styles.errorText}>Check your server settings</Text>
+        <FocusableButton
+          title="Go to Settings"
+          variant="primary"
+          onPress={() => router.push("/(tabs)/settings")}
+          icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
+          hasTVPreferredFocus={true}
+        />
       </View>
     );
-  }, [isLoading, error, router, handleRefresh]);
+  }, [isLoading, error, router]);
 
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
 

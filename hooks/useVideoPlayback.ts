@@ -156,6 +156,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const stablePlaybackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasStablePlaybackRef = useRef(false);
 
+  // Ref to track if we're in seeking/buffering state to avoid excessive state transitions
+  const isSeekingRef = useRef(false);
+  const lastStatusChangeRef = useRef<number>(0);
+
   // Track stable playback to hide loading spinner at the right time
   const [hasStablePlayback, setHasStablePlayback] = useState(false);
 
@@ -367,6 +371,8 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     setHasStablePlayback(false);
     hasStablePlaybackRef.current = false;
     autoPlayTriggeredRef.current = false;
+    isSeekingRef.current = false;
+    lastStatusChangeRef.current = 0;
   }, [videoId]);
 
   /**
@@ -400,9 +406,29 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     const statusSubscription = player.addListener('statusChange', (payload) => {
       if (!isMountedRef.current) return;
 
-      logger.debug('Player status change', {service: 'useVideoPlayback', status: payload.status});
+      const now = Date.now();
+      const timeSinceLastChange = now - lastStatusChangeRef.current;
+      lastStatusChangeRef.current = now;
+
+      // Track seeking state - rapid loading/readyToPlay cycles indicate seeking
+      if (payload.status === 'loading') {
+        isSeekingRef.current = hasStablePlaybackRef.current;
+      }
+
+      // Only log status changes if not in rapid seeking mode (debounce logs)
+      if (!isSeekingRef.current || timeSinceLastChange > 500) {
+        logger.debug('Player status change', {service: 'useVideoPlayback', status: payload.status});
+      }
 
       if (payload.status === 'readyToPlay') {
+        // Once stable playback is achieved, skip state machine transitions during seeking
+        // This prevents excessive dispatches and InteractionManager overhead
+        if (hasStablePlaybackRef.current) {
+          // Clear seeking state - buffer complete
+          isSeekingRef.current = false;
+          return;
+        }
+
         // Ensure state update happens on main thread via InteractionManager
         InteractionManager.runAfterInteractions(() => {
           if (!isMountedRef.current) return;
@@ -505,15 +531,17 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       if (!isMountedRef.current) return;
 
       if (payload.isPlaying) {
-        // Ensure state update happens on main thread
-        InteractionManager.runAfterInteractions(() => {
-          if (!isMountedRef.current) return;
-          dispatch({ type: 'PLAYER_PLAYING' });
-        });
-
-        // Start stable playback detection after video starts playing
-        // Wait 1.5 seconds of continuous playback before hiding spinner
+        // Once stable playback achieved, skip redundant PLAYER_PLAYING dispatches
+        // This prevents overhead during seeking/buffering cycles
         if (!hasStablePlaybackRef.current) {
+          // Ensure state update happens on main thread
+          InteractionManager.runAfterInteractions(() => {
+            if (!isMountedRef.current) return;
+            dispatch({ type: 'PLAYER_PLAYING' });
+          });
+
+          // Start stable playback detection after video starts playing
+          // Wait 1.5 seconds of continuous playback before hiding spinner
           // Clear any existing timer
           if (stablePlaybackTimerRef.current) {
             clearTimeout(stablePlaybackTimerRef.current);

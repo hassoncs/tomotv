@@ -6,7 +6,9 @@ import React, {
   useMemo,
   useCallback,
   useEffect,
+  useRef,
 } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { libraryManager } from "@/services/libraryManager";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
@@ -78,6 +80,32 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     libraryManager.loadLibrary();
 
     return unsubscribe;
+  }, []);
+
+  // Track app state for foreground refresh
+  const appState = useRef<AppStateStatus>(AppState.currentState);
+
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      // Refresh library when app comes to foreground (background/inactive -> active)
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === "active"
+      ) {
+        logger.info("App came to foreground, refreshing library", {
+          context: "LibraryContext",
+          previousState: appState.current,
+        });
+        libraryManager.refreshLibrary();
+      }
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
   }, []);
 
   // Stable function references (no dependencies needed)

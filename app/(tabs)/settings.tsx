@@ -66,6 +66,7 @@ export default function SettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Refs for text fields
   const serverUrlRef = useRef<TextInput>(null);
@@ -206,7 +207,7 @@ export default function SettingsScreen() {
       const videos = await fetchVideos();
 
       // Trigger library refresh in background
-      refreshLibrary();
+      await refreshLibrary();
 
       Alert.alert("Connection Successful!", `Successfully connected to Jellyfin server.\n\nFound ${videos.length} video(s) in your library.`, [{ text: "OK" }]);
     } catch (error) {
@@ -351,6 +352,22 @@ Video Quality: ${qualityLabel}
     ]);
   };
 
+  // const handleRefreshLibrary = useCallback(async () => {
+  //   try {
+  //     setIsRefreshing(true);
+  //     logger.info("Manual library refresh triggered from settings", {
+  //       screen: "settings",
+  //     });
+  //     await refreshLibrary();
+  //     Alert.alert("Success", "Library refreshed successfully!");
+  //   } catch (error) {
+  //     logger.error("Error refreshing library", error);
+  //     Alert.alert("Error", "Failed to refresh library");
+  //   } finally {
+  //     setIsRefreshing(false);
+  //   }
+  // }, [refreshLibrary]);
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -488,10 +505,9 @@ Video Quality: ${qualityLabel}
             ))}
           </View>
 
-          {/* Action Buttons */}
           <View style={styles.buttonGroup}>
             <FocusableButton
-              title="Test Connection"
+              title="Refresh Connection"
               variant="secondary"
               onPress={testConnection}
               disabled={isTesting || isSaving}
@@ -535,6 +551,20 @@ Video Quality: ${qualityLabel}
               marginHorizontal: "auto",
             }}
           />
+          {/* <FocusableButton
+                title="Refresh Library"
+                variant="secondary"
+                onPress={handleRefreshLibrary}
+                disabled={isRefreshing || isSaving || isTesting}
+                isLoading={isRefreshing}
+                icon={<Ionicons name="refresh-outline" size={Platform.isTV ? 24 : 20} color="#FFFFFF" />}
+                style={{
+                  marginTop: Platform.isTV ? 16 : 12,
+                  width: "100%",
+                  maxWidth: 400,
+                  marginHorizontal: "auto",
+                }}
+              /> */}
         </View>
       </ScrollView>
     </View>
