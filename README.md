@@ -46,7 +46,7 @@ npx expo run:ios
 
 ## Requirements
 
-- Jellyfin server
+- Your Jellyfin server, find our more about Jellyfin [here](https://jellyfin.org/)
 - Apple TV 4K (or simulator)
 - Xcode 15+
 - Node.js 18+
@@ -62,7 +62,3 @@ This project includes [`expo-tvos-search`](https://github.com/keiver/expo-tvos-s
 ## License
 
 MIT
-
-## Author
-
-[Keiver Hernandez](https://github.com/keiver)
