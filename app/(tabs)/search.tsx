@@ -8,7 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { logger } from "@/utils/logger";
 
 interface SearchHeaderProps {
   onChangeText: (text: string) => void;
@@ -26,7 +27,7 @@ const SearchHeader = React.memo(
         <View style={[styles.searchInputWrapper, isInputFocused && styles.searchInputWrapperFocused]}>
           <TextInput
             ref={inputRef}
-            placeholder="Search movies and videos..."
+            placeholder="Search by title, path, or year (e.g. action 2023)"
             placeholderTextColor="#8E8E93"
             autoCorrect={false}
             autoCapitalize="none"
@@ -85,8 +86,14 @@ function NativeSearchScreen() {
             imageUrl: getPosterUrl(item.Id, 300),
           })),
         );
-      } catch {
+      } catch (error) {
+        logger.error("Search failed", error, { service: "NativeSearchScreen", query: query.trim() });
         setSearchResults([]);
+        // Show alert for connection errors so user knows something went wrong
+        const message = error instanceof Error ? error.message : "Unable to search. Please check your connection.";
+        if (message.includes("not configured") || message.includes("network") || message.includes("timeout")) {
+          Alert.alert("Search Error", message);
+        }
       } finally {
         setIsSearching(false);
       }
@@ -110,7 +117,7 @@ function NativeSearchScreen() {
     <TvosSearchView
       results={searchResults}
       columns={5}
-      placeholder="Search movies and videos..."
+      placeholder="Search by title, path, or year..."
       isLoading={isSearching}
       topInset={140}
       onSearch={handleSearch}
@@ -367,7 +374,7 @@ function ReactNativeSearchScreen() {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="search-outline" size={64} color="#98989D" />
-        <Text style={styles.emptyText}>Search your library</Text>
+        <Text style={styles.emptyText}>Search by title, path, or year</Text>
       </View>
     );
   }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, router, handleRetrySearch]);

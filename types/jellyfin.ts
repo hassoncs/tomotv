@@ -19,9 +19,14 @@ export interface JellyfinVideoItem {
   MediaStreams?: JellyfinMediaStream[];
   Overview?: string;
   PremiereDate?: string;
+  ProductionYear?: number;
   CommunityRating?: number;
   OfficialRating?: string;
   Genres?: string[];
+  SeriesName?: string;
+  SeasonName?: string;
+  IndexNumber?: number;
+  ParentIndexNumber?: number;
   ImageTags?: {
     Primary?: string;
   };

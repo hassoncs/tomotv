@@ -28,7 +28,12 @@
       "Bash(tree:*)",
       "Bash(wc:*)",
       "Bash(npm uninstall:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git add:*)",
+      "Bash(npm view:*)",
+      "Bash(npm --version)",
+      "Bash(git commit:*)",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []

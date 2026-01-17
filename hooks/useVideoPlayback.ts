@@ -177,7 +177,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       // Check if this is an audio-only file
       const audioOnly = isAudioOnly(details);
       if (audioOnly) {
-        console.log("[useVideoPlayback] Audio-only file detected - will use direct play");
+        logger.debug("Audio-only file detected - will use direct play", { service: "useVideoPlayback" });
       }
 
       // Check codec compatibility (skip for audio-only files)
@@ -264,7 +264,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         logger.info("Stream URL generated", {
           service: "useVideoPlayback",
           mode: mode.toUpperCase(),
-          url,
+          streamType: url.includes(".m3u8") ? "HLS" : "Direct",
         });
 
         if (!url) {

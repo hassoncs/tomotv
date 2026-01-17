@@ -222,7 +222,7 @@ async function getQualitySettings(): Promise<{
       label: preset.label,
     };
   } catch (error) {
-    console.error("Error reading quality settings:", error);
+    logger.error("Error reading quality settings", error);
     const preset = QUALITY_PRESETS[DEFAULT_QUALITY];
     return {
       index: DEFAULT_QUALITY,
@@ -434,7 +434,145 @@ export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
 }
 
 /**
+ * Parse year(s) from search query
+ * Supports patterns like:
+ * - Full years: "2023", "action 2023", "(2020)"
+ * - Year ranges: "2019-2023"
+ * - Decades: "90s", "1990s", "80s"
+ * - Partial years: "199" → 1990-1999, "20" → 2000-2009
+ * Returns the remaining search term and extracted years
+ */
+function parseYearsFromQuery(query: string): { term: string; years: number[] } {
+  const years: number[] = [];
+  let term = query;
+
+  // Pattern 1: Year range like "2019-2023" or "2019 - 2023"
+  const rangeMatch = term.match(/\b(19|20)\d{2}\s*-\s*(19|20)\d{2}\b/);
+  if (rangeMatch) {
+    const [fullMatch] = rangeMatch;
+    const [startYear, endYear] = fullMatch.split(/\s*-\s*/).map(Number);
+    if (startYear <= endYear && endYear - startYear <= 10) {
+      for (let y = startYear; y <= endYear; y++) {
+        years.push(y);
+      }
+      term = term.replace(fullMatch, "").trim();
+    }
+  }
+
+  // Pattern 2: Year in parentheses like "(2023)"
+  const parenMatch = term.match(/\((\d{4})\)/);
+  if (parenMatch && years.length === 0) {
+    const year = parseInt(parenMatch[1], 10);
+    if (year >= 1900 && year <= 2100) {
+      years.push(year);
+      term = term.replace(parenMatch[0], "").trim();
+    }
+  }
+
+  // Pattern 3: Decade shorthand like "90s", "1990s", "80s"
+  const decadeMatch = term.match(/\b(19)?(\d)0s\b/i);
+  if (decadeMatch && years.length === 0) {
+    const century = decadeMatch[1] ? 1900 : 2000;
+    const decade = parseInt(decadeMatch[2], 10) * 10;
+    // For "90s" without prefix, assume 1990s if >= 30, else 2000s
+    const baseYear = decadeMatch[1] ? century + decade : (decade >= 30 ? 1900 + decade : 2000 + decade);
+    for (let y = baseYear; y < baseYear + 10; y++) {
+      years.push(y);
+    }
+    term = term.replace(decadeMatch[0], "").trim();
+  }
+
+  // Pattern 4: Standalone year at end like "action 2023"
+  const endYearMatch = term.match(/\s+(19|20)\d{2}$/);
+  if (endYearMatch && years.length === 0) {
+    const year = parseInt(endYearMatch[0].trim(), 10);
+    if (year >= 1900 && year <= 2100) {
+      years.push(year);
+      term = term.replace(endYearMatch[0], "").trim();
+    }
+  }
+
+  // Pattern 5: Just a full 4-digit year by itself like "2023"
+  if (years.length === 0 && /^(19|20)\d{2}$/.test(term.trim())) {
+    years.push(parseInt(term.trim(), 10));
+    term = "";
+  }
+
+  // Pattern 6: 3-digit partial year like "199" → 1990-1999, "202" → 2020-2029
+  if (years.length === 0 && /^(19|20)\d$/.test(term.trim())) {
+    const partial = term.trim();
+    const baseYear = parseInt(partial + "0", 10);
+    for (let y = baseYear; y < baseYear + 10; y++) {
+      years.push(y);
+    }
+    term = "";
+  }
+
+  // Pattern 7: 2-digit century prefix like "19" → 1900-1999, "20" → 2000-2099
+  if (years.length === 0 && /^(19|20)$/.test(term.trim())) {
+    const century = parseInt(term.trim(), 10) * 100;
+    // Limit to reasonable range to avoid too many years
+    const currentYear = new Date().getFullYear();
+    const endYear = Math.min(century + 99, currentYear + 5);
+    for (let y = century; y <= endYear; y++) {
+      years.push(y);
+    }
+    term = "";
+  }
+
+  return { term: term.trim(), years };
+}
+
+/**
+ * Fetch episodes from a Series
+ */
+async function fetchSeriesEpisodes(config: JellyfinConfig, seriesId: string, limit: number = 50): Promise<JellyfinVideoItem[]> {
+  const query = new URLSearchParams({
+    ParentId: seriesId,
+    Recursive: "true",
+    IncludeItemTypes: "Episode",
+    Fields: "Path,MediaStreams,Genres,ProductionYear,SeriesName",
+    Limit: String(limit),
+    SortBy: "SortName",
+    SortOrder: "Ascending",
+  });
+
+  const url = `${config.server}/Users/${config.userId}/Items?${query.toString()}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+        Authorization: `MediaBrowser Token="${config.apiKey}"`,
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data: JellyfinVideosResponse = await response.json();
+    return data.Items || [];
+  } catch {
+    clearTimeout(timeoutId);
+    return [];
+  }
+}
+
+/**
  * Remote search for videos using Jellyfin's SearchTerm filter
+ * Supports searching by:
+ * - Title/name (default)
+ * - Path/folder name (via SearchTerm)
+ * - Year: "action 2023", "(2020)", "2019-2023"
+ * - Series name (automatically expands to episodes)
  */
 export async function searchVideos(searchTerm: string, { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {}): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
   const trimmed = searchTerm.trim();
@@ -447,14 +585,63 @@ export async function searchVideos(searchTerm: string, { limit = 60, startIndex 
     throw new Error("Jellyfin server not configured. Update settings before searching.");
   }
 
+  // Parse year from search query
+  const { term, years } = parseYearsFromQuery(trimmed);
+
+  logger.debug("Search query parsed", {
+    service: "JellyfinAPI",
+    originalQuery: trimmed,
+    parsedTerm: term || "(empty)",
+    parsedYears: years.length > 0 ? `${years[0]}${years.length > 1 ? `-${years[years.length - 1]}` : ""}` : "(none)",
+    yearCount: years.length,
+  });
+
   return retryWithBackoff(
-    async () =>
-      requestLibraryItems(config, {
+    async () => {
+      // First search: playable items + Series (to expand into episodes)
+      const result = await requestLibraryItems(config, {
         startIndex,
         limit,
-        searchTerm: trimmed,
+        searchTerm: term || undefined,
+        years: years.length > 0 ? years : undefined,
+        includeAllTypes: true,
+        includeSeries: true, // Also search for Series to expand
         timeoutMs: 15000,
-      }),
+      });
+
+      // Separate playable items from Series
+      const playableItems: JellyfinVideoItem[] = [];
+      const seriesItems: JellyfinVideoItem[] = [];
+
+      for (const item of result.items) {
+        if (item.Type === "Series") {
+          seriesItems.push(item);
+        } else {
+          playableItems.push(item);
+        }
+      }
+
+      // If we found Series, fetch their episodes
+      if (seriesItems.length > 0) {
+        logger.debug("Expanding series to episodes", {
+          service: "JellyfinAPI",
+          seriesCount: seriesItems.length,
+          seriesNames: seriesItems.map((s) => s.Name).join(", "),
+        });
+
+        const episodePromises = seriesItems.map((series) => fetchSeriesEpisodes(config, series.Id, 20));
+        const episodeResults = await Promise.all(episodePromises);
+
+        for (const episodes of episodeResults) {
+          playableItems.push(...episodes);
+        }
+      }
+
+      return {
+        items: playableItems,
+        total: playableItems.length,
+      };
+    },
     { maxAttempts: 3 },
   );
 }
@@ -611,18 +798,37 @@ async function requestLibraryItems(
     startIndex = 0,
     limit = 200,
     searchTerm,
+    years,
+    includeAllTypes = false,
+    includeSeries = false,
     timeoutMs = 30000,
   }: {
     startIndex?: number;
     limit?: number;
     searchTerm?: string;
+    years?: number[];
+    includeAllTypes?: boolean;
+    includeSeries?: boolean;
     timeoutMs?: number;
   },
 ): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
+  // When searching, include all playable content types across all libraries
+  // Only include directly playable items (not folders like Series/Season)
+  // - Movie: standalone movies
+  // - Video: generic video files
+  // - Episode: TV show episodes (playable)
+  // - Audio: music/audio tracks (playable)
+  // - Series: only when includeSeries=true (will be expanded to episodes by caller)
+  // Excluded: Season, MusicAlbum, MusicArtist (these are folders, not playable)
+  let itemTypes = includeAllTypes ? "Movie,Video,Episode,Audio" : "Movie,Video";
+  if (includeSeries) {
+    itemTypes += ",Series";
+  }
+
   const query = new URLSearchParams({
     Recursive: "true",
-    IncludeItemTypes: "Movie,Video",
-    Fields: "Path,MediaStreams,Genres",
+    IncludeItemTypes: itemTypes,
+    Fields: "Path,MediaStreams,Genres,ProductionYear",
     StartIndex: String(startIndex),
     Limit: String(limit),
     SortBy: "DateCreated",
@@ -631,6 +837,10 @@ async function requestLibraryItems(
 
   if (searchTerm) {
     query.append("SearchTerm", searchTerm);
+  }
+
+  if (years && years.length > 0) {
+    query.append("Years", years.join(","));
   }
 
   const url = `${config.server}/Users/${config.userId}/Items?${query.toString()}`;

@@ -1,6 +1,7 @@
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { useVideoPlayback } from "@/hooks/useVideoPlayback";
+import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { VideoView } from "expo-video";
@@ -37,7 +38,7 @@ export default function VideoPlayerScreen() {
     if (currentPlaylistIndex >= 0 && currentPlaylistIndex < videos.length - 1) {
       const nextVideo = videos[currentPlaylistIndex + 1];
       if (nextVideo) {
-        console.log("[VideoPlayer] Auto-playing next video:", nextVideo.Name);
+        logger.info("Auto-playing next video", { service: "VideoPlayer", videoName: nextVideo.Name });
         showGlobalLoader();
 
         // Navigate to next video with updated playlist index
@@ -51,7 +52,7 @@ export default function VideoPlayerScreen() {
         });
       }
     } else {
-      console.log("[VideoPlayer] End of playlist, going back to library");
+      logger.info("End of playlist, going back to library", { service: "VideoPlayer" });
       // End of playlist, return to library
       router.back();
     }
@@ -145,7 +146,7 @@ export default function VideoPlayerScreen() {
         player.play();
       }
     } catch (error) {
-      console.error("Error toggling playback:", error);
+      logger.error("Error toggling playback", error, { service: "VideoPlayer" });
     }
   }, [player, isPlaying]);
 
