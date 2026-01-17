@@ -1,99 +1,97 @@
+import { BackGridItem } from "@/components/back-grid-item";
+import { Breadcrumb } from "@/components/breadcrumb";
 import { FocusableButton } from "@/components/FocusableButton";
+import { FolderGridItem } from "@/components/folder-grid-item";
 import { VideoGridItem } from "@/components/video-grid-item";
-import { useLibrary } from "@/contexts/LibraryContext";
+import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
-import { syncDevCredentials } from "@/services/jellyfinApi";
-import { JellyfinVideoItem } from "@/types/jellyfin";
+import { isFolder, syncDevCredentials } from "@/services/jellyfinApi";
+import { JellyfinItem } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo } from "react";
-import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, BackHandler, FlatList, Platform, StyleSheet, Text, View, useTVEventHandler } from "react-native";
+
+// Special marker for the ".." back navigation item
+const BACK_ITEM_ID = "__BACK__";
+type GridItem = JellyfinItem | { Id: typeof BACK_ITEM_ID; _isBackItem: true };
 
 export default function VideoLibraryScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
-  const { videos, isLoading, isLoadingMore, hasMoreResults, error, libraryName, loadMore } = useLibrary();
+  const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore } = useFolderNavigation();
 
-  const handleVideoPress = useCallback(
-    (video: JellyfinVideoItem) => {
-      showGlobalLoader();
+  // Handle TV menu button for back navigation
+  useTVEventHandler((event) => {
+    if (event.eventType === "menu" && folderStack.length > 1) {
+      navigateBack();
+    }
+  });
 
-      // Find current video index in the list
-      const currentIndex = videos.findIndex((v) => v.Id === video.Id);
+  // Handle Android back button
+  useEffect(() => {
+    const handleBackPress = () => {
+      if (folderStack.length > 1) {
+        navigateBack();
+        return true;
+      }
+      return false;
+    };
 
-      router.push({
-        pathname: "/player" as const,
-        params: {
-          videoId: video.Id,
-          videoName: video.Name,
-          playlistIndex: currentIndex.toString(),
-        },
-      });
-    },
-    [router, showGlobalLoader, videos],
-  );
+    const subscription = BackHandler.addEventListener("hardwareBackPress", handleBackPress);
+    return () => subscription.remove();
+  }, [folderStack, navigateBack]);
 
-  // Sync dev credentials on mount (only once)
+  // Sync dev credentials on mount
   useEffect(() => {
     syncDevCredentials();
   }, []);
 
-  const renderEmpty = useCallback(() => {
-    if (isLoading) {
-      return (
-        <View style={styles.centerContainer}>
-          <ActivityIndicator size="small" color="#FFC312" />
-          <Text style={styles.loadingText}>Loading videos...</Text>
-        </View>
-      );
-    }
+  const handleItemPress = useCallback(
+    (item: JellyfinItem) => {
+      if (isFolder(item)) {
+        navigateToFolder({
+          id: item.Id,
+          name: item.Name,
+          parentId: item.ParentId,
+        });
+      } else {
+        showGlobalLoader();
+        router.push({
+          pathname: "/player" as const,
+          params: {
+            videoId: item.Id,
+            videoName: item.Name,
+          },
+        });
+      }
+    },
+    [navigateToFolder, router, showGlobalLoader],
+  );
 
-    if (error) {
-      return (
-        <View style={styles.centerContainer}>
-          <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
-          <Text style={styles.errorTitle}>Unable to Load Videos</Text>
-          <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.errorText}></Text>
-          <FocusableButton
-            title="Go to Settings"
-            variant="primary"
-            onPress={() => router.push("/(tabs)/settings")}
-            icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
-            hasTVPreferredFocus={true}
-          />
-        </View>
-      );
-    }
-
-    return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="film-outline" size={64} color="#98989D" />
-        <Text style={styles.emptyText}>No videos found</Text>
-        <Text style={styles.errorText}>Check your server settings</Text>
-        <FocusableButton
-          title="Go to Settings"
-          variant="primary"
-          onPress={() => router.push("/(tabs)/settings")}
-          icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
-          hasTVPreferredFocus={true}
-        />
-      </View>
-    );
-  }, [isLoading, error, router]);
 
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
+
+  // Show back item when inside a folder (not at root)
+  const showBackItem = folderStack.length > 1;
+
+  // Create grid data with optional back item prepended
+  const gridData: GridItem[] = useMemo(() => {
+    if (showBackItem) {
+      return [{ Id: BACK_ITEM_ID, _isBackItem: true as const }, ...items];
+    }
+    return items;
+  }, [items, showBackItem]);
 
   const itemDimensions = useMemo(() => {
     const screenWidth = Math.min(Platform.isTV ? 1920 : 1080, Platform.isTV ? 1080 : 1920);
     const itemWidth = screenWidth / numColumns;
     const itemHeight = itemWidth * (3 / 2) + 40;
-
     return { itemHeight };
   }, [numColumns]);
 
   const getItemLayout = useCallback(
-    (_: ArrayLike<JellyfinVideoItem> | null | undefined, index: number) => ({
+    (_: ArrayLike<GridItem> | null | undefined, index: number) => ({
       length: itemDimensions.itemHeight,
       offset: itemDimensions.itemHeight * Math.floor(index / numColumns),
       index,
@@ -101,7 +99,22 @@ export default function VideoLibraryScreen() {
     [itemDimensions, numColumns],
   );
 
-  const renderItem = useCallback(({ item, index }: { item: JellyfinVideoItem; index: number }) => <VideoGridItem video={item} onPress={handleVideoPress} index={index} />, [handleVideoPress]);
+  const renderItem = useCallback(
+    ({ item, index }: { item: GridItem; index: number }) => {
+      // Handle back navigation item
+      if ("_isBackItem" in item && item._isBackItem) {
+        return <BackGridItem onPress={navigateBack} hasTVPreferredFocus={index === 0} />;
+      }
+
+      // Handle regular items
+      const jellyfinItem = item as JellyfinItem;
+      if (isFolder(jellyfinItem)) {
+        return <FolderGridItem folder={jellyfinItem} onPress={handleItemPress} index={index} />;
+      }
+      return <VideoGridItem video={jellyfinItem} onPress={handleItemPress} index={index} />;
+    },
+    [handleItemPress, navigateBack],
+  );
 
   const renderFooter = useCallback(() => {
     if (!isLoadingMore) {
@@ -122,40 +135,71 @@ export default function VideoLibraryScreen() {
     }
   }, [hasMoreResults, isLoadingMore, isLoading, loadMore]);
 
+  const renderEmpty = useCallback(() => {
+    if (isLoading) {
+      return (
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="small" color="#FFC312" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      );
+    }
+
+    if (error) {
+      return (
+        <View style={styles.centerContainer}>
+          <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
+          <Text style={styles.errorTitle}>Unable to Load</Text>
+          <Text style={styles.errorText}>{error}</Text>
+          <Text style={styles.errorText}></Text>
+          <FocusableButton
+            title="Go to Settings"
+            variant="primary"
+            onPress={() => router.push("/(tabs)/settings")}
+            icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
+            hasTVPreferredFocus={true}
+          />
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.centerContainer}>
+        <Ionicons name="folder-open-outline" size={64} color="#98989D" />
+        <Text style={styles.emptyText}>This folder is empty</Text>
+      </View>
+    );
+  }, [isLoading, error, router]);
+
   return (
     <View style={styles.container}>
-      <View style={styles.serverLabelContainer}>
-        <View style={styles.serverLabelWrapper}>
-          <Text style={styles.serverLabel} numberOfLines={1}>
-            {libraryName || ""}
-          </Text>
-        </View>
-      </View>
-      {videos.length === 0 ? (
+      {items.length === 0 && !showBackItem ? (
         renderEmpty()
       ) : (
         <FlatList
           testID="library-list"
-          data={videos}
+          data={gridData}
           renderItem={renderItem}
           keyExtractor={(item) => item.Id}
           getItemLayout={getItemLayout}
           numColumns={numColumns}
           key={numColumns}
+          extraData={currentFolder?.id}
           contentContainerStyle={styles.gridContent}
           columnWrapperStyle={styles.columnWrapper}
           showsVerticalScrollIndicator={true}
-          updateCellsBatchingPeriod={100}
-          initialNumToRender={Platform.isTV ? 10 : 9}
-          maxToRenderPerBatch={Platform.isTV ? 10 : 9}
-          windowSize={3}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={Platform.isTV ? 15 : 12}
+          maxToRenderPerBatch={Platform.isTV ? 15 : 12}
+          windowSize={5}
           contentInsetAdjustmentBehavior="automatic"
-          removeClippedSubviews={true}
+          removeClippedSubviews={false}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
         />
       )}
+      <Breadcrumb stack={folderStack} />
     </View>
   );
 }
@@ -165,33 +209,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#3d3d3d",
   },
-  serverLabelContainer: {
-    position: "absolute",
-    top: 10,
-    left: 0,
-    right: 10,
-    justifyContent: "flex-end",
-    alignItems: "flex-end",
-    zIndex: 999,
-    pointerEvents: "none",
-  },
-  serverLabelWrapper: {
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  serverLabel: {
-    color: "#a3cb38",
-    fontSize: Platform.isTV ? 14 : 12,
-    fontFamily: "monospace",
-    fontWeight: "600",
-    letterSpacing: 1.5,
-    textAlign: "center",
-    textTransform: "uppercase",
-  },
   gridContent: {
-    paddingTop: Platform.isTV ? 40 : 20,
-    paddingBottom: 60,
-    paddingHorizontal: Platform.isTV ? 40 : 20,
+    paddingTop: Platform.isTV ? 20 : 10,
+    paddingBottom: 20,
+    paddingLeft: Platform.isTV ? 80 : 60,
+    paddingRight: Platform.isTV ? 40 : 20,
   },
   columnWrapper: {
     justifyContent: "flex-start",
@@ -202,6 +224,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 40,
+    paddingLeft: Platform.isTV ? 80 : 60,
   },
   loadingText: {
     marginTop: 36,

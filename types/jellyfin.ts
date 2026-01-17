@@ -32,3 +32,24 @@ export interface JellyfinVideosResponse {
   TotalRecordCount: number;
   StartIndex: number;
 }
+
+// Extended item type that includes folder-specific fields
+export interface JellyfinItem extends JellyfinVideoItem {
+  ParentId?: string;
+  ChildCount?: number;
+  CollectionType?: string;
+}
+
+// Navigation stack entry for breadcrumb
+export interface FolderStackEntry {
+  id: string;
+  name: string;
+  parentId?: string;
+}
+
+// API response for folder contents
+export interface JellyfinFolderResponse {
+  Items: JellyfinItem[];
+  TotalRecordCount: number;
+  StartIndex: number;
+}

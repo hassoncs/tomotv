@@ -12,10 +12,12 @@ export default function TabLayout() {
         <Label>Library</Label>
         <Icon sf="film.fill" />
       </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="search">
         <Icon sf="magnifyingglass" />
         <Label>Search</Label>
       </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="help">
         <Label>Help</Label>
         <Icon sf="questionmark.circle.fill" />

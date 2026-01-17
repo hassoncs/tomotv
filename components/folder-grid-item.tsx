@@ -1,0 +1,212 @@
+import { getFolderThumbnailUrl } from "@/services/jellyfinApi";
+import { JellyfinItem } from "@/types/jellyfin";
+import { BlurView } from "expo-blur";
+import { Image } from "expo-image";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+const IS_TV = Platform.isTV;
+const CARD_PADDING = IS_TV ? 16 : 8;
+const POSTER_SIZE = IS_TV ? 300 : 200;
+const NUM_COLUMNS = IS_TV ? 5 : 3;
+
+interface FolderGridItemProps {
+  folder: JellyfinItem;
+  onPress: (folder: JellyfinItem) => void;
+  index: number;
+}
+
+function FolderGridItemComponent({ folder, onPress, index }: FolderGridItemProps) {
+  const [focused, setFocused] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const thumbnailUrl = useMemo(() => (folder.ImageTags?.Primary ? getFolderThumbnailUrl(folder.Id, POSTER_SIZE) : undefined), [folder.Id, folder.ImageTags?.Primary]);
+
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    Animated.timing(scaleAnim, {
+      toValue: 1.05,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handleBlur = useCallback(() => {
+    setFocused(false);
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handlePress = useCallback(() => {
+    onPress(folder);
+  }, [onPress, folder]);
+
+  const itemCount = folder.ChildCount;
+
+  return (
+    <TouchableOpacity onPress={handlePress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={index === 0} style={styles.container}>
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        <View style={styles.imageContainer}>
+          {thumbnailUrl ? (
+            <Image source={{ uri: thumbnailUrl }} style={styles.poster} contentFit="cover" transition={0} priority={index < 10 ? "high" : "normal"} cachePolicy="disk" recyclingKey={folder.Id} />
+          ) : (
+            <View style={styles.placeholderPoster}>
+              <Ionicons name="folder" size={IS_TV ? 80 : 50} color="#FFC312" />
+              <Text style={styles.placeholderText} numberOfLines={2}>
+                {folder.Name}
+              </Text>
+            </View>
+          )}
+
+          {/* Folder badge indicator - always visible */}
+          <View style={styles.folderBadge}>
+            <Ionicons name="folder" size={IS_TV ? 20 : 16} color="#FFC312" />
+          </View>
+
+          {/* Info overlay - only show on focus like video items */}
+          {focused &&
+            (thumbnailUrl ? (
+              <BlurView intensity={80} style={styles.infoOverlay} tint="dark">
+                <Text style={styles.folderName} numberOfLines={2}>
+                  {folder.Name}
+                </Text>
+                {itemCount !== undefined && (
+                  <Text style={styles.childCount}>
+                    {itemCount} {itemCount === 1 ? "item" : "items"}
+                  </Text>
+                )}
+              </BlurView>
+            ) : (
+              <View style={styles.infoOverlayNoBlur}>
+                <Text style={styles.folderName} numberOfLines={2}>
+                  {folder.Name}
+                </Text>
+                {itemCount !== undefined && (
+                  <Text style={styles.childCount}>
+                    {itemCount} {itemCount === 1 ? "item" : "items"}
+                  </Text>
+                )}
+              </View>
+            ))}
+
+          <View style={[styles.borderOverlay, focused && styles.borderOverlayFocused]} pointerEvents="none" />
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+function arePropsEqual(prev: FolderGridItemProps, next: FolderGridItemProps): boolean {
+  return prev.folder.Id === next.folder.Id && prev.index === next.index && prev.onPress === next.onPress;
+}
+
+export const FolderGridItem = React.memo(FolderGridItemComponent, arePropsEqual);
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1 / NUM_COLUMNS,
+    padding: CARD_PADDING,
+  },
+  card: {
+    borderRadius: 32,
+    backgroundColor: "transparent",
+    overflow: "hidden",
+  },
+  imageContainer: {
+    width: "100%",
+    aspectRatio: 2 / 3,
+    borderRadius: 32,
+    overflow: "hidden",
+    backgroundColor: "#1C1C1E",
+  },
+  borderOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: "rgba(255, 255, 255, 0.15)",
+  },
+  borderOverlayFocused: {
+    borderColor: "rgba(250, 196, 0, 0.5)",
+    shadowColor: "#fff",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  poster: {
+    width: "100%",
+    height: "100%",
+  },
+  placeholderPoster: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#1C1C1E",
+    padding: IS_TV ? 20 : 12,
+  },
+  placeholderText: {
+    color: "#98989D",
+    fontSize: IS_TV ? 16 : 12,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: IS_TV ? 16 : 10,
+  },
+  folderBadge: {
+    position: "absolute",
+    top: IS_TV ? 16 : 10,
+    right: IS_TV ? 16 : 10,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: IS_TV ? 12 : 8,
+    padding: IS_TV ? 8 : 6,
+  },
+  infoOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "35%",
+    paddingVertical: IS_TV ? 16 : 12,
+    paddingHorizontal: IS_TV ? 20 : 16,
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+  },
+  infoOverlayNoBlur: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "35%",
+    paddingVertical: IS_TV ? 16 : 12,
+    paddingHorizontal: IS_TV ? 20 : 16,
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+  },
+  folderName: {
+    color: "#FFFFFF",
+    fontSize: IS_TV ? 16 : 13,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  childCount: {
+    color: "#98989D",
+    fontSize: IS_TV ? 14 : 11,
+    fontWeight: "500",
+    marginTop: 4,
+  },
+});

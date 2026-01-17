@@ -1,4 +1,4 @@
-import { JellyfinVideoItem, JellyfinVideosResponse } from "@/types/jellyfin";
+import { JellyfinItem, JellyfinVideoItem, JellyfinVideosResponse, JellyfinFolderResponse } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { retryWithBackoff } from "@/utils/retry";
 import * as SecureStore from "expo-secure-store";
@@ -463,6 +463,146 @@ export async function searchVideos(searchTerm: string, { limit = 60, startIndex 
       }),
     { maxAttempts: 3 },
   );
+}
+
+/**
+ * Check if item is a folder type
+ */
+export function isFolder(item: JellyfinItem): boolean {
+  return (
+    item.Type === "Folder" ||
+    item.Type === "CollectionFolder" ||
+    item.Type === "Series" ||
+    item.Type === "Season" ||
+    item.Type === "BoxSet" ||
+    item.Type === "MusicAlbum" ||
+    item.Type === "MusicArtist" ||
+    item.Type === "PhotoAlbum"
+  );
+}
+
+/**
+ * Fetch user's library views (root libraries)
+ * Returns the top-level folders like "Movies", "TV Shows", etc.
+ */
+export async function fetchUserViews(): Promise<{ items: JellyfinItem[]; total?: number }> {
+  const config = await getConfig();
+
+  if (!config.server || !config.apiKey || !config.userId) {
+    throw new Error("Jellyfin server not configured.");
+  }
+
+  return retryWithBackoff(
+    async () => {
+      const url = `${config.server}/Users/${config.userId}/Views`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `MediaBrowser Token="${config.apiKey}"`,
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch views: ${response.status}`);
+        }
+
+        const data = await response.json();
+        return {
+          items: data.Items || [],
+          total: data.TotalRecordCount,
+        };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    },
+    { maxAttempts: 3 },
+  );
+}
+
+/**
+ * Fetch contents of a folder by ParentId
+ * Returns direct children only (folders and videos)
+ *
+ * @param parentId - The folder ID to fetch contents for (null for root views)
+ * @param options - Pagination options
+ */
+export async function fetchFolderContents(
+  parentId: string | null,
+  { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {},
+): Promise<{ items: JellyfinItem[]; total?: number }> {
+  // If no parentId, return user views (root level)
+  if (!parentId) {
+    return fetchUserViews();
+  }
+
+  const config = await getConfig();
+
+  if (!config.server || !config.apiKey || !config.userId) {
+    throw new Error("Jellyfin server not configured.");
+  }
+
+  return retryWithBackoff(
+    async () => {
+      const query = new URLSearchParams({
+        ParentId: parentId,
+        IncludeItemTypes: "Movie,Video,Folder,CollectionFolder,Series,Season,Episode,BoxSet,MusicAlbum,MusicArtist,PhotoAlbum",
+        Fields: "Path,MediaStreams,Genres,ChildCount,ParentId",
+        StartIndex: String(startIndex),
+        Limit: String(limit),
+        SortBy: "SortName",
+        SortOrder: "Ascending",
+      });
+
+      const url = `${config.server}/Users/${config.userId}/Items?${query.toString()}`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `MediaBrowser Token="${config.apiKey}"`,
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch folder contents: ${response.status}`);
+        }
+
+        const data: JellyfinFolderResponse = await response.json();
+        return {
+          items: data.Items || [],
+          total: data.TotalRecordCount,
+        };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    },
+    { maxAttempts: 3 },
+  );
+}
+
+/**
+ * Get thumbnail URL for a folder
+ */
+export function getFolderThumbnailUrl(itemId: string, maxHeight: number = 300): string {
+  return `${cachedConfig.server}/Items/${itemId}/Images/Primary?api_key=${cachedConfig.apiKey}&maxHeight=${maxHeight}&quality=90`;
 }
 
 type JellyfinConfig = {

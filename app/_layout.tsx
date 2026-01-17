@@ -7,6 +7,7 @@ import "react-native-reanimated";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import { LibraryProvider } from "@/contexts/LibraryContext";
+import { FolderNavigationProvider } from "@/contexts/FolderNavigationContext";
 
 // Suppress yellow box warnings on TV platforms
 if (Platform.isTV) {
@@ -26,20 +27,22 @@ export default function RootLayout() {
     <ErrorBoundary>
       <LoadingProvider>
         <LibraryProvider>
-          <ThemeProvider value={CustomDarkTheme}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="player"
-                options={{
-                  headerShown: false,
-                  presentation: "fullScreenModal",
-                  animation: "none",
-                }}
-              />
-            </Stack>
-            <StatusBar style="light" backgroundColor="transparent" translucent={true} />
-          </ThemeProvider>
+          <FolderNavigationProvider>
+            <ThemeProvider value={CustomDarkTheme}>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="player"
+                  options={{
+                    headerShown: false,
+                    presentation: "fullScreenModal",
+                    animation: "none",
+                  }}
+                />
+              </Stack>
+              <StatusBar style="light" backgroundColor="transparent" translucent={true} />
+            </ThemeProvider>
+          </FolderNavigationProvider>
         </LibraryProvider>
       </LoadingProvider>
     </ErrorBoundary>

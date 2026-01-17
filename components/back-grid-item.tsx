@@ -1,0 +1,150 @@
+import { Ionicons } from "@expo/vector-icons";
+import React, { useCallback, useRef, useState } from "react";
+import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+
+const IS_TV = Platform.isTV;
+const CARD_PADDING = IS_TV ? 16 : 8;
+const NUM_COLUMNS = IS_TV ? 5 : 3;
+
+interface BackGridItemProps {
+  onPress: () => void;
+  hasTVPreferredFocus?: boolean;
+}
+
+function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGridItemProps) {
+  const [focused, setFocused] = useState(false);
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const handleFocus = useCallback(() => {
+    setFocused(true);
+    Animated.timing(scaleAnim, {
+      toValue: 1.05,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  const handleBlur = useCallback(() => {
+    setFocused(false);
+    Animated.timing(scaleAnim, {
+      toValue: 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }, [scaleAnim]);
+
+  return (
+    <TouchableOpacity onPress={onPress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={hasTVPreferredFocus} style={styles.container}>
+      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+        <View style={styles.imageContainer}>
+          <View style={styles.placeholderPoster}>
+            <Ionicons name="return-up-back" size={IS_TV ? 80 : 50} color="rgba(250, 196, 0, 0.5)" />
+            <Text style={styles.placeholderText}>. .</Text>
+          </View>
+
+          <View style={styles.folderBadge}>
+            <Ionicons name="arrow-back" size={IS_TV ? 20 : 16} color="rgba(250, 196, 0, 0.5)" />
+          </View>
+
+          {focused && (
+            <View style={styles.infoOverlay}>
+              <Text style={styles.hint}>Go Back</Text>
+              {/* <Text style={styles.hint}>..</Text> */}
+            </View>
+          )}
+
+          <View style={[styles.borderOverlay, focused && styles.borderOverlayFocused]} pointerEvents="none" />
+        </View>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
+
+export const BackGridItem = React.memo(BackGridItemComponent);
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1 / NUM_COLUMNS,
+    padding: CARD_PADDING,
+  },
+  card: {
+    borderRadius: 32,
+    backgroundColor: "transparent",
+    overflow: "hidden",
+  },
+  imageContainer: {
+    width: "100%",
+    aspectRatio: 2 / 3,
+    borderRadius: 32,
+    overflow: "hidden",
+    backgroundColor: "#1C1C1E",
+  },
+  borderOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 32,
+    borderWidth: 2,
+    borderColor: "rgba(250, 196, 0, 0.1)",
+  },
+  borderOverlayFocused: {
+    borderColor: "rgba(250, 196, 0, 0.5)",
+    shadowColor: "rgba(250, 196, 0, 0.5)",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
+    elevation: 12,
+  },
+  placeholderPoster: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#1C1C1E",
+    padding: IS_TV ? 20 : 12,
+  },
+  placeholderText: {
+    color: "rgba(250, 196, 0, 0.5)",
+    fontSize: IS_TV ? 32 : 24,
+    fontWeight: "700",
+    textAlign: "center",
+    marginTop: IS_TV ? 16 : 10,
+  },
+  folderBadge: {
+    position: "absolute",
+    top: IS_TV ? 16 : 10,
+    right: IS_TV ? 16 : 10,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    borderRadius: 800,
+    padding: IS_TV ? 8 : 6,
+  },
+  infoOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: "35%",
+    paddingVertical: IS_TV ? 16 : 12,
+    paddingHorizontal: IS_TV ? 20 : 16,
+    overflow: "hidden",
+    justifyContent: "center",
+    alignItems: "center",
+    borderBottomLeftRadius: 32,
+    borderBottomRightRadius: 32,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+  },
+  folderName: {
+    color: "#FFFFFF",
+    fontSize: IS_TV ? 16 : 13,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  hint: {
+    color: "rgba(250, 196, 0, 0.5)",
+    fontSize: IS_TV ? 14 : 11,
+    fontWeight: "500",
+    marginTop: 4,
+  },
+});
