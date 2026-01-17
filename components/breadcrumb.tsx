@@ -23,8 +23,17 @@ function BreadcrumbItem({ entry, isLast }: { entry: FolderStackEntry; isLast: bo
 }
 
 export function Breadcrumb({ stack }: BreadcrumbProps) {
+  // Show "No Library" when at library selection level
   if (stack.length === 0) {
-    return null;
+    return (
+      <View style={styles.container}>
+        <View style={styles.rotatedContent}>
+          <View style={styles.scrollContent}>
+            <Text style={styles.breadcrumbTextPlaceholder}>No Library</Text>
+          </View>
+        </View>
+      </View>
+    );
   }
 
   return (
@@ -53,11 +62,7 @@ const styles = StyleSheet.create({
   rotatedContent: {
     width: SCREEN_HEIGHT,
     height: 44,
-    transform: [
-      { rotate: "-90deg" },
-      { translateX: -(SCREEN_HEIGHT / 2) + 22 },
-      { translateY: -(SCREEN_HEIGHT / 2) + 22 },
-    ],
+    transform: [{ rotate: "-90deg" }, { translateX: -(SCREEN_HEIGHT / 2) + 22 }, { translateY: -(SCREEN_HEIGHT / 2) + 22 }],
   },
   scrollContent: {
     flex: 1,
@@ -77,6 +82,12 @@ const styles = StyleSheet.create({
   },
   breadcrumbTextCurrent: {
     color: "#FFFFFF",
+  },
+  breadcrumbTextPlaceholder: {
+    color: "#98989D",
+    fontSize: IS_TV ? 20 : 16,
+    fontWeight: "600",
+    fontStyle: "italic",
   },
   separator: {
     marginHorizontal: IS_TV ? 8 : 4,

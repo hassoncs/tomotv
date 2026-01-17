@@ -178,14 +178,8 @@ export async function syncDevCredentials(): Promise<void> {
       return;
     }
 
-    // Check if user has already configured settings
-    const existingApiKey = await SecureStore.getItemAsync(STORAGE_KEYS.API_KEY);
-    if (existingApiKey && existingApiKey.trim()) {
-      // User has configured settings, don't override
-      return;
-    }
-
-    // Store the full server URL directly
+    // Always sync dev credentials when available (dev mode only)
+    // In production builds, .env.local is not included so DEV_* values are empty
     await Promise.all([
       SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, DEV_SERVER),
       SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, DEV_API_KEY),

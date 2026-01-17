@@ -5,9 +5,9 @@ import { useLoading } from "@/contexts/LoadingContext";
 import { searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function SearchScreen() {
   const router = useRouter();
@@ -23,50 +23,41 @@ export default function SearchScreen() {
   const [hasMoreResults, setHasMoreResults] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const firstResultRef = useRef<TouchableOpacity>(null);
+  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
       showGlobalLoader();
-
       router.push({
         pathname: "/player" as const,
-        params: {
-          videoId: video.Id,
-          videoName: video.Name,
-        },
+        params: { videoId: video.Id, videoName: video.Name },
       });
     },
     [router, showGlobalLoader],
   );
 
-  // Sync dev credentials on mount (only once)
+  const focusFirstResult = useCallback(() => {
+    if (Platform.isTV && firstResultRef.current) {
+      (firstResultRef.current as unknown as { requestTVFocus: () => void }).requestTVFocus();
+    }
+  }, []);
+
   useEffect(() => {
     syncDevCredentials();
   }, []);
 
-  // Clear search error when library starts loading (e.g., after settings save)
   useEffect(() => {
     if (isLoading && searchError) {
       setSearchError(null);
     }
   }, [isLoading, searchError]);
 
-  // Focus search input when screen comes into focus
-  useFocusEffect(
-    useCallback(() => {
-      // TextField should automatically receive focus as first focusable element
-      // tvOS focus engine will handle this
-    }, []),
-  );
-
   const executeSearch = useCallback(
     async (term: string, append: boolean = false) => {
       const trimmed = term.trim();
-      if (!trimmed) {
-        return;
-      }
+      if (!trimmed) return;
 
-      // Determine if this is initial search or load more
       if (append) {
         setIsLoadingMore(true);
       } else {
@@ -79,37 +70,24 @@ export default function SearchScreen() {
       try {
         const startIndex = append ? nextStartIndex : 0;
         const pageSize = 60;
-
-        const { items, total } = await searchVideos(trimmed, {
-          limit: pageSize,
-          startIndex,
-        });
+        const { items, total } = await searchVideos(trimmed, { limit: pageSize, startIndex });
 
         if (append) {
-          // Append to existing results
           setSearchResults((prev) => {
             const newResults = [...prev, ...items];
-            // Calculate pagination state using updated array
-            const hasMore = total !== undefined && newResults.length < total;
-            setHasMoreResults(hasMore);
+            setHasMoreResults(total !== undefined && newResults.length < total);
             return newResults;
           });
         } else {
-          // Replace results (new search)
           setSearchResults(items);
-          // Calculate pagination state for new search
-          const hasMore = total !== undefined && items.length < total;
-          setHasMoreResults(hasMore);
+          setHasMoreResults(total !== undefined && items.length < total);
         }
-
         setNextStartIndex(startIndex + items.length);
         setActiveQuery(trimmed);
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Unable to search library. Please try again.";
+        const message = err instanceof Error ? err.message : "Unable to search. Please try again.";
         setSearchError(message);
-        if (!append) {
-          setSearchResults([]);
-        }
+        if (!append) setSearchResults([]);
       } finally {
         if (append) {
           setIsLoadingMore(false);
@@ -122,14 +100,12 @@ export default function SearchScreen() {
   );
 
   const handleRetrySearch = useCallback(() => {
-    const trimmed = searchQuery.trim();
-    if (trimmed.length >= 2) {
-      executeSearch(trimmed);
+    if (searchQuery.trim().length >= 2) {
+      executeSearch(searchQuery.trim());
     }
   }, [searchQuery, executeSearch]);
 
   const handleLoadMore = useCallback(() => {
-    // Only load more if we have more results, not currently loading, and have an active query
     if (hasMoreResults && !isLoadingMore && !isSearching && activeQuery) {
       executeSearch(activeQuery, true);
     }
@@ -138,11 +114,9 @@ export default function SearchScreen() {
   useEffect(() => {
     if (searchDelayRef.current) {
       clearTimeout(searchDelayRef.current);
-      searchDelayRef.current = null;
     }
 
     const trimmed = searchQuery.trim();
-
     if (trimmed.length < 2) {
       setSearchResults([]);
       setSearchError(null);
@@ -150,28 +124,20 @@ export default function SearchScreen() {
       return;
     }
 
-    searchDelayRef.current = setTimeout(() => {
-      executeSearch(trimmed);
-    }, 300);
-
+    searchDelayRef.current = setTimeout(() => executeSearch(trimmed), 300);
     return () => {
-      if (searchDelayRef.current) {
-        clearTimeout(searchDelayRef.current);
-        searchDelayRef.current = null;
-      }
+      if (searchDelayRef.current) clearTimeout(searchDelayRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchQuery]);
+  }, [searchQuery, executeSearch]);
 
   const hasSearchQuery = searchQuery.trim().length >= 2;
   const shouldShowResults = hasSearchQuery && searchResults.length > 0;
-  const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
+  const numColumns = Platform.isTV ? 5 : 3;
 
   const itemDimensions = useMemo(() => {
-    const screenWidth = Math.min(Platform.isTV ? 1920 : 1080, Platform.isTV ? 1080 : 1920);
+    const screenWidth = Platform.isTV ? 1080 : 400;
     const itemWidth = screenWidth / numColumns;
-    const itemHeight = itemWidth * (3 / 2) + 40;
-
+    const itemHeight = itemWidth * 1.5 + 40;
     return { itemHeight };
   }, [numColumns]);
 
@@ -184,7 +150,31 @@ export default function SearchScreen() {
     [itemDimensions, numColumns],
   );
 
-  const renderItem = useCallback(({ item, index }: { item: JellyfinVideoItem; index: number }) => <VideoGridItem video={item} onPress={handleVideoPress} index={index} />, [handleVideoPress]);
+  const [searchInputHandle, setSearchInputHandle] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (Platform.isTV && searchInputRef.current) {
+      const handle = findNodeHandle(searchInputRef.current);
+      setSearchInputHandle(handle ?? undefined);
+    }
+  }, []);
+
+  const renderItem = useCallback(
+    ({ item, index }: { item: JellyfinVideoItem; index: number }) => {
+      const isFirstRow = index < numColumns;
+      return (
+        <VideoGridItem
+          ref={index === 0 ? firstResultRef : undefined}
+          video={item}
+          onPress={handleVideoPress}
+          index={index}
+          hasTVPreferredFocus={index === 0 && shouldShowResults}
+          nextFocusUp={isFirstRow ? searchInputHandle : undefined}
+        />
+      );
+    },
+    [handleVideoPress, shouldShowResults, numColumns, searchInputHandle],
+  );
 
   const renderFooter = useCallback(() => {
     if (isLoadingMore) {
@@ -195,7 +185,6 @@ export default function SearchScreen() {
         </View>
       );
     }
-
     return (
       <Text style={styles.resultsLabel}>
         {searchResults.length} {searchResults.length === 1 ? "result" : "results"}
@@ -209,27 +198,24 @@ export default function SearchScreen() {
         return (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="small" color="#FFC312" />
-            <Text style={styles.loadingText}>Searching Jellyfin...</Text>
+            <Text style={styles.loadingText}>Searching...</Text>
           </View>
         );
       }
-
       if (searchError) {
         return (
           <View style={styles.centerContainer}>
             <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
             <Text style={styles.errorTitle}>Search Failed</Text>
             <Text style={styles.errorText}>{searchError}</Text>
-            <FocusableButton title="Try Again" variant="retry" onPress={handleRetrySearch} hasTVPreferredFocus={true} />
+            <FocusableButton title="Try Again" variant="retry" onPress={handleRetrySearch} hasTVPreferredFocus />
           </View>
         );
       }
-
       return (
         <View style={styles.centerContainer}>
           <Ionicons name="search-outline" size={64} color="#98989D" />
-          <Text style={styles.emptyText}>No results found for</Text>
-          <Text style={styles.emptyQueryText}>&quot;{searchQuery}&quot;</Text>
+          <Text style={styles.emptyText}>No results for &quot;{searchQuery}&quot;</Text>
         </View>
       );
     }
@@ -238,7 +224,7 @@ export default function SearchScreen() {
       return (
         <View style={styles.centerContainer}>
           <ActivityIndicator size="small" color="#FFC312" />
-          <Text style={styles.loadingText}>Loading videos...</Text>
+          <Text style={styles.loadingText}>Loading...</Text>
         </View>
       );
     }
@@ -247,15 +233,14 @@ export default function SearchScreen() {
       return (
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
-          <Text style={styles.errorTitle}>Unable to Load Videos</Text>
+          <Text style={styles.errorTitle}>Unable to Load</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.errorText}></Text>
           <FocusableButton
             title="Go to Settings"
             variant="primary"
             onPress={() => router.push("/(tabs)/settings")}
-            icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
-            hasTVPreferredFocus={true}
+            icon={<Ionicons name="settings-outline" size={24} color="#000" />}
+            hasTVPreferredFocus
           />
         </View>
       );
@@ -269,28 +254,40 @@ export default function SearchScreen() {
     );
   }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, router, handleRetrySearch]);
 
+  const renderHeader = useCallback(
+    () => (
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputWrapper}>
+          <TextInput
+            ref={searchInputRef}
+            value={searchQuery}
+            placeholder="Search movies and videos..."
+            placeholderTextColor={isInputFocused ? "#636366" : "#8E8E93"}
+            autoCorrect={false}
+            autoCapitalize="none"
+            onChangeText={setSearchQuery}
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={() => setIsInputFocused(false)}
+            onSubmitEditing={() => {
+              if (shouldShowResults) {
+                focusFirstResult();
+              }
+            }}
+            style={[styles.searchInput, isInputFocused && styles.searchInputFocused]}
+            multiline={false}
+            numberOfLines={1}
+            returnKeyType="search"
+          />
+        </View>
+      </View>
+    ),
+    [searchQuery, shouldShowResults, focusFirstResult, isInputFocused],
+  );
+
   return (
     <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          ref={searchInputRef}
-          value={searchQuery}
-          placeholder="Enter file name or keyword"
-          placeholderTextColor="#8E8E93"
-          autoCorrect={false}
-          onChangeText={setSearchQuery}
-          style={styles.searchInput}
-          multiline={false}
-          autoFocus={false}
-          numberOfLines={1}
-          returnKeyType="search"
-          blurOnSubmit={Platform.isTV}
-        />
-      </View>
-
       {shouldShowResults ? (
         <FlatList
-          testID="search-results-list"
           data={searchResults}
           renderItem={renderItem}
           keyExtractor={(item) => item.Id}
@@ -299,19 +296,21 @@ export default function SearchScreen() {
           key={numColumns}
           contentContainerStyle={styles.gridContent}
           columnWrapperStyle={styles.columnWrapper}
-          showsVerticalScrollIndicator={true}
-          updateCellsBatchingPeriod={100}
-          initialNumToRender={Platform.isTV ? 10 : 9}
-          maxToRenderPerBatch={Platform.isTV ? 10 : 9}
+          showsVerticalScrollIndicator
+          initialNumToRender={10}
+          maxToRenderPerBatch={10}
           windowSize={3}
-          contentInsetAdjustmentBehavior="automatic"
-          removeClippedSubviews={true}
+          removeClippedSubviews
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
+          ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
         />
       ) : (
-        renderEmpty()
+        <View style={styles.emptyContainer}>
+          {renderHeader()}
+          {renderEmpty()}
+        </View>
       )}
     </View>
   );
@@ -320,45 +319,41 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3d3d3d",
+    backgroundColor: "#1C1C1E",
+  },
+  emptyContainer: {
+    flex: 1,
   },
   searchContainer: {
-    position: "absolute",
-    top: 160,
-    left: 0,
-    right: 0,
+    paddingTop: Platform.isTV ? 150 : 60,
     paddingHorizontal: Platform.isTV ? 80 : 16,
-    zIndex: 999,
-    borderRadius: 500,
+    paddingBottom: Platform.isTV ? 24 : 16,
+    alignItems: "center",
+  },
+  searchInputWrapper: {
+    width: "100%",
+    maxWidth: 800,
+    borderRadius: Platform.isTV ? 28 : 25,
     overflow: "hidden",
   },
   searchInput: {
     width: "100%",
-    maxWidth: 800,
-    marginHorizontal: "auto",
-    height: Platform.isTV ? 56 : 44,
-    // backgroundColor: "#1C1C1E",
-    borderRadius: 500,
-    // paddingHorizontal: Platform.isTV ? 24 : 16,
+    minHeight: Platform.isTV ? 56 : 50,
+    backgroundColor: "#1C1C1E",
+    paddingHorizontal: Platform.isTV ? 28 : 20,
     fontSize: Platform.isTV ? 24 : 20,
     color: "#FFFFFF",
   },
-  resultsLabel: {
-    marginTop: -15,
-    marginLeft: 15,
-    paddingHorizontal: Platform.isTV ? 4 : 2,
-    fontSize: Platform.isTV ? 16 : 13,
-    color: "#98989D",
-    fontWeight: "400",
+  searchInputFocused: {
+    color: "#1C1C1E",
   },
   gridContent: {
-    paddingTop: Platform.isTV ? 240 : 100,
     paddingBottom: Platform.isTV ? 120 : 100,
-    paddingHorizontal: Platform.isTV ? 40 : 20,
+    paddingHorizontal: Platform.isTV ? 40 : 16,
   },
   columnWrapper: {
     justifyContent: "flex-start",
-    paddingVertical: 24,
+    paddingVertical: Platform.isTV ? 24 : 12,
   },
   centerContainer: {
     flex: 1,
@@ -367,37 +362,35 @@ const styles = StyleSheet.create({
     padding: 40,
   },
   loadingText: {
-    marginTop: 36,
-    fontSize: 20,
+    marginTop: 24,
+    fontSize: Platform.isTV ? 20 : 16,
     color: "#98989D",
     fontWeight: "500",
   },
   errorTitle: {
     marginTop: 16,
-    fontSize: 24,
+    fontSize: Platform.isTV ? 24 : 20,
     fontWeight: "700",
     color: "#FFFFFF",
-    textAlign: "center",
   },
   errorText: {
     marginTop: 8,
-    fontSize: 17,
+    fontSize: Platform.isTV ? 18 : 15,
     color: "#98989D",
     textAlign: "center",
     lineHeight: 24,
   },
   emptyText: {
     marginTop: 16,
-    fontSize: 20,
+    fontSize: Platform.isTV ? 20 : 16,
     color: "#98989D",
     textAlign: "center",
   },
-  emptyQueryText: {
-    marginTop: 8,
-    fontSize: Platform.isTV ? 24 : 18,
-    color: "#FFFFFF",
-    textAlign: "center",
-    fontWeight: "600",
+  resultsLabel: {
+    marginTop: -8,
+    marginLeft: 16,
+    fontSize: Platform.isTV ? 16 : 13,
+    color: "#98989D",
   },
   footerLoading: {
     flexDirection: "row",
@@ -409,6 +402,5 @@ const styles = StyleSheet.create({
   footerLoadingText: {
     fontSize: Platform.isTV ? 18 : 15,
     color: "#98989D",
-    fontWeight: "500",
   },
 });

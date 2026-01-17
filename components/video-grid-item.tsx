@@ -2,7 +2,7 @@ import { getPosterUrl, hasPoster } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 // Cache platform values at module level for better performance
@@ -17,6 +17,8 @@ interface VideoGridItemProps {
   index: number;
   onItemFocus?: () => void;
   onItemBlur?: () => void;
+  hasTVPreferredFocus?: boolean;
+  nextFocusUp?: number;
 }
 
 /**
@@ -32,7 +34,10 @@ interface VideoGridItemProps {
  * - Platform values cached at module level
  * - BlurView only rendered when focused
  */
-function VideoGridItemComponent({ video, onPress, index, onItemFocus, onItemBlur }: VideoGridItemProps) {
+const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(function VideoGridItemComponent(
+  { video, onPress, index, onItemFocus, onItemBlur, hasTVPreferredFocus = false, nextFocusUp },
+  ref,
+) {
   const [focused, setFocused] = useState(false);
 
   // Single animated value with native driver for 60fps performance
@@ -154,7 +159,16 @@ function VideoGridItemComponent({ video, onPress, index, onItemFocus, onItemBlur
   }, [onPress, video]);
 
   return (
-    <TouchableOpacity onPress={handlePress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={index === 0} style={styles.container}>
+    <TouchableOpacity
+      ref={ref}
+      onPress={handlePress}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      activeOpacity={0.95}
+      isTVSelectable={true}
+      hasTVPreferredFocus={hasTVPreferredFocus}
+      nextFocusUp={nextFocusUp}
+      style={styles.container}>
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <View style={styles.imageContainer}>
           {posterUrl ? (
@@ -245,7 +259,7 @@ function VideoGridItemComponent({ video, onPress, index, onItemFocus, onItemBlur
       </Animated.View>
     </TouchableOpacity>
   );
-}
+});
 
 /**
  * Custom comparison function for React.memo
@@ -258,7 +272,9 @@ function arePropsEqual(prevProps: VideoGridItemProps, nextProps: VideoGridItemPr
     prevProps.index === nextProps.index &&
     prevProps.onPress === nextProps.onPress &&
     prevProps.onItemFocus === nextProps.onItemFocus &&
-    prevProps.onItemBlur === nextProps.onItemBlur
+    prevProps.onItemBlur === nextProps.onItemBlur &&
+    prevProps.hasTVPreferredFocus === nextProps.hasTVPreferredFocus &&
+    prevProps.nextFocusUp === nextProps.nextFocusUp
   );
 }
 

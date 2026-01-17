@@ -102,18 +102,28 @@ class FolderNavigationManager {
 
     // Create new array reference for React state detection
     this.folderStack = [...this.folderStack, folder]
-    await this.loadFolderContents(folder.id === "root" ? null : folder.id)
+    await this.loadFolderContents(folder.id)
   }
 
   /**
    * Navigate back to parent folder (pop from stack)
    */
   async navigateBack(): Promise<boolean> {
-    if (this.folderStack.length <= 1) {
-      logger.debug("Already at root, cannot navigate back", {
+    if (this.folderStack.length === 0) {
+      logger.debug("Already at library selection, cannot navigate back", {
         service: "FolderNavigationManager"
       })
       return false
+    }
+
+    if (this.folderStack.length === 1) {
+      // At library root - go back to library selection
+      logger.info("Navigating back to library selection", {
+        service: "FolderNavigationManager"
+      })
+      this.folderStack = []
+      await this.loadFolderContents(null)
+      return true
     }
 
     // Create new array reference for React state detection (remove last item)
@@ -126,7 +136,7 @@ class FolderNavigationManager {
       parentName: parentFolder?.name
     })
 
-    await this.loadFolderContents(parentFolder?.id === "root" ? null : parentFolder?.id || null)
+    await this.loadFolderContents(parentFolder?.id || null)
     return true
   }
 
@@ -146,7 +156,7 @@ class FolderNavigationManager {
 
     this.folderStack = this.folderStack.slice(0, index + 1)
     const targetFolder = this.folderStack[index]
-    await this.loadFolderContents(targetFolder?.id === "root" ? null : targetFolder?.id || null)
+    await this.loadFolderContents(targetFolder?.id || null)
   }
 
   /**
@@ -157,7 +167,8 @@ class FolderNavigationManager {
       service: "FolderNavigationManager"
     })
 
-    this.folderStack = [{id: "root", name: "Library"}]
+    // Start with empty stack (library selection state)
+    this.folderStack = []
     await this.loadFolderContents(null)
 
     // Auto-navigate into first library if available
@@ -169,9 +180,8 @@ class FolderNavigationManager {
         libraryName: firstLibrary.Name
       })
 
-      // Create new array reference for React state detection
+      // Library becomes the root of the stack
       this.folderStack = [
-        ...this.folderStack,
         {
           id: firstLibrary.Id,
           name: firstLibrary.Name,
@@ -270,7 +280,7 @@ class FolderNavigationManager {
     }
 
     const currentFolder = this.folderStack[this.folderStack.length - 1]
-    const folderId = currentFolder?.id === "root" ? null : currentFolder?.id
+    const folderId = currentFolder?.id || null
 
     try {
       this.isLoadingMore = true
@@ -335,7 +345,7 @@ class FolderNavigationManager {
    */
   async refresh(): Promise<void> {
     const currentFolder = this.folderStack[this.folderStack.length - 1]
-    const folderId = currentFolder?.id === "root" ? null : currentFolder?.id
+    const folderId = currentFolder?.id || null
     const cacheKey = folderId || "root"
 
     logger.info("Refreshing folder contents", {

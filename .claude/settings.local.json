@@ -25,7 +25,9 @@
       "Bash(launchctl list:*)",
       "Bash(pgrep:*)",
       "Bash(grep:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(wc:*)",
+      "Bash(npm uninstall:*)"
     ],
     "deny": [],
     "ask": []

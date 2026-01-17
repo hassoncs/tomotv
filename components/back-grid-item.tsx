@@ -39,7 +39,7 @@ function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGri
         <View style={styles.imageContainer}>
           <View style={styles.placeholderPoster}>
             <Ionicons name="return-up-back" size={IS_TV ? 80 : 50} color="rgba(250, 196, 0, 0.5)" />
-            <Text style={styles.placeholderText}>. .</Text>
+            <Text style={styles.placeholderText}> </Text>
           </View>
 
           <View style={styles.folderBadge}>

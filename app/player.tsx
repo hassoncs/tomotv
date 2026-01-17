@@ -58,9 +58,8 @@ export default function VideoPlayerScreen() {
   }, [currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
-  const { player, state, videoDetails, isAudioOnly, showLoadingOverlay, retry } = useVideoPlayback({
+  const { player, state, isAudioOnly, showLoadingOverlay, retry } = useVideoPlayback({
     videoId: params.videoId,
-    videoName: params.videoName,
     onPlaybackEnd: handlePlaybackEnd,
   });
 
@@ -73,13 +72,16 @@ export default function VideoPlayerScreen() {
   }, [hideGlobalLoader]);
 
   // Handle TV remote events
-  const handleTVEvent = (evt: any) => {
-    if (evt.eventType === "menu") {
-      handleBack();
-    }
-  };
-
-  useTVEventHandler(handleTVEvent);
+  useTVEventHandler(
+    useCallback(
+      (evt: { eventType: string }) => {
+        if (evt.eventType === "menu") {
+          handleBack();
+        }
+      },
+      [handleBack],
+    ),
+  );
 
   // Handle back navigation
   const handleBack = useCallback(() => {
@@ -155,41 +157,18 @@ export default function VideoPlayerScreen() {
       return (
         <View style={styles.container}>
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="small" color="#FFFFFF" />
-            <View style={styles.encodingMessageContainer}>
-              <Text style={styles.encodingTitle}>Transcoding</Text>
-              <Text style={styles.encodingSubtitle}>Video codec is not compatible • Streaming</Text>
-            </View>
+            <ActivityIndicator size="large" color="#FFFFFF" />
           </View>
         </View>
       );
     }
 
     // Only show error UI if retry is not possible or has already failed
-    const { error } = state;
-    const mode = videoDetails ? "Transcoding" : "Direct Play";
-
-    let errorDetails = `${error}\n\n`;
-    errorDetails += `Mode: ${mode}\n`;
-    errorDetails += `Video: ${params.videoName}\n\n`;
-
-    if (mode === "Transcoding") {
-      errorDetails += "⚠️ TRANSCODING FAILED\n\n";
-      errorDetails += "Your Jellyfin server may not have transcoding enabled.\n\n";
-      errorDetails += "To fix this:\n";
-      errorDetails += "1. Open Jellyfin Dashboard\n";
-      errorDetails += "2. Go to Playback → Transcoding\n";
-      errorDetails += "3. Enable hardware acceleration or install FFmpeg\n\n";
-      errorDetails += "Alternative: Try a device that supports this codec directly.";
-    } else {
-      errorDetails += "Video codec not supported for direct play.";
-    }
-
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
-        <Text style={styles.errorTitle}>Playback Error</Text>
-        <Text style={styles.errorText}>{errorDetails}</Text>
+        <Text style={styles.errorTitle}>Unable to Play</Text>
+        <Text style={styles.errorText}>{state.error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={retry}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
@@ -237,14 +216,7 @@ export default function VideoPlayerScreen() {
       {/* Loading Overlay */}
       {showLoadingOverlay && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="small" color="#FFFFFF" />
-          {/* Show encoding message only during transcoding */}
-          {"mode" in state && state.mode === "transcode" && (
-            <View style={styles.encodingMessageContainer}>
-              <Text style={styles.encodingTitle}>Transcoding</Text>
-              <Text style={styles.encodingSubtitle}>Video codec is not compatible • Streaming</Text>
-            </View>
-          )}
+          <ActivityIndicator size="large" color="#FFFFFF" />
         </View>
       )}
 
@@ -261,7 +233,7 @@ export default function VideoPlayerScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3d3d3d",
+    backgroundColor: "#000000",
   },
   video: {
     flex: 1,
@@ -272,27 +244,8 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#3d3d3d",
+    backgroundColor: "#000000",
     zIndex: 100,
-  },
-  encodingMessageContainer: {
-    marginTop: 24,
-    alignItems: "center",
-    paddingHorizontal: 40,
-  },
-  encodingTitle: {
-    fontSize: Platform.isTV ? 24 : 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-    marginBottom: 6,
-    letterSpacing: 0.3,
-  },
-  encodingSubtitle: {
-    fontSize: Platform.isTV ? 18 : 14,
-    fontWeight: "400",
-    color: "rgba(255, 255, 255, 0.7)",
-    textAlign: "center",
-    letterSpacing: 0.2,
   },
   iosBackButton: {
     position: "absolute",
@@ -310,7 +263,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#3d3d3d",
+    backgroundColor: "#000000",
     padding: 40,
   },
   audioTitle: {
@@ -341,7 +294,7 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    backgroundColor: "#3d3d3d",
+    backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
     padding: 40,

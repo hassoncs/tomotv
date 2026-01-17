@@ -19,9 +19,10 @@ npm run android        # Build and run on Android
 ### Testing
 
 ```bash
-npm test               # Run all tests once
-npm run test:watch     # Watch mode for tests
-npm run test:coverage  # Generate coverage report
+npm test                          # Run all tests once
+npm run test:watch                # Watch mode for tests
+npm run test:coverage             # Generate coverage report
+npm test -- path/to/file.test.ts  # Run a single test file
 ```
 
 ### Code Quality
@@ -53,18 +54,18 @@ npm run prebuild:tv    # Prebuild with Apple TV support (EXPO_TV=1)
 - **Expo Video** 3.0.14 - Native video playback with full codec support
 - **React Native Reanimated** 4.1.0 - GPU-accelerated animations
 - **TypeScript** 5.9.2 - Full type safety
-- **Jest** 30.2.0 - Testing framework
+- **Jest** 29.7.0 - Testing framework
 
 ### Folder Structure
 
 ```
 app/              # Expo Router screens (file-based routing)
-  (tabs)/         # Tab navigation group (Library, Settings, Help)
+  (tabs)/         # Tab navigation group (Settings, Library, Search, Help)
   player.tsx      # Full-screen video player (modal)
 components/       # Reusable UI components
-contexts/         # React Context providers (LoadingContext)
+contexts/         # React Context providers + singleton manager wrappers
 hooks/            # Custom React hooks (useVideoPlayback, useColorScheme)
-services/         # API integration layer (jellyfinApi.ts)
+services/         # API integration + singleton state managers
 utils/            # Utility functions (logger, retry)
 types/            # TypeScript type definitions
 ```
@@ -75,12 +76,13 @@ types/            # TypeScript type definitions
 
 Routes are automatically generated from the `app/` folder structure:
 
-- `app/(tabs)/index.tsx` → Home/Library screen
+- `app/(tabs)/index.tsx` → Library screen (home)
+- `app/(tabs)/search.tsx` → Search screen with text input
 - `app/(tabs)/settings.tsx` → Settings screen
 - `app/(tabs)/help.tsx` → Help screen
 - `app/player.tsx` → Video player (fullScreenModal)
 
-Navigation uses **NativeTabs** for iOS/tvOS optimized tab experience.
+Navigation uses **NativeTabs** (`expo-router/unstable-native-tabs`) for iOS/tvOS optimized tab experience with SF Symbols icons.
 
 #### 2. Video Playback State Machine
 
@@ -148,10 +150,23 @@ Important functions:
 
 #### 6. State Management
 
-- **LoadingContext:** Global loading state (modal spinner)
+The app uses a **Singleton Manager + Context wrapper** pattern for global state:
+
+**Singleton Managers** (`services/`):
+- `LibraryManager` - Manages video library with pagination, caching (5-min TTL), and subscriber notifications
+- `FolderNavigationManager` - Manages folder navigation with breadcrumb stack
+
+**Context Wrappers** (`contexts/`):
+- `LibraryContext` - React wrapper for `LibraryManager`, provides `useLibrary()` hook
+- `FolderNavigationContext` - React wrapper for `FolderNavigationManager`, provides `useFolderNavigation()` hook
+- `LoadingContext` - Global loading state (modal spinner)
+
+**Other State:**
 - **SecureStore:** Persistent storage for credentials (iCloud Keychain/Android Keystore)
 - **Component State:** React hooks (`useState`, `useReducer`) for local state
 - **Configuration:** Three-tier fallback (user settings → dev credentials → defaults)
+
+The manager pattern allows state to persist across component remounts and provides pub/sub updates to React.
 
 #### 7. Error Handling
 
@@ -268,6 +283,22 @@ The hook handles:
 - Error recovery with retry
 - Subtitle track switching
 
+### Using Library State
+
+```typescript
+import {useLibrary} from "@/contexts/LibraryContext"
+
+const {videos, isLoading, hasMoreResults, loadMore, refreshLibrary} = useLibrary()
+```
+
+### Using Folder Navigation
+
+```typescript
+import {useFolderNavigation} from "@/contexts/FolderNavigationContext"
+
+const {items, folderStack, navigateToFolder, navigateBack} = useFolderNavigation()
+```
+
 ### Showing Global Loading
 
 ```typescript
@@ -311,9 +342,10 @@ logger.error("Operation failed", {error: err})
 ### Running Tests
 
 ```bash
-npm test              # Run once
-npm run test:watch   # Watch mode (recommended during development)
-npm run test:coverage # Check coverage
+npm test                                # Run once
+npm run test:watch                      # Watch mode (recommended during development)
+npm run test:coverage                   # Check coverage
+npm test -- services/jellyfinApi.test.ts  # Run single file
 ```
 
 ## Known Issues & Limitations

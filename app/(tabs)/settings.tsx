@@ -1,6 +1,8 @@
 import { FocusableButton } from "@/components/FocusableButton";
+import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { fetchVideos, refreshConfig } from "@/services/jellyfinApi";
+import { useRouter } from "expo-router";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
@@ -57,7 +59,9 @@ const getInitialEnvValues = () => {
 
 export default function SettingsScreen() {
   const initialEnv = getInitialEnvValues();
+  const router = useRouter();
   const { refreshLibrary } = useLibrary();
+  const { refresh: refreshFolderNavigation } = useFolderNavigation();
 
   const [serverUrl, setServerUrl] = useState(initialEnv.serverUrl);
   const [apiKey, setApiKey] = useState(initialEnv.apiKey);
@@ -206,8 +210,9 @@ export default function SettingsScreen() {
       await refreshConfig();
       const videos = await fetchVideos();
 
-      // Trigger library refresh in background
+      // Refresh both contexts to update the home screen
       await refreshLibrary();
+      await refreshFolderNavigation();
 
       Alert.alert("Connection Successful!", `Successfully connected to Jellyfin server.\n\nFound ${videos.length} video(s) in your library.`, [{ text: "OK" }]);
     } catch (error) {
@@ -250,13 +255,15 @@ export default function SettingsScreen() {
       // Refresh the API service config cache
       await refreshConfig();
 
-      // Trigger library refresh in background
-      logger.info("Settings saved - triggering library refresh", {
+      // Refresh both contexts so the home screen updates
+      logger.info("Settings saved - refreshing contexts and navigating to Library", {
         screen: "settings",
       });
-      refreshLibrary();
+      await refreshLibrary();
+      await refreshFolderNavigation();
 
-      Alert.alert("Success", "Jellyfin settings saved successfully!", [{ text: "OK" }]);
+      // Navigate to Library tab - this is the user feedback
+      router.navigate("/(tabs)/");
     } catch (error) {
       logger.error("Error saving settings", error);
       Alert.alert("Error", "Failed to save settings to iCloud");
@@ -574,7 +581,7 @@ Video Quality: ${qualityLabel}
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3d3d3d",
+    backgroundColor: "#1C1C1E",
   },
   scrollView: {
     flex: 1,
@@ -613,7 +620,7 @@ const styles = StyleSheet.create({
   },
   // Section (Grouped List)
   section: {
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#2C2C2E",
     borderRadius: Platform.isTV ? 32 : 10,
     overflow: "hidden",
     // paddingVertical: Platform.isTV ? 8 : 6,
@@ -621,7 +628,7 @@ const styles = StyleSheet.create({
   },
   // List Items
   listItem: {
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#2C2C2E",
     paddingHorizontal: Platform.isTV ? 28 : 16,
     paddingVertical: Platform.isTV ? 24 : 16,
     // borderBottomWidth: 0.5,

@@ -11,6 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo } from "react";
 import { ActivityIndicator, BackHandler, FlatList, Platform, StyleSheet, Text, View, useTVEventHandler } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Special marker for the ".." back navigation item
 const BACK_ITEM_ID = "__BACK__";
@@ -18,12 +19,13 @@ type GridItem = JellyfinItem | { Id: typeof BACK_ITEM_ID; _isBackItem: true };
 
 export default function VideoLibraryScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { showGlobalLoader } = useLoading();
   const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore } = useFolderNavigation();
 
   // Handle TV menu button for back navigation
   useTVEventHandler((event) => {
-    if (event.eventType === "menu" && folderStack.length > 1) {
+    if (event.eventType === "menu" && folderStack.length > 0) {
       navigateBack();
     }
   });
@@ -31,7 +33,7 @@ export default function VideoLibraryScreen() {
   // Handle Android back button
   useEffect(() => {
     const handleBackPress = () => {
-      if (folderStack.length > 1) {
+      if (folderStack.length > 0) {
         navigateBack();
         return true;
       }
@@ -69,11 +71,21 @@ export default function VideoLibraryScreen() {
     [navigateToFolder, router, showGlobalLoader],
   );
 
-
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
 
-  // Show back item when inside a folder (not at root)
-  const showBackItem = folderStack.length > 1;
+  // Dynamic content padding that accounts for tab bar safe area
+  // TV tab bar is ~210px tall, phone tab bars are ~49px + safe area
+  const TAB_BAR_HEIGHT = Platform.isTV ? 210 : 49;
+  const gridContentStyle = useMemo(
+    () => ({
+      ...styles.gridContent,
+      paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 20,
+    }),
+    [insets.bottom],
+  );
+
+  // Show back item when inside a library (can go back to library selection)
+  const showBackItem = folderStack.length > 0;
 
   // Create grid data with optional back item prepended
   const gridData: GridItem[] = useMemo(() => {
@@ -109,9 +121,9 @@ export default function VideoLibraryScreen() {
       // Handle regular items
       const jellyfinItem = item as JellyfinItem;
       if (isFolder(jellyfinItem)) {
-        return <FolderGridItem folder={jellyfinItem} onPress={handleItemPress} index={index} />;
+        return <FolderGridItem folder={jellyfinItem} onPress={handleItemPress} index={index} hasTVPreferredFocus={index === 0} />;
       }
-      return <VideoGridItem video={jellyfinItem} onPress={handleItemPress} index={index} />;
+      return <VideoGridItem video={jellyfinItem} onPress={handleItemPress} index={index} hasTVPreferredFocus={index === 0} />;
     },
     [handleItemPress, navigateBack],
   );
@@ -185,7 +197,7 @@ export default function VideoLibraryScreen() {
           numColumns={numColumns}
           key={numColumns}
           extraData={currentFolder?.id}
-          contentContainerStyle={styles.gridContent}
+          contentContainerStyle={gridContentStyle}
           columnWrapperStyle={styles.columnWrapper}
           showsVerticalScrollIndicator={true}
           updateCellsBatchingPeriod={50}
@@ -207,11 +219,10 @@ export default function VideoLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3d3d3d",
+    backgroundColor: "#1C1C1E",
   },
   gridContent: {
     paddingTop: Platform.isTV ? 20 : 10,
-    paddingBottom: 20,
     paddingLeft: Platform.isTV ? 80 : 60,
     paddingRight: Platform.isTV ? 40 : 20,
   },

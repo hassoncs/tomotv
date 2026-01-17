@@ -15,9 +15,10 @@ interface FolderGridItemProps {
   folder: JellyfinItem;
   onPress: (folder: JellyfinItem) => void;
   index: number;
+  hasTVPreferredFocus?: boolean;
 }
 
-function FolderGridItemComponent({ folder, onPress, index }: FolderGridItemProps) {
+function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus = false }: FolderGridItemProps) {
   const [focused, setFocused] = useState(false);
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
@@ -48,7 +49,7 @@ function FolderGridItemComponent({ folder, onPress, index }: FolderGridItemProps
   const itemCount = folder.ChildCount;
 
   return (
-    <TouchableOpacity onPress={handlePress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={index === 0} style={styles.container}>
+    <TouchableOpacity onPress={handlePress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={hasTVPreferredFocus} style={styles.container}>
       <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
         <View style={styles.imageContainer}>
           {thumbnailUrl ? (
@@ -101,7 +102,7 @@ function FolderGridItemComponent({ folder, onPress, index }: FolderGridItemProps
 }
 
 function arePropsEqual(prev: FolderGridItemProps, next: FolderGridItemProps): boolean {
-  return prev.folder.Id === next.folder.Id && prev.index === next.index && prev.onPress === next.onPress;
+  return prev.folder.Id === next.folder.Id && prev.index === next.index && prev.onPress === next.onPress && prev.hasTVPreferredFocus === next.hasTVPreferredFocus;
 }
 
 export const FolderGridItem = React.memo(FolderGridItemComponent, arePropsEqual);
