@@ -57,7 +57,7 @@ React Native TVOS · Expo · SwiftUI · TypeScript
 
 ## Packages
 
-This project includes [`expo-tvos-search`](packages/expo-tvos-search) — a native tvOS search module using SwiftUI's `.searchable` modifier. It solves the focus navigation issues that exist with React Native's TextInput + FlatList on tvOS.
+This project includes [`expo-tvos-search`](https://github.com/keiver/expo-tvos-search) — a native tvOS search module using SwiftUI's `.searchable` modifier. It solves the focus navigation issues that exist with React Native's TextInput + FlatList on tvOS.
 
 ## License
 
