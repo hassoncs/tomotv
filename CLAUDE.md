@@ -55,6 +55,31 @@ npm run prebuild:tv    # Prebuild with Apple TV support (EXPO_TV=1)
 - **React Native Reanimated** 4.1.0 - GPU-accelerated animations
 - **TypeScript** 5.9.2 - Full type safety
 - **Jest** 29.7.0 - Testing framework
+- **expo-tvos-search** - Native tvOS search UI (see External Repositories below)
+
+### External Repositories
+
+#### expo-tvos-search
+
+The native tvOS search functionality is maintained in a **separate repository**:
+
+- **GitHub**: [github.com/keiver/expo-tvos-search](https://github.com/keiver/expo-tvos-search)
+- **Local clone**: `~/@keiver/expo-tvos-search`
+- **Package reference**: `"expo-tvos-search": "github:keiver/expo-tvos-search"`
+
+This package provides a native SwiftUI search interface for tvOS using the `.searchable` modifier. It handles:
+- Native tvOS keyboard integration
+- Grid display of search results with poster images
+- Focus management and card styling
+- Fixed 280x420 card dimensions (2:3 aspect ratio) for consistent layout
+
+**When modifying search UI behavior:**
+1. Make changes in `~/@keiver/expo-tvos-search/ios/ExpoTvosSearchView.swift`
+2. Commit and push to the repo
+3. Update this project: `npm install github:keiver/expo-tvos-search#branch-name`
+4. Rebuild: `npm run prebuild:tv && npm run ios`
+
+**Note**: Changes to `packages/expo-tvos-search/` in this repo are NOT used. The actual package comes from GitHub via npm.
 
 ### Folder Structure
 
@@ -329,13 +354,24 @@ logger.error("Operation failed", { error: err });
 
 ### Search Implementation
 
-The search screen (`app/(tabs)/search.tsx`) uses:
+The search screen (`app/(tabs)/search.tsx`) has two implementations:
 
+**Native tvOS Search** (when `isNativeSearchAvailable()` returns true):
+- Uses `expo-tvos-search` package (external repo - see External Repositories section)
+- Native SwiftUI `.searchable` modifier for keyboard integration
+- Fixed 280x420 card grid with poster images
+- To modify UI: edit `~/@keiver/expo-tvos-search/ios/ExpoTvosSearchView.swift`
+
+**React Native Fallback** (iOS/Android):
 - Debounced text input (300ms delay)
-- Remote search via `searchVideos()` API
-- Pagination with `loadMore()` support
-- Empty state for no query / no results
-- Same grid layout as library view
+- Same grid layout as library view using `VideoGridItem` component
+
+**Search API** (`services/jellyfinApi.ts`):
+- `searchVideos()` searches across all libraries (Movies, Shows, Music)
+- Supports year filtering: "action 2023", "90s", "2019-2023"
+- Automatically expands Series results to playable Episodes
+- Returns only playable items (Movie, Video, Episode, Audio)
+- Path/folder names are searchable via Jellyfin's SearchTerm
 
 ## Testing Strategy
 

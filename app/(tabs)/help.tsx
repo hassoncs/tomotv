@@ -38,7 +38,7 @@ export default function HelpScreen() {
               </View>
               <View style={styles.titleBlock}>
                 <Text style={styles.title}>Tomo TV</Text>
-                <Text style={styles.subtitle}>Your Jellyfin library,{"\n"} connecting your Apple TV to your personal videos.</Text>
+                <Text style={styles.subtitle}>Play videos from your Jellyfin library on Apple TV.</Text>
               </View>
             </View>
 
@@ -63,19 +63,21 @@ export default function HelpScreen() {
           </View>
         </View>
 
-        {/* Right Column - QR Card */}
-        <Pressable style={({ focused }) => [styles.qrCard, focused && styles.qrCardFocused]} isTVSelectable>
-          <LinearGradient colors={["rgba(52,199,89,0.15)", "rgba(52,199,89,0.05)", "transparent"]} style={styles.qrGradient} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} />
+        {/* Center - QR Card */}
+        <View style={styles.centerColumn}>
+          <Pressable style={({ focused }) => [styles.qrCard, focused && styles.qrCardFocused]} isTVSelectable>
+            <LinearGradient colors={["rgba(52,199,89,0.15)", "rgba(52,199,89,0.05)", "transparent"]} style={styles.qrGradient} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} />
 
-          <Text style={styles.qrEyebrow}>SETUP GUIDE</Text>
+            <Text style={styles.qrEyebrow}>SETUP GUIDE</Text>
 
-          <View style={styles.qrFrame}>
-            <Image source={require("@/assets/images/tomotv-qr-1000px.png")} style={styles.qrImage} />
-          </View>
+            <View style={styles.qrFrame}>
+              <Image source={require("@/assets/images/tomotv-qr-1000px.png")} style={styles.qrImage} />
+            </View>
 
-          <Text style={styles.qrUrl}>{DOCS_URL}</Text>
-          <Text style={styles.qrHint}>Scan to get started</Text>
-        </Pressable>
+            <Text style={styles.qrUrl}>{DOCS_URL}</Text>
+            <Text style={styles.qrHint}>Scan to get started</Text>
+          </Pressable>
+        </View>
       </View>
     </View>
   );
@@ -123,7 +125,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "space-between",
   },
-  hero: {},
+  hero: {
+    marginTop: 190,
+    marginLeft: 50,
+  },
   iconRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -170,7 +175,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: TV ? 20 : 14,
     borderRadius: TV ? 50 : 30,
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.08)",
+    borderColor: "rgba(255, 195, 18, 0.4)",
   },
   pillFocused: {
     backgroundColor: "rgba(255, 195, 18, 0.15)",
@@ -209,14 +214,19 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // QR Card
-  qrCard: {
-    width: TV ? 400 : 260,
-    backgroundColor: "rgba(255,255,255,0.03)",
-    borderRadius: TV ? 40 : 28,
+  // Center column - QR Card
+  centerColumn: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    padding: TV ? 48 : 32,
+  },
+  qrCard: {
+    width: TV ? 560 : 300,
+    backgroundColor: "rgba(255,255,255,0.03)",
+    borderRadius: TV ? 44 : 28,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: TV ? 56 : 32,
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
     overflow: "hidden",
@@ -233,34 +243,34 @@ const styles = StyleSheet.create({
     height: "60%",
   },
   qrEyebrow: {
-    fontSize: TV ? 13 : 10,
+    fontSize: TV ? 14 : 10,
     fontWeight: "700",
     color: "#34C759",
     letterSpacing: 3,
-    marginBottom: TV ? 28 : 18,
+    marginBottom: TV ? 32 : 18,
   },
   qrFrame: {
     backgroundColor: "#FFFFFF",
-    padding: TV ? 20 : 14,
-    borderRadius: TV ? 24 : 16,
+    padding: TV ? 24 : 14,
+    borderRadius: TV ? 28 : 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 20 },
     shadowOpacity: 0.6,
     shadowRadius: 40,
-    marginBottom: TV ? 28 : 18,
+    marginBottom: TV ? 32 : 18,
   },
   qrImage: {
-    width: TV ? 220 : 140,
-    height: TV ? 220 : 140,
+    width: TV ? 280 : 150,
+    height: TV ? 280 : 150,
   },
   qrUrl: {
-    fontSize: TV ? 22 : 15,
+    fontSize: TV ? 24 : 15,
     fontWeight: "800",
     color: "#FFFFFF",
-    marginBottom: TV ? 8 : 6,
+    marginBottom: TV ? 10 : 6,
   },
   qrHint: {
-    fontSize: TV ? 15 : 11,
+    fontSize: TV ? 16 : 11,
     color: "#6E6E73",
     fontWeight: "500",
   },

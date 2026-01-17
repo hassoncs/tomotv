@@ -5,22 +5,26 @@ A React Native tvOS client for Jellyfin media server.
 Built to stream my personal video library from my Mac to every Apple TV in my home.
 
 <p align="center">
-  <img src="assets/images/screenshots/results.png" width="700" alt="TomoTV Search Results"/>
+  <img src="assets/images/screenshots/player.png" width="700" alt="TomoTV Search Results"/>
 </p>
 
 <table>
   <tr>
     <td align="center">
-      <img src="assets/images/screenshots/default.png" width="280" alt="Search"/><br/>
-      <sub>Native Search</sub>
+      <img src="assets/images/screenshots/library-view.webp" width="280" alt="Library view"/><br/>
+      <sub>Library view</sub>
     </td>
     <td align="center">
-      <img src="assets/images/screenshots/results.png" width="280" alt="Results"/><br/>
-      <sub>Results</sub>
+      <img src="assets/images/screenshots/folder-exploration.webp" width="280" alt="Results"/><br/>
+      <sub>Folder exploration</sub>
     </td>
-    <td align="center">
-      <img src="assets/images/screenshots/no-results.webp" width="280" alt="No Results"/><br/>
-      <sub>Empty State</sub>
+     <td align="center">
+      <img src="assets/images/screenshots/search-results.webp" width="280" alt="Search results"/><br/>
+      <sub>Search results</sub>
+    </td>
+      <td align="center">
+      <img src="assets/images/screenshots/help-page.webp" width="280" alt="Help screen"/><br/>
+      <sub>Help screen</sub>
     </td>
   </tr>
 </table>

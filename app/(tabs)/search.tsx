@@ -8,7 +8,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 
 interface SearchHeaderProps {
   onChangeText: (text: string) => void;
@@ -26,7 +26,7 @@ const SearchHeader = React.memo(
         <View style={[styles.searchInputWrapper, isInputFocused && styles.searchInputWrapperFocused]}>
           <TextInput
             ref={inputRef}
-            placeholder="Search movies and videos..."
+            placeholder="Search by title, path, or year (e.g. action 2023)"
             placeholderTextColor="#8E8E93"
             autoCorrect={false}
             autoCapitalize="none"
@@ -110,7 +110,7 @@ function NativeSearchScreen() {
     <TvosSearchView
       results={searchResults}
       columns={5}
-      placeholder="Search movies and videos..."
+      placeholder="Search by title, path, or year..."
       isLoading={isSearching}
       topInset={140}
       onSearch={handleSearch}
@@ -367,7 +367,7 @@ function ReactNativeSearchScreen() {
     return (
       <View style={styles.centerContainer}>
         <Ionicons name="search-outline" size={64} color="#98989D" />
-        <Text style={styles.emptyText}>Search your library</Text>
+        <Text style={styles.emptyText}>Search by title, path, or year</Text>
       </View>
     );
   }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, router, handleRetrySearch]);

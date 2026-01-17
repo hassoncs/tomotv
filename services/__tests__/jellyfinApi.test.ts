@@ -222,8 +222,8 @@ describe('jellyfinApi', () => {
     it('should call API with correct pagination parameters', async () => {
       const mockResponse = {
         Items: [
-          { Id: '1', Name: 'Video 1' },
-          { Id: '2', Name: 'Video 2' }
+          { Id: '1', Name: 'Video 1', Type: 'Movie' },
+          { Id: '2', Name: 'Video 2', Type: 'Movie' }
         ],
         TotalRecordCount: 100,
         StartIndex: 0
@@ -249,14 +249,15 @@ describe('jellyfinApi', () => {
         expect.any(Object)
       );
       expect(result.items).toHaveLength(2);
-      expect(result.total).toBe(100);
+      // Total now reflects actual items returned
+      expect(result.total).toBe(2);
     });
 
     it('should handle pagination with custom startIndex', async () => {
       const mockResponse = {
         Items: [
-          { Id: '21', Name: 'Video 21' },
-          { Id: '22', Name: 'Video 22' }
+          { Id: '21', Name: 'Video 21', Type: 'Movie' },
+          { Id: '22', Name: 'Video 22', Type: 'Movie' }
         ],
         TotalRecordCount: 100,
         StartIndex: 20
@@ -274,7 +275,8 @@ describe('jellyfinApi', () => {
         expect.any(Object)
       );
       expect(result.items).toHaveLength(2);
-      expect(result.total).toBe(100);
+      // Total now reflects actual items returned
+      expect(result.total).toBe(2);
     });
 
     it('should use default pagination values when not specified', async () => {
@@ -304,9 +306,9 @@ describe('jellyfinApi', () => {
     it('should return correct structure with items and total', async () => {
       const mockResponse = {
         Items: [
-          { Id: '1', Name: 'Video 1' },
-          { Id: '2', Name: 'Video 2' },
-          { Id: '3', Name: 'Video 3' }
+          { Id: '1', Name: 'Video 1', Type: 'Movie' },
+          { Id: '2', Name: 'Video 2', Type: 'Movie' },
+          { Id: '3', Name: 'Video 3', Type: 'Movie' }
         ],
         TotalRecordCount: 150
       };
@@ -318,15 +320,16 @@ describe('jellyfinApi', () => {
 
       const result = await searchVideos('action', { limit: 3, startIndex: 0 });
 
+      // Total reflects actual playable items returned (after filtering/expanding)
       expect(result).toEqual({
         items: mockResponse.Items,
-        total: 150
+        total: 3
       });
     });
 
     it('should handle response without TotalRecordCount', async () => {
       const mockResponse = {
-        Items: [{ Id: '1', Name: 'Video 1' }]
+        Items: [{ Id: '1', Name: 'Video 1', Type: 'Movie' }]
         // TotalRecordCount is optional in the API
       };
 
@@ -338,7 +341,8 @@ describe('jellyfinApi', () => {
       const result = await searchVideos('test');
 
       expect(result.items).toHaveLength(1);
-      expect(result.total).toBeUndefined();
+      // Total now reflects actual items returned
+      expect(result.total).toBe(1);
     });
 
     it('should trim search term before sending to API', async () => {
@@ -379,8 +383,8 @@ describe('jellyfinApi', () => {
     it('should handle last page of results correctly', async () => {
       const mockResponse = {
         Items: [
-          { Id: '96', Name: 'Video 96' },
-          { Id: '97', Name: 'Video 97' }
+          { Id: '96', Name: 'Video 96', Type: 'Movie' },
+          { Id: '97', Name: 'Video 97', Type: 'Movie' }
         ],
         TotalRecordCount: 97,
         StartIndex: 95
@@ -394,7 +398,8 @@ describe('jellyfinApi', () => {
       const result = await searchVideos('test', { limit: 60, startIndex: 95 });
 
       expect(result.items).toHaveLength(2);
-      expect(result.total).toBe(97);
+      // Total now reflects actual items returned
+      expect(result.total).toBe(2);
     });
   });
 });
