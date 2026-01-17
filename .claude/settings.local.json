@@ -31,7 +31,8 @@
       "Bash(npm test:*)",
       "Bash(git add:*)",
       "Bash(npm view:*)",
-      "Bash(npm --version)"
+      "Bash(npm --version)",
+      "Bash(git commit:*)"
     ],
     "deny": [],
     "ask": []
