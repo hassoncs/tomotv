@@ -2,8 +2,8 @@ import { getPosterUrl, hasPoster } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
-import React, { forwardRef, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { forwardRef, useCallback, useMemo, useState } from "react";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 // Cache platform values at module level for better performance
 const IS_TV = Platform.isTV;
@@ -28,7 +28,7 @@ interface VideoGridItemProps {
  * - React.memo with custom comparison to prevent unnecessary re-renders
  * - Lazy metadata computation (only when focused)
  * - Reduced poster image size (400px vs 600px)
- * - Lightweight native-driver animation (single scale transform)
+ * - No animations for instant response
  * - Conditional image priority (first 10 only)
  * - No image transitions for instant display
  * - Platform values cached at module level
@@ -39,15 +39,6 @@ const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(
   ref,
 ) {
   const [focused, setFocused] = useState(false);
-
-  // Single animated value with native driver for 60fps performance
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  // Marquee animation for long titles
-  const marqueeAnim = useRef(new Animated.Value(0)).current;
-  const marqueeAnimation = useRef<Animated.CompositeAnimation | null>(null);
-  const titleWidth = useRef(0);
-  const containerWidth = useRef(0);
 
   // Only compute poster URL - this is always needed for display
   const posterUrl = useMemo(
@@ -85,74 +76,16 @@ const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(
     return { videoCodec, audioCodec, resolution, fileSize, duration };
   }, [focused, video.MediaStreams, video.RunTimeTicks]);
 
-  // Start marquee animation for long titles
-  const startMarquee = useCallback(() => {
-    // Only animate if title is wider than container
-    const overflow = titleWidth.current - containerWidth.current;
-    if (overflow <= 0) return;
-
-    // Reset to start position
-    marqueeAnim.setValue(0);
-
-    // Create looping animation: scroll left, pause, reset, repeat
-    marqueeAnimation.current = Animated.loop(
-      Animated.sequence([
-        Animated.delay(1000), // Pause at start
-        Animated.timing(marqueeAnim, {
-          toValue: -overflow - 20, // Scroll to show full text + padding
-          duration: Math.max(3000, overflow * 30), // Speed based on text length
-          useNativeDriver: true,
-        }),
-        Animated.delay(1500), // Pause at end
-        Animated.timing(marqueeAnim, {
-          toValue: 0,
-          duration: 0, // Instant reset
-          useNativeDriver: true,
-        }),
-      ]),
-    );
-    marqueeAnimation.current.start();
-  }, [marqueeAnim]);
-
-  const stopMarquee = useCallback(() => {
-    if (marqueeAnimation.current) {
-      marqueeAnimation.current.stop();
-      marqueeAnimation.current = null;
-    }
-    marqueeAnim.setValue(0);
-  }, [marqueeAnim]);
-
-  // Start/stop marquee based on focus
-  useEffect(() => {
-    if (focused) {
-      // Small delay to allow layout measurement
-      const timer = setTimeout(startMarquee, 200);
-      return () => clearTimeout(timer);
-    } else {
-      stopMarquee();
-    }
-  }, [focused, startMarquee, stopMarquee]);
-
-  // Focus handlers with smooth native animation
+  // Focus handlers - no animations
   const handleFocus = useCallback(() => {
     setFocused(true);
     onItemFocus?.();
-    Animated.timing(scaleAnim, {
-      toValue: 1.05,
-      duration: 150, // Fast and snappy
-      useNativeDriver: true, // Runs on native thread = 60fps
-    }).start();
-  }, [scaleAnim, onItemFocus]);
+  }, [onItemFocus]);
 
   const handleBlur = useCallback(() => {
     setFocused(false);
     onItemBlur?.();
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim, onItemBlur]);
+  }, [onItemBlur]);
 
   const handlePress = useCallback(() => {
     onPress(video);
@@ -169,7 +102,7 @@ const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(
       hasTVPreferredFocus={hasTVPreferredFocus}
       nextFocusUp={nextFocusUp}
       style={styles.container}>
-      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+      <View style={styles.card}>
         <View style={styles.imageContainer}>
           {posterUrl ? (
             <Image
@@ -200,25 +133,9 @@ const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(
                 </Text>
                 <Text style={styles.infoValue}>{metadata.resolution}</Text>
                 <Text style={styles.infoValue}>{metadata?.duration}</Text>
-                <View
-                  style={styles.marqueeContainer}
-                  onLayout={(e) => {
-                    containerWidth.current = e.nativeEvent.layout.width;
-                  }}>
-                  <Animated.View style={{ transform: [{ translateX: marqueeAnim }] }}>
-                    <Text
-                      style={styles.infoValueTitle}
-                      numberOfLines={1}
-                      onTextLayout={(e) => {
-                        const lines = e.nativeEvent.lines;
-                        if (lines.length > 0) {
-                          titleWidth.current = lines[0].width;
-                        }
-                      }}>
-                      {video?.Name || "Unknown"}
-                    </Text>
-                  </Animated.View>
-                </View>
+                <Text style={styles.infoValueTitle} numberOfLines={1}>
+                  {video?.Name || "Unknown"}
+                </Text>
               </BlurView>
             ) : (
               <View style={styles.infoOverlay}>
@@ -231,32 +148,16 @@ const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(
                     {metadata.fileSize} / {metadata.duration}
                   </Text>
                 )}
-                <View
-                  style={styles.marqueeContainer}
-                  onLayout={(e) => {
-                    containerWidth.current = e.nativeEvent.layout.width;
-                  }}>
-                  <Animated.View style={{ transform: [{ translateX: marqueeAnim }] }}>
-                    <Text
-                      style={styles.infoValueTitle}
-                      numberOfLines={1}
-                      onTextLayout={(e) => {
-                        const lines = e.nativeEvent.lines;
-                        if (lines.length > 0) {
-                          titleWidth.current = lines[0].width;
-                        }
-                      }}>
-                      {video?.Name || "Unknown"}
-                    </Text>
-                  </Animated.View>
-                </View>
+                <Text style={styles.infoValueTitle} numberOfLines={1}>
+                  {video?.Name || "Unknown"}
+                </Text>
               </View>
             ))}
 
           {/* Border overlay - rendered on top to avoid gaps */}
           <View style={[styles.borderOverlay, focused && styles.borderOverlayFocused]} pointerEvents="none" />
         </View>
-      </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 });
@@ -356,15 +257,12 @@ const styles = StyleSheet.create({
     marginVertical: IS_TV ? 3 : 2,
     width: "100%",
   },
-  marqueeContainer: {
-    width: "100%",
-    overflow: "hidden",
-  },
   infoValueTitle: {
     color: "#FFFFFF",
     fontSize: IS_TV ? 16 : 13,
     fontWeight: "700",
-    textAlign: "left",
+    textAlign: "center",
     marginVertical: IS_TV ? 3 : 2,
+    width: "100%",
   },
 });

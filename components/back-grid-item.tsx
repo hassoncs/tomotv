@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useRef, useState } from "react";
-import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useState } from "react";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const IS_TV = Platform.isTV;
 const CARD_PADDING = IS_TV ? 16 : 8;
@@ -13,29 +13,18 @@ interface BackGridItemProps {
 
 function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGridItemProps) {
   const [focused, setFocused] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const handleFocus = useCallback(() => {
     setFocused(true);
-    Animated.timing(scaleAnim, {
-      toValue: 1.05,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim]);
+  }, []);
 
   const handleBlur = useCallback(() => {
     setFocused(false);
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim]);
+  }, []);
 
   return (
     <TouchableOpacity onPress={onPress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={hasTVPreferredFocus} style={styles.container}>
-      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+      <View style={styles.card}>
         <View style={styles.imageContainer}>
           <View style={styles.placeholderPoster}>
             <Ionicons name="return-up-back" size={IS_TV ? 80 : 50} color="rgba(250, 196, 0, 0.5)" />
@@ -49,13 +38,12 @@ function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGri
           {focused && (
             <View style={styles.infoOverlay}>
               <Text style={styles.hint}>Go Back</Text>
-              {/* <Text style={styles.hint}>..</Text> */}
             </View>
           )}
 
           <View style={[styles.borderOverlay, focused && styles.borderOverlayFocused]} pointerEvents="none" />
         </View>
-      </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 }

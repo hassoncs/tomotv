@@ -3,8 +3,8 @@ import { JellyfinItem } from "@/types/jellyfin";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useMemo, useRef, useState } from "react";
-import { Animated, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useMemo, useState } from "react";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const IS_TV = Platform.isTV;
 const CARD_PADDING = IS_TV ? 16 : 8;
@@ -20,27 +20,16 @@ interface FolderGridItemProps {
 
 function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus = false }: FolderGridItemProps) {
   const [focused, setFocused] = useState(false);
-  const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const thumbnailUrl = useMemo(() => (folder.ImageTags?.Primary ? getFolderThumbnailUrl(folder.Id, POSTER_SIZE) : undefined), [folder.Id, folder.ImageTags?.Primary]);
 
   const handleFocus = useCallback(() => {
     setFocused(true);
-    Animated.timing(scaleAnim, {
-      toValue: 1.05,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim]);
+  }, []);
 
   const handleBlur = useCallback(() => {
     setFocused(false);
-    Animated.timing(scaleAnim, {
-      toValue: 1,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  }, [scaleAnim]);
+  }, []);
 
   const handlePress = useCallback(() => {
     onPress(folder);
@@ -50,7 +39,7 @@ function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus =
 
   return (
     <TouchableOpacity onPress={handlePress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={hasTVPreferredFocus} style={styles.container}>
-      <Animated.View style={[styles.card, { transform: [{ scale: scaleAnim }] }]}>
+      <View style={styles.card}>
         <View style={styles.imageContainer}>
           {thumbnailUrl ? (
             <Image source={{ uri: thumbnailUrl }} style={styles.poster} contentFit="cover" transition={0} priority={index < 10 ? "high" : "normal"} cachePolicy="disk" recyclingKey={folder.Id} />
@@ -96,7 +85,7 @@ function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus =
 
           <View style={[styles.borderOverlay, focused && styles.borderOverlayFocused]} pointerEvents="none" />
         </View>
-      </Animated.View>
+      </View>
     </TouchableOpacity>
   );
 }
