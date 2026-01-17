@@ -12,38 +12,39 @@ import { ActivityIndicator, findNodeHandle, FlatList, Platform, StyleSheet, Text
 interface SearchHeaderProps {
   onChangeText: (text: string) => void;
   onSubmitEditing: () => void;
-  inputRef: React.RefObject<TextInput>;
+  inputRef: React.RefCallback<TextInput> | React.RefObject<TextInput>;
+  nextFocusDown?: number;
 }
 
 const SearchHeader = React.memo(
-  function SearchHeader({ onChangeText, onSubmitEditing, inputRef }: SearchHeaderProps) {
+  function SearchHeader({ onChangeText, onSubmitEditing, inputRef, nextFocusDown }: SearchHeaderProps) {
     const [isInputFocused, setIsInputFocused] = useState(false);
 
     return (
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
+        <View style={[styles.searchInputWrapper, isInputFocused && styles.searchInputWrapperFocused]}>
           <TextInput
             ref={inputRef}
             placeholder="Search movies and videos..."
-            placeholderTextColor={isInputFocused ? "#636366" : "#8E8E93"}
+            placeholderTextColor="#8E8E93"
             autoCorrect={false}
             autoCapitalize="none"
             onChangeText={onChangeText}
             onFocus={() => setIsInputFocused(true)}
             onBlur={() => setIsInputFocused(false)}
             onSubmitEditing={onSubmitEditing}
-            style={[styles.searchInput, isInputFocused && styles.searchInputFocused]}
+            style={styles.searchInput}
             multiline={false}
             numberOfLines={1}
             returnKeyType="search"
+            nextFocusDown={nextFocusDown}
           />
         </View>
       </View>
     );
   },
   (prevProps, nextProps) => {
-    // Only re-render if callbacks change (they shouldn't with useCallback)
-    return prevProps.onChangeText === nextProps.onChangeText && prevProps.onSubmitEditing === nextProps.onSubmitEditing;
+    return prevProps.onChangeText === nextProps.onChangeText && prevProps.onSubmitEditing === nextProps.onSubmitEditing && prevProps.nextFocusDown === nextProps.nextFocusDown;
   },
 );
 
@@ -57,11 +58,21 @@ export default function SearchScreen() {
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [nextStartIndex, setNextStartIndex] = useState(0);
   const [hasMoreResults, setHasMoreResults] = useState(false);
+  const [firstResultHandle, setFirstResultHandle] = useState<number | undefined>(undefined);
   const searchInputRef = useRef<TextInput>(null);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const firstResultRef = useRef<TouchableOpacity>(null);
+  const nextStartIndexRef = useRef(0);
+  const firstResultNodeRef = useRef<TouchableOpacity | null>(null);
+  const firstResultRef = useCallback((node: TouchableOpacity | null) => {
+    firstResultNodeRef.current = node;
+    if (node && Platform.isTV) {
+      const handle = findNodeHandle(node);
+      setFirstResultHandle(handle ?? undefined);
+    } else if (!node) {
+      setFirstResultHandle(undefined);
+    }
+  }, []);
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
@@ -75,8 +86,8 @@ export default function SearchScreen() {
   );
 
   const focusFirstResult = useCallback(() => {
-    if (Platform.isTV && firstResultRef.current) {
-      (firstResultRef.current as unknown as { requestTVFocus: () => void }).requestTVFocus();
+    if (Platform.isTV && firstResultNodeRef.current) {
+      (firstResultNodeRef.current as unknown as { requestTVFocus: () => void }).requestTVFocus();
     }
   }, []);
 
@@ -90,51 +101,48 @@ export default function SearchScreen() {
     }
   }, [isLoading, searchError]);
 
-  const executeSearch = useCallback(
-    async (term: string, append: boolean = false) => {
-      const trimmed = term.trim();
-      if (!trimmed) return;
+  const executeSearch = useCallback(async (term: string, append: boolean = false) => {
+    const trimmed = term.trim();
+    if (!trimmed) return;
+
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setIsSearching(true);
+      setSearchError(null);
+      nextStartIndexRef.current = 0;
+      setHasMoreResults(false);
+    }
+
+    try {
+      const startIndex = append ? nextStartIndexRef.current : 0;
+      const pageSize = 60;
+      const { items, total } = await searchVideos(trimmed, { limit: pageSize, startIndex });
 
       if (append) {
-        setIsLoadingMore(true);
+        setSearchResults((prev) => {
+          const newResults = [...prev, ...items];
+          setHasMoreResults(total !== undefined && newResults.length < total);
+          return newResults;
+        });
       } else {
-        setIsSearching(true);
-        setSearchError(null);
-        setNextStartIndex(0);
-        setHasMoreResults(false);
+        setSearchResults(items);
+        setHasMoreResults(total !== undefined && items.length < total);
       }
-
-      try {
-        const startIndex = append ? nextStartIndex : 0;
-        const pageSize = 60;
-        const { items, total } = await searchVideos(trimmed, { limit: pageSize, startIndex });
-
-        if (append) {
-          setSearchResults((prev) => {
-            const newResults = [...prev, ...items];
-            setHasMoreResults(total !== undefined && newResults.length < total);
-            return newResults;
-          });
-        } else {
-          setSearchResults(items);
-          setHasMoreResults(total !== undefined && items.length < total);
-        }
-        setNextStartIndex(startIndex + items.length);
-        setActiveQuery(trimmed);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Unable to search. Please try again.";
-        setSearchError(message);
-        if (!append) setSearchResults([]);
-      } finally {
-        if (append) {
-          setIsLoadingMore(false);
-        } else {
-          setIsSearching(false);
-        }
+      nextStartIndexRef.current = startIndex + items.length;
+      setActiveQuery(trimmed);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to search. Please try again.";
+      setSearchError(message);
+      if (!append) setSearchResults([]);
+    } finally {
+      if (append) {
+        setIsLoadingMore(false);
+      } else {
+        setIsSearching(false);
       }
-    },
-    [nextStartIndex],
-  );
+    }
+  }, []);
 
   const handleRetrySearch = useCallback(() => {
     if (searchQuery.trim().length >= 2) {
@@ -189,11 +197,13 @@ export default function SearchScreen() {
 
   const [searchInputHandle, setSearchInputHandle] = useState<number | undefined>(undefined);
 
-  useEffect(() => {
-    if (Platform.isTV && searchInputRef.current) {
-      const handle = findNodeHandle(searchInputRef.current);
+  const searchInputCallbackRef = useCallback((node: TextInput | null) => {
+    if (node && Platform.isTV) {
+      const handle = findNodeHandle(node);
       setSearchInputHandle(handle ?? undefined);
     }
+    // Also set the regular ref for other uses
+    (searchInputRef as React.MutableRefObject<TextInput | null>).current = node;
   }, []);
 
   const renderItem = useCallback(
@@ -297,7 +307,10 @@ export default function SearchScreen() {
     }
   }, [shouldShowResults, focusFirstResult]);
 
-  const headerComponent = useMemo(() => <SearchHeader onChangeText={setSearchQuery} onSubmitEditing={handleSubmitEditing} inputRef={searchInputRef} />, [handleSubmitEditing]);
+  const headerComponent = useMemo(
+    () => <SearchHeader onChangeText={setSearchQuery} onSubmitEditing={handleSubmitEditing} inputRef={searchInputCallbackRef} nextFocusDown={firstResultHandle} />,
+    [handleSubmitEditing, searchInputCallbackRef, firstResultHandle],
+  );
 
   return (
     <View style={styles.container}>
@@ -319,7 +332,7 @@ export default function SearchScreen() {
           initialNumToRender={10}
           maxToRenderPerBatch={10}
           windowSize={3}
-          removeClippedSubviews
+          removeClippedSubviews={!Platform.isTV}
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
@@ -350,17 +363,19 @@ const styles = StyleSheet.create({
     maxWidth: 800,
     borderRadius: Platform.isTV ? 28 : 25,
     overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#3A3A3C",
+  },
+  searchInputWrapperFocused: {
+    borderColor: "#FFC312",
   },
   searchInput: {
     width: "100%",
     minHeight: Platform.isTV ? 56 : 50,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#2C2C2E",
     paddingHorizontal: Platform.isTV ? 28 : 20,
-    fontSize: Platform.isTV ? 24 : 20,
+    fontSize: Platform.isTV ? 28 : 20,
     color: "#FFFFFF",
-  },
-  searchInputFocused: {
-    color: "#1C1C1E",
   },
   gridContent: {
     paddingBottom: Platform.isTV ? 120 : 100,

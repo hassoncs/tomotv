@@ -1,6 +1,5 @@
 import { FolderStackEntry } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
 import { Dimensions, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -29,7 +28,7 @@ export function Breadcrumb({ stack }: BreadcrumbProps) {
       <View style={styles.container}>
         <View style={styles.rotatedContent}>
           <View style={styles.scrollContent}>
-            <Text style={styles.breadcrumbTextPlaceholder}>No Library</Text>
+            <Text style={styles.breadcrumbTextPlaceholder}>Library</Text>
           </View>
         </View>
       </View>

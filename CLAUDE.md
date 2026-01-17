@@ -158,15 +158,18 @@ All scale animations were removed from grid items (VideoGridItem, FolderGridItem
 The app uses a **Singleton Manager + Context wrapper** pattern for global state:
 
 **Singleton Managers** (`services/`):
+
 - `LibraryManager` - Manages video library with pagination, caching (5-min TTL), and subscriber notifications
 - `FolderNavigationManager` - Manages folder navigation with breadcrumb stack
 
 **Context Wrappers** (`contexts/`):
+
 - `LibraryContext` - React wrapper for `LibraryManager`, provides `useLibrary()` hook
 - `FolderNavigationContext` - React wrapper for `FolderNavigationManager`, provides `useFolderNavigation()` hook
 - `LoadingContext` - Global loading state (modal spinner)
 
 **Other State:**
+
 - **SecureStore:** Persistent storage for credentials (iCloud Keychain/Android Keystore)
 - **Component State:** React hooks (`useState`, `useReducer`) for local state
 - **Configuration:** Three-tier fallback (user settings → dev credentials → defaults)
@@ -269,16 +272,7 @@ mv .env.local.backup .env.local
 Use the `useVideoPlayback` hook:
 
 ```typescript
-const {
-  state,
-  videoRef,
-  currentSubtitleTrack,
-  availableSubtitleTracks,
-  error,
-  playVideo,
-  retryPlayback,
-  changeSubtitleTrack
-} = useVideoPlayback()
+const { state, videoRef, currentSubtitleTrack, availableSubtitleTracks, error, playVideo, retryPlayback, changeSubtitleTrack } = useVideoPlayback();
 ```
 
 The hook handles:
@@ -291,20 +285,21 @@ The hook handles:
 ### Using Library State
 
 ```typescript
-import {useLibrary} from "@/contexts/LibraryContext"
+import { useLibrary } from "@/contexts/LibraryContext";
 
-const {videos, isLoading, hasMoreResults, loadMore, refreshLibrary} = useLibrary()
+const { videos, isLoading, hasMoreResults, loadMore, refreshLibrary } = useLibrary();
 ```
 
 ### Using Folder Navigation
 
 ```typescript
-import {useFolderNavigation} from "@/contexts/FolderNavigationContext"
+import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 
-const {items, folderStack, navigateToFolder, navigateBack, loadMore, isLoading} = useFolderNavigation()
+const { items, folderStack, navigateToFolder, navigateBack, loadMore, isLoading } = useFolderNavigation();
 ```
 
 Features:
+
 - Breadcrumb sidebar (rotated text on left edge)
 - Back item at grid start for parent navigation
 - Per-folder caching with 5-minute TTL
@@ -314,27 +309,28 @@ Features:
 ### Showing Global Loading
 
 ```typescript
-import {useLoading} from "@/contexts/LoadingContext"
+import { useLoading } from "@/contexts/LoadingContext";
 
-const {showGlobalLoader, hideGlobalLoader} = useLoading()
+const { showGlobalLoader, hideGlobalLoader } = useLoading();
 
-showGlobalLoader()
+showGlobalLoader();
 // ... async operation
-hideGlobalLoader()
+hideGlobalLoader();
 ```
 
 ### Logging
 
 ```typescript
-import {logger} from "@/utils/logger"
+import { logger } from "@/utils/logger";
 
-logger.info("Operation started", {videoId: "123"})
-logger.error("Operation failed", {error: err})
+logger.info("Operation started", { videoId: "123" });
+logger.error("Operation failed", { error: err });
 ```
 
 ### Search Implementation
 
 The search screen (`app/(tabs)/search.tsx`) uses:
+
 - Debounced text input (300ms delay)
 - Remote search via `searchVideos()` API
 - Pagination with `loadMore()` support
@@ -373,20 +369,21 @@ npm test -- services/jellyfinApi.test.ts  # Run single file
 
 ### Color Palette
 
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Background | `#1C1C1E` | All screen backgrounds |
-| Card/Section | `#2C2C2E` | Settings sections, elevated surfaces |
-| Card Focused | `#3A3A3C` | Focused card background |
-| Primary/Gold | `#FFC312` | Icons, focus borders, accents |
-| Success/Green | `#34C759` | URLs, Jellyfin highlight, success states |
-| Text Primary | `#FFFFFF` | Headings, important text |
-| Text Secondary | `#8E8E93` | Subtitles, labels |
-| Text Tertiary | `#636366` | Captions, hints |
+| Color          | Hex       | Usage                                    |
+| -------------- | --------- | ---------------------------------------- |
+| Background     | `#1C1C1E` | All screen backgrounds                   |
+| Card/Section   | `#2C2C2E` | Settings sections, elevated surfaces     |
+| Card Focused   | `#3A3A3C` | Focused card background                  |
+| Primary/Gold   | `#FFC312` | Icons, focus borders, accents            |
+| Success/Green  | `#34C759` | URLs, Jellyfin highlight, success states |
+| Text Primary   | `#FFFFFF` | Headings, important text                 |
+| Text Secondary | `#8E8E93` | Subtitles, labels                        |
+| Text Tertiary  | `#636366` | Captions, hints                          |
 
 ### Help Screen (Landing Page)
 
 The help screen (`app/(tabs)/help.tsx`) is a single-screen landing page:
+
 - Hero: Round app icon with golden glow, title, tagline
 - 3 feature cards with round icons and captions
 - QR code (static asset) + documentation URL
@@ -410,5 +407,17 @@ The help screen (`app/(tabs)/help.tsx`) is a single-screen landing page:
 ## RULES
 
 1. Unless intentionally, DO NOT run commands on the `node_modules` directory, it only wates tokens.
+
 - stop searching node_modules unless required to inspect current lib implementation, I feel you are wasting token by doing this
 - your initial code proposed for any solution needs to be prod ready, you can not relay on running a linter to make sure the code adhers to current code conventions and prod readines
+
+## Image analysis
+
+See CLAUDE-image-analysis.md for how to analyze and describe images attached to chats.
+
+- stop searching node_modules unless required to inspect current lib implementation, I feel you are wasting token by doing this
+- your initial code proposed for any solution needs to be prod ready, you can not relay on running a linter to make sure the code adhers to current code conventions and prod readines
+
+## Image analysis
+
+See CLAUDE-image-analysis.md for how to analyze and describe images attached to chats.
