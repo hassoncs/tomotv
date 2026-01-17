@@ -169,8 +169,8 @@ Upload to: `~/keiver.dev/public/screenshots/tomotv/icon.png`
 
 ### Build & Binary
 
-- [ ] Build version: 1.0.5
-- [ ] Build number: 1
+- [ ] Build version: 1.0.7
+- [ ] Build number: 3
 - [ ] Export compliance: usesNonExemptEncryption: false (already in app.json)
 - [ ] Upload build via Xcode or Application Loader
 

@@ -30,54 +30,64 @@ Transform your Apple TV into a personal cinema with TomoTV—the intelligent vid
 TomoTV automatically detects video codecs and handles transcoding behind the scenes. No more black screens or "unsupported format" errors. Just select a video and start watching.
 
 • H.264 and HEVC videos play directly for maximum quality
-• Older formats (MPEG-4, VP8, DivX, Xvid) transcode automatically
-• Seamless playback switching—you won't notice the difference
-• Smart subtitle detection and embedding
+• Older formats (MPEG-4, VP8, VP9, AV1, DivX, Xvid) transcode automatically
+• Seamless retry with transcoding if direct play fails
+• Smart subtitle detection with automatic burn-in
+• Audio file support with dedicated playback UI
 
-**OPTIMIZED FOR APPLE TV**
-Built specifically for the big screen experience with native tvOS features:
+**NATIVE tvOS EXPERIENCE**
+Built specifically for the big screen with native Apple TV features:
 
-• Smooth remote navigation with proper focus management
+• Native tvOS search UI with keyboard integration
+• Smooth Siri Remote navigation with proper focus management
 • Folder navigation with breadcrumb trail—browse your library structure
-• Native video controls (play, pause, seek, volume)
+• Native video controls with Picture-in-Picture support
 • Automatic playlist continuation—next video starts when current ends
-• Search your entire library from the couch
 • iCloud Keychain credential sync across all your Apple devices
+
+**POWERFUL SEARCH**
+Find your content fast with smart search features:
+
+• Search by title, folder name, or file path
+• Filter by year: "action 2023" or "thriller 90s"
+• Year ranges: "2019-2023" finds everything in between
+• TV series automatically expand to show individual episodes
+• Real-time results as you type
 
 **QUALITY CONTROL**
 Tune streaming quality to match your network:
 
-• 480p - Fast streaming over Wi-Fi
-• 540p - Balanced quality for most networks
-• 720p - Sharp picture, recommended for Apple TV (default)
-• 1080p - Maximum quality for strong local networks
+• 480p (1.5 Mbps) - Fast streaming, lower bandwidth
+• 540p (2.5 Mbps) - Balanced for most networks
+• 720p (4 Mbps) - Sharp picture, recommended default
+• 1080p (8 Mbps) - Maximum quality for strong networks
 
 **SECURE & PRIVATE**
-• No data collection or analytics
-• No third-party tracking
+• No data collection or analytics whatsoever
+• No third-party tracking or advertising
 • Credentials stored in iCloud Keychain (Apple's secure storage)
 • Direct connection between your device and Jellyfin server
-• Works entirely on your local network or via HTTPS
+• Works on local network (HTTP) or remotely (HTTPS)
 
 **SIMPLE SETUP**
 1. Install Jellyfin on your Mac, PC, or NAS
-2. Enter server address, API key, and user ID in TomoTV Settings
+2. Enter server address, API key, and user ID in Settings
 3. Browse and stream your entire video library
 
 **REQUIREMENTS**
 • Jellyfin server (version 10.8 or later recommended)
-• Local network connection or HTTPS-enabled public server
-• Jellyfin transcoding enabled for non-H.264/HEVC videos
+• Local network or HTTPS-enabled remote access
+• FFmpeg installed on server for transcoding
 
 **SUPPORTED FORMATS**
-Direct Play: H.264, HEVC (H.265)
+Direct Play: H.264, HEVC (H.265), AAC audio
 Transcoded: MPEG-4, VP8, VP9, AV1, VC-1, MPEG-2, DivX, Xvid, and more
 
 **PERFECT FOR**
 • Home media enthusiasts with large video collections
 • Users who chose Jellyfin for its open-source philosophy
 • Families sharing a media server across multiple Apple devices
-• Anyone tired of codec compatibility issues
+• Anyone tired of codec compatibility issues on Apple TV
 
 **WHAT MAKES TOMOTV DIFFERENT**
 Unlike other Jellyfin clients, TomoTV focuses on one thing: flawless video playback on Apple TV. No complex settings, no codec guessing, no failed streams. It just works.
@@ -103,6 +113,21 @@ Keywords Strategy:
 ---
 
 ## What's New (4,000 characters max)
+
+### Version 1.0.7
+**Stability & Polish**
+
+**Improvements:**
+• Native tvOS search now shows error alerts when connection fails
+• Debug Info screen now protects your API key (shows only last 4 characters)
+• Improved logging throughout the app for better debugging
+• Cleaner validation flow for server settings
+
+**Bug Fixes:**
+• Fixed silent failures in tvOS native search
+• Improved error recovery during search operations
+
+---
 
 ### Version 1.0.6
 **Folder Navigation & UI Improvements**
@@ -335,8 +360,8 @@ Notes:
 
 ## Build Number & Version Notes
 
-**Version:** 1.0.6 (matches app.json)
-**Build Number:** 2 (increment with each submission)
+**Version:** 1.0.7 (matches app.json)
+**Build Number:** 3 (increment with each submission)
 
 **Version Naming Convention Going Forward:**
 - 1.0.x - Bug fixes, minor tweaks

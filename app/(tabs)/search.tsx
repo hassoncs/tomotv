@@ -8,7 +8,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { logger } from "@/utils/logger";
 
 interface SearchHeaderProps {
   onChangeText: (text: string) => void;
@@ -85,8 +86,14 @@ function NativeSearchScreen() {
             imageUrl: getPosterUrl(item.Id, 300),
           })),
         );
-      } catch {
+      } catch (error) {
+        logger.error("Search failed", error, { service: "NativeSearchScreen", query: query.trim() });
         setSearchResults([]);
+        // Show alert for connection errors so user knows something went wrong
+        const message = error instanceof Error ? error.message : "Unable to search. Please check your connection.";
+        if (message.includes("not configured") || message.includes("network") || message.includes("timeout")) {
+          Alert.alert("Search Error", message);
+        }
       } finally {
         setIsSearching(false);
       }

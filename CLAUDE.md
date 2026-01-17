@@ -250,7 +250,25 @@ EXPO_PUBLIC_DEV_JELLYFIN_USER_ID=your_user_id
 - No hardcoded credentials in source code
 - ATS (App Transport Security) allows HTTP for local networks only (HTTPS required for internet servers)
 - Credentials stored in iCloud Keychain (iOS) / Android Keystore
-- API key passed in headers and URLs
+
+**API Key in URLs (Jellyfin Limitation):**
+
+The API key must be included in query parameters for certain URLs consumed by native components:
+
+- **Image URLs:** Poster/thumbnail URLs passed to `<Image>` components
+- **Video URLs:** Stream URLs passed to `expo-video` player
+- **Download URLs:** Direct file download URLs
+
+This is a Jellyfin API requirement - these native components cannot add custom headers to requests. The API key will appear in:
+- Server access logs
+- Browser history (web platform)
+- Network capture tools during debugging
+
+**Mitigations:**
+- Use HTTPS for remote servers (encrypts URLs in transit)
+- API keys have limited scope (Jellyfin API access only, not system-level)
+- Users can regenerate API keys from Jellyfin dashboard if compromised
+- For maximum security, use a dedicated API key for this app with minimal permissions
 
 ### Testing Production Behavior
 

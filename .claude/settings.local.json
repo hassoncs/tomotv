@@ -32,7 +32,8 @@
       "Bash(git add:*)",
       "Bash(npm view:*)",
       "Bash(npm --version)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(npx ts-node:*)"
     ],
     "deny": [],
     "ask": []

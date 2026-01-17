@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, StyleSheet, Platform } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { FocusableButton } from "./FocusableButton";
+import { logger } from "@/utils/logger";
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -13,10 +14,7 @@ interface ErrorBoundaryProps {
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
 }
 
-export class ErrorBoundary extends React.Component<
-  ErrorBoundaryProps,
-  ErrorBoundaryState
-> {
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = {
@@ -33,8 +31,10 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error);
-    console.error("Error info:", errorInfo);
+    logger.error("ErrorBoundary caught an error", error, {
+      component: "ErrorBoundary",
+      componentStack: errorInfo.componentStack,
+    });
 
     // Call optional error handler
     this.props.onError?.(error, errorInfo);
@@ -61,17 +61,11 @@ export class ErrorBoundary extends React.Component<
       return (
         <View style={styles.container}>
           <View style={styles.content}>
-            <Ionicons
-              name="alert-circle"
-              size={Platform.isTV ? 80 : 64}
-              color="#FF3B30"
-            />
+            <Ionicons name="alert-circle" size={Platform.isTV ? 80 : 64} color="#FF3B30" />
 
             <Text style={styles.title}>Something Went Wrong</Text>
 
-            <Text style={styles.message}>
-              The app encountered an unexpected error. Please try again.
-            </Text>
+            <Text style={styles.message}>The app encountered an unexpected error. Please try again.</Text>
 
             {__DEV__ && this.state.error && (
               <View style={styles.debugContainer}>
@@ -82,20 +76,9 @@ export class ErrorBoundary extends React.Component<
               </View>
             )}
 
-            <FocusableButton
-              title="Try Again"
-              variant="primary"
-              onPress={this.handleRetry}
-              hasTVPreferredFocus={true}
-              style={{ marginTop: Platform.isTV ? 48 : 32 }}
-            />
+            <FocusableButton title="Try Again" variant="primary" onPress={this.handleRetry} hasTVPreferredFocus={true} style={{ marginTop: Platform.isTV ? 48 : 32 }} />
 
-            <FocusableButton
-              title="Reload App"
-              variant="secondary"
-              onPress={this.handleReload}
-              style={{ marginTop: Platform.isTV ? 20 : 16 }}
-            />
+            <FocusableButton title="Reload App" variant="secondary" onPress={this.handleReload} style={{ marginTop: Platform.isTV ? 20 : 16 }} />
           </View>
         </View>
       );

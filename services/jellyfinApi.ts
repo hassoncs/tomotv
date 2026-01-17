@@ -222,7 +222,7 @@ async function getQualitySettings(): Promise<{
       label: preset.label,
     };
   } catch (error) {
-    console.error("Error reading quality settings:", error);
+    logger.error("Error reading quality settings", error);
     const preset = QUALITY_PRESETS[DEFAULT_QUALITY];
     return {
       index: DEFAULT_QUALITY,

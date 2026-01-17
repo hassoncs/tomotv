@@ -127,7 +127,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const validateInputs = (): { valid: boolean; error?: string } => {
+  const validateInputs = (): { valid: boolean; error?: string; sanitized?: { serverUrl: string; apiKey: string; userId: string } } => {
     // Use ref values instead of state
     const url = currentServerUrl.current;
     const key = currentApiKey.current;
@@ -146,9 +146,10 @@ export default function SettingsScreen() {
       return { valid: false, error: "Please enter a User ID" };
     }
 
-    // Validate URL format
+    // Validate and parse URL format
+    const trimmedUrl = url.trim();
     try {
-      const parsedUrl = new URL(url.trim());
+      const parsedUrl = new URL(trimmedUrl);
       if (!parsedUrl.protocol.startsWith("http")) {
         return {
           valid: false,
@@ -173,38 +174,41 @@ export default function SettingsScreen() {
 
     // Validate User ID format (GUID without dashes or with dashes)
     const userIdTrimmed = uid.trim();
-    if (!/^[a-f0-9]{32}$/.test(userIdTrimmed) && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(userIdTrimmed)) {
+    if (!/^[a-f0-9]{32}$/i.test(userIdTrimmed) && !/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(userIdTrimmed)) {
       return {
         valid: false,
         error: "Invalid User ID format. Must be a valid GUID (e.g., 8d6b79c2-4368-496c-9393-1394d31ac428)",
       };
     }
 
-    return { valid: true };
+    // Return validated and sanitized values
+    // Since validation passed, we know the values are safe - just trim them
+    return {
+      valid: true,
+      sanitized: {
+        serverUrl: trimmedUrl,
+        apiKey: apiKeyTrimmed.toLowerCase(), // Normalize to lowercase hex
+        userId: userIdTrimmed.toLowerCase(), // Normalize to lowercase hex
+      },
+    };
   };
 
   const testConnection = async () => {
     try {
       setIsTesting(true);
 
-      // Validate inputs
+      // Validate inputs - returns sanitized values if valid
       const validation = validateInputs();
-      if (!validation.valid) {
+      if (!validation.valid || !validation.sanitized) {
         Alert.alert("Validation Error", validation.error || "Invalid input");
         return;
       }
 
-      // Sanitize and prepare inputs (use ref values)
-      const sanitizedServerUrl = currentServerUrl.current.trim().replace(/[<>'"]/g, "");
-      const sanitizedApiKey = currentApiKey.current.trim().replace(/[^a-zA-Z0-9]/g, "");
-      const sanitizedUserId = currentUserId.current.trim().replace(/[^a-f0-9-]/gi, "");
+      // Use validated values directly (validation already ensures format is safe)
+      const { serverUrl, apiKey, userId } = validation.sanitized;
 
       // Temporarily save to test connection
-      await Promise.all([
-        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, sanitizedServerUrl),
-        SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, sanitizedApiKey),
-        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId),
-      ]);
+      await Promise.all([SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, serverUrl), SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, apiKey), SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, userId)]);
 
       // Refresh config and test
       await refreshConfig();
@@ -233,24 +237,18 @@ export default function SettingsScreen() {
     try {
       setIsSaving(true);
 
-      // Validate inputs
+      // Validate inputs - returns sanitized values if valid
       const validation = validateInputs();
-      if (!validation.valid) {
+      if (!validation.valid || !validation.sanitized) {
         Alert.alert("Validation Error", validation.error || "Invalid input");
         return;
       }
 
-      // Sanitize inputs to prevent injection attacks (use ref values)
-      const sanitizedServerUrl = currentServerUrl.current.trim().replace(/[<>'"]/g, "");
-      const sanitizedApiKey = currentApiKey.current.trim().replace(/[^a-zA-Z0-9]/g, "");
-      const sanitizedUserId = currentUserId.current.trim().replace(/[^a-f0-9-]/gi, "");
+      // Use validated values directly (validation already ensures format is safe)
+      const { serverUrl, apiKey, userId } = validation.sanitized;
 
       // Save to secure store (syncs to iCloud Keychain automatically)
-      await Promise.all([
-        SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, sanitizedServerUrl),
-        SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, sanitizedApiKey),
-        SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, sanitizedUserId),
-      ]);
+      await Promise.all([SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, serverUrl), SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, apiKey), SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, userId)]);
 
       // Refresh the API service config cache
       await refreshConfig();
@@ -298,12 +296,15 @@ export default function SettingsScreen() {
 
       const qualityLabel = savedQuality ? QUALITY_PRESETS[parseInt(savedQuality, 10)]?.label || "Unknown" : "Not set";
 
+      // Obfuscate API key for security - only show last 4 characters
+      const obfuscatedApiKey = savedKey ? `${"•".repeat(28)}${savedKey.slice(-4)}` : "Not set";
+
       const debugInfo = `
 📱 Stored in iCloud Keychain:
 
 Server URL: ${savedUrl || "Not set"}
 User ID: ${savedUserId || "Not set"}
-API Key: ${savedKey || "Not set"}
+API Key: ${obfuscatedApiKey}
 Video Quality: ${qualityLabel}
 
 ✅ These values are synced across all your Apple devices via iCloud Keychain.

@@ -86,19 +86,14 @@ describe("Player Component Threading Safety Pattern", () => {
       const mockSetIsPlaying = jest.fn();
 
       // Setup listener (like in player.tsx useEffect)
-      const subscription = mockPlayer.addListener(
-        "playingChange",
-        (payload: any) => {
-          mockCallbackRunner.runAfterInteractions(() => {
-            mockSetIsPlaying(payload.isPlaying);
-          });
-        },
-      );
+      const subscription = mockPlayer.addListener("playingChange", (payload: any) => {
+        mockCallbackRunner.runAfterInteractions(() => {
+          mockSetIsPlaying(payload.isPlaying);
+        });
+      });
 
       // Trigger event
-      listeners
-        .get("playingChange")
-        .forEach((cb: Function) => cb({ isPlaying: true }));
+      listeners.get("playingChange").forEach((cb: Function) => cb({ isPlaying: true }));
 
       expect(mockSetIsPlaying).toHaveBeenCalledWith(true);
 
@@ -114,8 +109,7 @@ describe("Player Component Threading Safety Pattern", () => {
       const errorStates = [
         {
           type: "ERROR",
-          error:
-            "This video file appears to be corrupted or in an unsupported format",
+          error: "This video file appears to be corrupted or in an unsupported format",
           canRetryWithTranscode: false,
         },
         {
@@ -233,15 +227,11 @@ describe("Player Component Threading Safety Pattern", () => {
         }),
         play: jest.fn(() => {
           mockPlayer.playing = true;
-          listeners
-            .get("playingChange")
-            ?.forEach((cb: Function) => cb({ isPlaying: true }));
+          listeners.get("playingChange")?.forEach((cb: Function) => cb({ isPlaying: true }));
         }),
         pause: jest.fn(() => {
           mockPlayer.playing = false;
-          listeners
-            .get("playingChange")
-            ?.forEach((cb: Function) => cb({ isPlaying: false }));
+          listeners.get("playingChange")?.forEach((cb: Function) => cb({ isPlaying: false }));
         }),
       };
 
@@ -249,15 +239,12 @@ describe("Player Component Threading Safety Pattern", () => {
       let isPlaying = false;
 
       // Setup listener with callback (like player.tsx)
-      const subscription = mockPlayer.addListener(
-        "playingChange",
-        (payload: any) => {
-          mockCallbackRunner.runAfterInteractions(() => {
-            isPlaying = payload.isPlaying;
-            mockSetIsPlaying(payload.isPlaying);
-          });
-        },
-      );
+      const subscription = mockPlayer.addListener("playingChange", (payload: any) => {
+        mockCallbackRunner.runAfterInteractions(() => {
+          isPlaying = payload.isPlaying;
+          mockSetIsPlaying(payload.isPlaying);
+        });
+      });
 
       // Test play
       mockPlayer.play();
