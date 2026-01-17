@@ -38,6 +38,7 @@ TomoTV automatically detects video codecs and handles transcoding behind the sce
 Built specifically for the big screen experience with native tvOS features:
 
 • Smooth remote navigation with proper focus management
+• Folder navigation with breadcrumb trail—browse your library structure
 • Native video controls (play, pause, seek, volume)
 • Automatic playlist continuation—next video starts when current ends
 • Search your entire library from the couch
@@ -102,6 +103,26 @@ Keywords Strategy:
 ---
 
 ## What's New (4,000 characters max)
+
+### Version 1.0.6
+**Folder Navigation & UI Improvements**
+
+**New Features:**
+• Folder navigation - browse your library by folders with breadcrumb trail
+• Back button in grid for easy parent folder navigation
+• Redesigned Help screen - clean landing page with QR code to documentation
+
+**Improvements:**
+• New unified dark background (#1C1C1E) across all screens
+• Removed animations for smoother folder navigation
+• Better focus feedback with instant border highlights
+• Settings sections now have elevated card styling
+
+**Bug Fixes:**
+• Fixed jumpiness when switching folders
+• Fixed animation lag on app startup
+
+---
 
 ### Version 1.0.5
 **Initial Release - Welcome to TomoTV!**
@@ -314,8 +335,8 @@ Notes:
 
 ## Build Number & Version Notes
 
-**Version:** 1.0.5 (matches package.json)
-**Build Number:** 1 (increment with each submission)
+**Version:** 1.0.6 (matches app.json)
+**Build Number:** 2 (increment with each submission)
 
 **Version Naming Convention Going Forward:**
 - 1.0.x - Bug fixes, minor tweaks
@@ -367,9 +388,9 @@ Notes:
 | App Name | 30 | 29 | ✅ |
 | Subtitle | 30 | 30 | ✅ |
 | Promotional Text | 170 | 165 | ✅ |
-| Description | 4,000 | ~2,100 | ✅ |
+| Description | 4,000 | ~2,200 | ✅ |
 | Keywords | 100 | 99 | ✅ |
-| What's New | 4,000 | ~900 | ✅ |
+| What's New | 4,000 | ~1,400 | ✅ |
 
 ---
 

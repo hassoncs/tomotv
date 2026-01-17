@@ -72,11 +72,6 @@ class Logger {
         }
         break;
     }
-
-    // TODO: Send to crash reporting service (e.g., Sentry) when available
-    // if (level === 'error' && error) {
-    //   Sentry.captureException(error, { contexts: { custom: context } });
-    // }
   }
 
   /**

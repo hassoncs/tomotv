@@ -9,6 +9,44 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
+interface SearchHeaderProps {
+  onChangeText: (text: string) => void;
+  onSubmitEditing: () => void;
+  inputRef: React.RefObject<TextInput>;
+}
+
+const SearchHeader = React.memo(
+  function SearchHeader({ onChangeText, onSubmitEditing, inputRef }: SearchHeaderProps) {
+    const [isInputFocused, setIsInputFocused] = useState(false);
+
+    return (
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInputWrapper}>
+          <TextInput
+            ref={inputRef}
+            placeholder="Search movies and videos..."
+            placeholderTextColor={isInputFocused ? "#636366" : "#8E8E93"}
+            autoCorrect={false}
+            autoCapitalize="none"
+            onChangeText={onChangeText}
+            onFocus={() => setIsInputFocused(true)}
+            onBlur={() => setIsInputFocused(false)}
+            onSubmitEditing={onSubmitEditing}
+            style={[styles.searchInput, isInputFocused && styles.searchInputFocused]}
+            multiline={false}
+            numberOfLines={1}
+            returnKeyType="search"
+          />
+        </View>
+      </View>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Only re-render if callbacks change (they shouldn't with useCallback)
+    return prevProps.onChangeText === nextProps.onChangeText && prevProps.onSubmitEditing === nextProps.onSubmitEditing;
+  },
+);
+
 export default function SearchScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
@@ -24,7 +62,6 @@ export default function SearchScreen() {
   const searchInputRef = useRef<TextInput>(null);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const firstResultRef = useRef<TouchableOpacity>(null);
-  const [isInputFocused, setIsInputFocused] = useState(false);
 
   const handleVideoPress = useCallback(
     (video: JellyfinVideoItem) => {
@@ -254,38 +291,20 @@ export default function SearchScreen() {
     );
   }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, router, handleRetrySearch]);
 
-  const renderHeader = useCallback(
-    () => (
-      <View style={styles.searchContainer}>
-        <View style={styles.searchInputWrapper}>
-          <TextInput
-            ref={searchInputRef}
-            value={searchQuery}
-            placeholder="Search movies and videos..."
-            placeholderTextColor={isInputFocused ? "#636366" : "#8E8E93"}
-            autoCorrect={false}
-            autoCapitalize="none"
-            onChangeText={setSearchQuery}
-            onFocus={() => setIsInputFocused(true)}
-            onBlur={() => setIsInputFocused(false)}
-            onSubmitEditing={() => {
-              if (shouldShowResults) {
-                focusFirstResult();
-              }
-            }}
-            style={[styles.searchInput, isInputFocused && styles.searchInputFocused]}
-            multiline={false}
-            numberOfLines={1}
-            returnKeyType="search"
-          />
-        </View>
-      </View>
-    ),
-    [searchQuery, shouldShowResults, focusFirstResult, isInputFocused],
-  );
+  const handleSubmitEditing = useCallback(() => {
+    if (shouldShowResults) {
+      focusFirstResult();
+    }
+  }, [shouldShowResults, focusFirstResult]);
+
+  const headerComponent = useMemo(() => <SearchHeader onChangeText={setSearchQuery} onSubmitEditing={handleSubmitEditing} inputRef={searchInputRef} />, [handleSubmitEditing]);
 
   return (
     <View style={styles.container}>
+      {/* Fixed search header - never remounts */}
+      {headerComponent}
+
+      {/* Content area */}
       {shouldShowResults ? (
         <FlatList
           data={searchResults}
@@ -303,14 +322,10 @@ export default function SearchScreen() {
           removeClippedSubviews
           onEndReached={handleLoadMore}
           onEndReachedThreshold={0.5}
-          ListHeaderComponent={renderHeader}
           ListFooterComponent={renderFooter}
         />
       ) : (
-        <View style={styles.emptyContainer}>
-          {renderHeader()}
-          {renderEmpty()}
-        </View>
+        <View style={styles.emptyContainer}>{renderEmpty()}</View>
       )}
     </View>
   );

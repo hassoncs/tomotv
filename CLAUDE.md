@@ -136,9 +136,10 @@ Important functions:
 
 - `React.memo` with custom comparison function
 - Lazy metadata computation (only when focused)
-- Native-driver animations (GPU-accelerated)
+- No scale animations (instant focus feedback via border only)
 - Image priority caching (first 10 items high priority)
 - Platform-specific sizing (TV vs phone)
+- BlurView only rendered when focused
 
 **FlatList Optimization:**
 
@@ -147,6 +148,10 @@ Important functions:
 - `windowSize` optimization
 - `removeClippedSubviews` enabled
 - `updateCellsBatchingPeriod` for batch updates
+
+**Animation Strategy:**
+
+All scale animations were removed from grid items (VideoGridItem, FolderGridItem, BackGridItem) for performance. Focus feedback is now instant via border color change only. This eliminates jumpiness during folder navigation and app startup.
 
 #### 6. State Management
 
@@ -296,8 +301,15 @@ const {videos, isLoading, hasMoreResults, loadMore, refreshLibrary} = useLibrary
 ```typescript
 import {useFolderNavigation} from "@/contexts/FolderNavigationContext"
 
-const {items, folderStack, navigateToFolder, navigateBack} = useFolderNavigation()
+const {items, folderStack, navigateToFolder, navigateBack, loadMore, isLoading} = useFolderNavigation()
 ```
+
+Features:
+- Breadcrumb sidebar (rotated text on left edge)
+- Back item at grid start for parent navigation
+- Per-folder caching with 5-minute TTL
+- Pagination support via `loadMore()`
+- Auto-navigates into first library on root load
 
 ### Showing Global Loading
 
@@ -319,6 +331,15 @@ import {logger} from "@/utils/logger"
 logger.info("Operation started", {videoId: "123"})
 logger.error("Operation failed", {error: err})
 ```
+
+### Search Implementation
+
+The search screen (`app/(tabs)/search.tsx`) uses:
+- Debounced text input (300ms delay)
+- Remote search via `searchVideos()` API
+- Pagination with `loadMore()` support
+- Empty state for no query / no results
+- Same grid layout as library view
 
 ## Testing Strategy
 
@@ -347,6 +368,30 @@ npm run test:watch                      # Watch mode (recommended during develop
 npm run test:coverage                   # Check coverage
 npm test -- services/jellyfinApi.test.ts  # Run single file
 ```
+
+## UI Design System
+
+### Color Palette
+
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Background | `#1C1C1E` | All screen backgrounds |
+| Card/Section | `#2C2C2E` | Settings sections, elevated surfaces |
+| Card Focused | `#3A3A3C` | Focused card background |
+| Primary/Gold | `#FFC312` | Icons, focus borders, accents |
+| Success/Green | `#34C759` | URLs, Jellyfin highlight, success states |
+| Text Primary | `#FFFFFF` | Headings, important text |
+| Text Secondary | `#8E8E93` | Subtitles, labels |
+| Text Tertiary | `#636366` | Captions, hints |
+
+### Help Screen (Landing Page)
+
+The help screen (`app/(tabs)/help.tsx`) is a single-screen landing page:
+- Hero: Round app icon with golden glow, title, tagline
+- 3 feature cards with round icons and captions
+- QR code (static asset) + documentation URL
+- Jellyfin acknowledgment footer
+- No scrolling required (TV-optimized)
 
 ## Known Issues & Limitations
 
