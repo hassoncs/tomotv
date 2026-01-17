@@ -53,6 +53,7 @@ function NativeSearchScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -68,9 +69,11 @@ function NativeSearchScreen() {
 
     if (query.trim().length < 2) {
       setSearchResults([]);
+      setIsSearching(false);
       return;
     }
 
+    setIsSearching(true);
     searchDelayRef.current = setTimeout(async () => {
       try {
         const { items } = await searchVideos(query.trim(), { limit: 60 });
@@ -84,6 +87,8 @@ function NativeSearchScreen() {
         );
       } catch {
         setSearchResults([]);
+      } finally {
+        setIsSearching(false);
       }
     }, 300);
   }, []);
@@ -101,7 +106,18 @@ function NativeSearchScreen() {
     [router, showGlobalLoader, searchResults],
   );
 
-  return <TvosSearchView results={searchResults} columns={5} placeholder="Search movies and videos..." onSearch={handleSearch} onSelectItem={handleSelectItem} style={styles.nativeSearchView} />;
+  return (
+    <TvosSearchView
+      results={searchResults}
+      columns={5}
+      placeholder="Search movies and videos..."
+      isLoading={isSearching}
+      topInset={140}
+      onSearch={handleSearch}
+      onSelectItem={handleSelectItem}
+      style={styles.nativeSearchView}
+    />
+  );
 }
 
 function ReactNativeSearchScreen() {

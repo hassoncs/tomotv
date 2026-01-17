@@ -26,7 +26,7 @@ const QUALITY_PRESETS = [
   { label: "1080p", bitrate: 8000000, width: 1920, height: 1080 }, // Increased from 5Mbps
 ];
 
-const DEFAULT_QUALITY = 2; // 720p (was 540p, better for Apple TV)
+const DEFAULT_QUALITY = 0; // 480p
 
 // Cached config for synchronous URL functions
 // Will be populated from SecureStore on first load
