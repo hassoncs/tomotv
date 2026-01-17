@@ -1,0 +1,27 @@
+{
+  "name": "expo-tvos-search",
+  "version": "1.0.0",
+  "description": "Native tvOS search view with SwiftUI .searchable modifier for Expo",
+  "main": "src/index.tsx",
+  "types": "src/index.tsx",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf build"
+  },
+  "keywords": [
+    "expo",
+    "tvos",
+    "search",
+    "swiftui",
+    "react-native"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  },
+  "devDependencies": {
+    "expo-modules-core": "~3.0.25"
+  }
+}

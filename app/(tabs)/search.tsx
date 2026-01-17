@@ -2,10 +2,11 @@ import { FocusableButton } from "@/components/FocusableButton";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
-import { searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
+import { getPosterUrl, searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
@@ -48,7 +49,62 @@ const SearchHeader = React.memo(
   },
 );
 
-export default function SearchScreen() {
+function NativeSearchScreen() {
+  const router = useRouter();
+  const { showGlobalLoader } = useLoading();
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    syncDevCredentials();
+  }, []);
+
+  const handleSearch = useCallback((event: { nativeEvent: { query: string } }) => {
+    const query = event.nativeEvent.query;
+
+    if (searchDelayRef.current) {
+      clearTimeout(searchDelayRef.current);
+    }
+
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    searchDelayRef.current = setTimeout(async () => {
+      try {
+        const { items } = await searchVideos(query.trim(), { limit: 60 });
+        setSearchResults(
+          items.map((item) => ({
+            id: item.Id,
+            title: item.Name,
+            subtitle: item.PremiereDate ? new Date(item.PremiereDate).getFullYear().toString() : undefined,
+            imageUrl: getPosterUrl(item.Id, 300),
+          })),
+        );
+      } catch {
+        setSearchResults([]);
+      }
+    }, 300);
+  }, []);
+
+  const handleSelectItem = useCallback(
+    (event: { nativeEvent: { id: string } }) => {
+      const videoId = event.nativeEvent.id;
+      const video = searchResults.find((r) => r.id === videoId);
+      showGlobalLoader();
+      router.push({
+        pathname: "/player" as const,
+        params: { videoId, videoName: video?.title ?? "Video" },
+      });
+    },
+    [router, showGlobalLoader, searchResults],
+  );
+
+  return <TvosSearchView results={searchResults} columns={5} placeholder="Search movies and videos..." onSearch={handleSearch} onSelectItem={handleSelectItem} style={styles.nativeSearchView} />;
+}
+
+function ReactNativeSearchScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
   const { isLoading, error } = useLibrary();
@@ -202,7 +258,6 @@ export default function SearchScreen() {
       const handle = findNodeHandle(node);
       setSearchInputHandle(handle ?? undefined);
     }
-    // Also set the regular ref for other uses
     (searchInputRef as React.MutableRefObject<TextInput | null>).current = node;
   }, []);
 
@@ -220,7 +275,7 @@ export default function SearchScreen() {
         />
       );
     },
-    [handleVideoPress, shouldShowResults, numColumns, searchInputHandle],
+    [handleVideoPress, shouldShowResults, numColumns, searchInputHandle, firstResultRef],
   );
 
   const renderFooter = useCallback(() => {
@@ -314,10 +369,8 @@ export default function SearchScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Fixed search header - never remounts */}
       {headerComponent}
 
-      {/* Content area */}
       {shouldShowResults ? (
         <FlatList
           data={searchResults}
@@ -344,8 +397,19 @@ export default function SearchScreen() {
   );
 }
 
+export default function SearchScreen() {
+  if (isNativeSearchAvailable()) {
+    return <NativeSearchScreen />;
+  }
+  return <ReactNativeSearchScreen />;
+}
+
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
+    backgroundColor: "#1C1C1E",
+  },
+  nativeSearchView: {
     flex: 1,
     backgroundColor: "#1C1C1E",
   },

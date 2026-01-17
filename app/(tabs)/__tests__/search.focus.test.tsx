@@ -191,10 +191,7 @@ describe("Search Screen Focus Navigation", () => {
       };
 
       // Props should be considered equal (no remount)
-      const areEqual =
-        prevProps.onChangeText === nextProps.onChangeText &&
-        prevProps.onSubmitEditing === nextProps.onSubmitEditing &&
-        prevProps.nextFocusDown === nextProps.nextFocusDown;
+      const areEqual = prevProps.onChangeText === nextProps.onChangeText && prevProps.onSubmitEditing === nextProps.onSubmitEditing && prevProps.nextFocusDown === nextProps.nextFocusDown;
 
       expect(areEqual).toBe(true);
     });
@@ -212,10 +209,7 @@ describe("Search Screen Focus Navigation", () => {
         nextFocusDown: 456, // Different value - first result changed
       };
 
-      const areEqual =
-        prevProps.onChangeText === nextProps.onChangeText &&
-        prevProps.onSubmitEditing === nextProps.onSubmitEditing &&
-        prevProps.nextFocusDown === nextProps.nextFocusDown;
+      const areEqual = prevProps.onChangeText === nextProps.onChangeText && prevProps.onSubmitEditing === nextProps.onSubmitEditing && prevProps.nextFocusDown === nextProps.nextFocusDown;
 
       // Props should be considered different (trigger update for focus)
       expect(areEqual).toBe(false);
