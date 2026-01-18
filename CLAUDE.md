@@ -294,6 +294,59 @@ mv .env.local.backup .env.local
 - Native tab support with `NativeTabs`
 - Menu button handling for navigation
 
+### tvOS App Icons & Top Shelf Images
+
+Located in `ios/tomotv/Images.xcassets/Brand Assets.brandassets/`
+
+**Required Structure:**
+```
+Brand Assets.brandassets/
+├── Contents.json
+├── App Icon.imagestack/           # Home screen icon (400x240)
+│   ├── Front.imagestacklayer/
+│   ├── Middle.imagestacklayer/
+│   └── Back.imagestacklayer/
+├── App Icon - App Store.imagestack/  # App Store icon (1280x768)
+│   ├── Front.imagestacklayer/
+│   ├── Middle.imagestacklayer/
+│   └── Back.imagestacklayer/
+├── Top Shelf Image.imageset/      # Top shelf (1920x720 @1x, @2x)
+└── Top Shelf Image Wide.imageset/ # Top shelf wide (2320x720 @1x, @2x)
+```
+
+**Critical Naming Requirements:**
+- Asset names in `Contents.json` must match exactly:
+  - `"App Icon"` (with space)
+  - `"App Icon - App Store"` (with spaces and hyphen)
+  - `"Top Shelf Image"` (with spaces)
+  - `"Top Shelf Image Wide"` (with spaces)
+
+**Xcode Project Settings (`project.pbxproj`):**
+```
+ASSETCATALOG_COMPILER_APPICON_NAME = "Brand Assets"
+```
+
+**Info.plist Required Keys:**
+```xml
+<key>CFBundleIcons</key>
+<dict>
+  <key>CFBundlePrimaryIcon</key>
+  <string>App Icon</string>
+</dict>
+<key>TVTopShelfImage</key>
+<dict>
+  <key>TVTopShelfPrimaryImage</key>
+  <string>Top Shelf Image</string>
+  <key>TVTopShelfPrimaryImageWide</key>
+  <string>Top Shelf Image Wide</string>
+</dict>
+```
+
+**Common Validation Errors:**
+- `Missing Info.plist Key 'CFBundleIcons.CFBundlePrimaryIcon'` → Add CFBundleIcons to Info.plist
+- `Missing 'TVTopShelfImage.TVTopShelfPrimaryImageWide'` → Add TVTopShelfImage to Info.plist
+- App icon not showing → Check `ASSETCATALOG_COMPILER_APPICON_NAME` matches brand assets folder name
+
 ## Common Patterns
 
 ### Adding a New Screen

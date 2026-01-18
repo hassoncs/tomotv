@@ -24,77 +24,33 @@ Alternative:
 
 ## Description (4,000 characters max)
 
-Transform your Apple TV into a personal cinema with TomoTV—the intelligent video player for Jellyfin media servers.
+**TomoTV** connects your Apple TV to your Jellyfin media server. Select a video, it plays. No codec errors, no configuration needed.
 
-**INTELLIGENT PLAYBACK**
-TomoTV automatically detects video codecs and handles transcoding behind the scenes. No more black screens or "unsupported format" errors. Just select a video and start watching.
+**HOW IT WORKS**
+• H.264 and HEVC play directly
+• Other formats (MPEG-4, VP8, DivX, etc.) transcode automatically
+• You won't notice the difference—it just plays
 
-• H.264 and HEVC videos play directly for maximum quality
-• Older formats (MPEG-4, VP8, VP9, AV1, DivX, Xvid) transcode automatically
-• Seamless retry with transcoding if direct play fails
-• Smart subtitle detection with automatic burn-in
-• Audio file support with dedicated playback UI
+**FEATURES**
+• Browse and search your library
+• Quality presets: 480p, 540p, 720p, 1080p
+• Subtitle support
+• Audio file playback
+• Playlist auto-continue
+• iCloud Keychain sync
 
-**NATIVE tvOS EXPERIENCE**
-Built specifically for the big screen with native Apple TV features:
-
-• Native tvOS search UI with keyboard integration
-• Smooth Siri Remote navigation with proper focus management
-• Folder navigation with breadcrumb trail—browse your library structure
-• Native video controls with Picture-in-Picture support
-• Automatic playlist continuation—next video starts when current ends
-• iCloud Keychain credential sync across all your Apple devices
-
-**POWERFUL SEARCH**
-Find your content fast with smart search features:
-
-• Search by title, folder name, or file path
-• Filter by year: "action 2023" or "thriller 90s"
-• Year ranges: "2019-2023" finds everything in between
-• TV series automatically expand to show individual episodes
-• Real-time results as you type
-
-**QUALITY CONTROL**
-Tune streaming quality to match your network:
-
-• 480p (1.5 Mbps) - Fast streaming, lower bandwidth
-• 540p (2.5 Mbps) - Balanced for most networks
-• 720p (4 Mbps) - Sharp picture, recommended default
-• 1080p (8 Mbps) - Maximum quality for strong networks
-
-**SECURE & PRIVATE**
-• No data collection or analytics whatsoever
-• No third-party tracking or advertising
-• Credentials stored in iCloud Keychain (Apple's secure storage)
-• Direct connection between your device and Jellyfin server
-• Works on local network (HTTP) or remotely (HTTPS)
-
-**SIMPLE SETUP**
-1. Install Jellyfin on your Mac, PC, or NAS
-2. Enter server address, API key, and user ID in Settings
-3. Browse and stream your entire video library
+**SETUP**
+1. Run Jellyfin on your Mac, PC, or NAS
+2. Enter server URL, API key, and user ID in Settings
+3. Done
 
 **REQUIREMENTS**
-• Jellyfin server (version 10.8 or later recommended)
-• Local network or HTTPS-enabled remote access
-• FFmpeg installed on server for transcoding
+• Jellyfin 10.8+
+• Transcoding enabled on server
+• Local network or HTTPS
 
-**SUPPORTED FORMATS**
-Direct Play: H.264, HEVC (H.265), AAC audio
-Transcoded: MPEG-4, VP8, VP9, AV1, VC-1, MPEG-2, DivX, Xvid, and more
-
-**PERFECT FOR**
-• Home media enthusiasts with large video collections
-• Users who chose Jellyfin for its open-source philosophy
-• Families sharing a media server across multiple Apple devices
-• Anyone tired of codec compatibility issues on Apple TV
-
-**WHAT MAKES TOMOTV DIFFERENT**
-Unlike other Jellyfin clients, TomoTV focuses on one thing: flawless video playback on Apple TV. No complex settings, no codec guessing, no failed streams. It just works.
-
-TomoTV is made by a Jellyfin user, for Jellyfin users. No subscriptions. No ads. No nonsense.
-
-Questions or issues? Visit our support page or reach out—we're here to help.
+**PRIVACY**
+No analytics. No tracking. No ads. Your credentials stay in iCloud Keychain. Video streams directly from your server.
 
 ---
 
@@ -113,6 +69,21 @@ Keywords Strategy:
 ---
 
 ## What's New (4,000 characters max)
+
+### Version 1.0.8
+**Audio Playback Support**
+
+**New Features:**
+• Audio files now visible when browsing folders in your library
+• Audio files auto-play when selected, consistent with video behavior
+• Dedicated audio player UI with play/pause controls
+
+**Improvements:**
+• Play/pause button auto-focuses on Apple TV remote
+• TV remote select button and play/pause button toggle playback
+• Improved button styling and visibility in audio player
+
+---
 
 ### Version 1.0.7
 **Stability & Polish**
@@ -360,8 +331,8 @@ Notes:
 
 ## Build Number & Version Notes
 
-**Version:** 1.0.7 (matches app.json)
-**Build Number:** 3 (increment with each submission)
+**Version:** 1.0.8 (matches app.json)
+**Build Number:** 4 (increment with each submission)
 
 **Version Naming Convention Going Forward:**
 - 1.0.x - Bug fixes, minor tweaks
