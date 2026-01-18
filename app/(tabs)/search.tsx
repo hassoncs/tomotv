@@ -117,8 +117,8 @@ function NativeSearchScreen() {
     <TvosSearchView
       results={searchResults}
       columns={5}
-      placeholder="Find by title, path, or year..."
-      emptyStateText="Search library"
+      placeholder="Search library"
+      emptyStateText="Find by title, season, or year..."
       isLoading={isSearching}
       topInset={140}
       onSearch={handleSearch}
