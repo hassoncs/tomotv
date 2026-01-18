@@ -33,6 +33,7 @@ Alternative:
 
 **FEATURES**
 • Browse and search your library
+• Full playlist support - browse and play from playlists
 • Quality presets: 480p, 540p, 720p, 1080p
 • Subtitle support
 • Audio file playback
@@ -69,6 +70,20 @@ Keywords Strategy:
 ---
 
 ## What's New (4,000 characters max)
+
+### Version 1.0.9
+**Playlist Support**
+
+**New Features:**
+• Full playlist support - browse and play videos from your Jellyfin playlists
+• Navigate into playlists just like folders with breadcrumb navigation
+• Play any video directly from a playlist
+
+**Technical:**
+• Added playlist-specific API endpoint for proper Jellyfin integration
+• Improved folder type detection for UserView and Playlist types
+
+---
 
 ### Version 1.0.8
 **Audio Playback Support**
@@ -331,8 +346,8 @@ Notes:
 
 ## Build Number & Version Notes
 
-**Version:** 1.0.8 (matches app.json)
-**Build Number:** 4 (increment with each submission)
+**Version:** 1.0.9 (matches app.json)
+**Build Number:** 5 (increment with each submission)
 
 **Version Naming Convention Going Forward:**
 - 1.0.x - Bug fixes, minor tweaks

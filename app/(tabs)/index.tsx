@@ -7,6 +7,7 @@ import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { isFolder, syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
+import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo } from "react";
@@ -51,11 +52,23 @@ export default function VideoLibraryScreen() {
 
   const handleItemPress = useCallback(
     (item: JellyfinItem) => {
+      // Debug logging to diagnose playlist item issues
+      logger.debug("Item pressed", {
+        service: "LibraryScreen",
+        itemId: item.Id,
+        itemName: item.Name,
+        itemType: item.Type,
+        isFolder: isFolder(item),
+        currentFolder: currentFolder?.name,
+        currentFolderType: currentFolder?.type,
+      });
+
       if (isFolder(item)) {
         navigateToFolder({
           id: item.Id,
           name: item.Name,
           parentId: item.ParentId,
+          type: item.Type === "Playlist" ? "playlist" : "folder",
         });
       } else {
         showGlobalLoader();
@@ -68,7 +81,7 @@ export default function VideoLibraryScreen() {
         });
       }
     },
-    [navigateToFolder, router, showGlobalLoader],
+    [navigateToFolder, router, showGlobalLoader, currentFolder],
   );
 
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
