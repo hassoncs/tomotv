@@ -619,6 +619,12 @@ async function fetchSeriesEpisodes(config: JellyfinConfig, seriesId: string, ser
  * - Path/folder name (via SearchTerm)
  * - Year: "action 2023", "(2020)", "2019-2023"
  * - Series name (automatically expands to episodes)
+ *
+ * Note on pagination with series expansion:
+ * When Series items are found, they are expanded into their episodes. The returned
+ * total reflects the actual number of playable items (episodes + other videos), not
+ * the server's original TotalRecordCount. This means pagination counts episodes, not
+ * series, which provides accurate information for displaying results to users.
  */
 export async function searchVideos(searchTerm: string, { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {}): Promise<{ items: JellyfinVideoItem[]; total?: number }> {
   const trimmed = searchTerm.trim();
