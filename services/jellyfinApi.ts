@@ -682,10 +682,16 @@ export async function searchVideos(searchTerm: string, { limit = 60, startIndex 
         for (const episodes of episodeResults) {
           playableItems.push(...episodes);
         }
+
+        // When series expansion occurs, use actual item count instead of server total
+        // because the server's TotalRecordCount doesn't account for expanded episodes
+        return {
+          items: playableItems,
+          total: playableItems.length,
+        };
       }
 
-      // Preserve original server total for proper pagination
-      // Only use playableItems.length if server didn't provide total
+      // No series expansion: use original server total for proper pagination
       return {
         items: playableItems,
         total: result.total ?? playableItems.length,
