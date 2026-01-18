@@ -9,7 +9,7 @@ type ColorScheme = 'light' | 'dark' | null;
  */
 export function useColorScheme(): ColorScheme {
   const [hasHydrated, setHasHydrated] = useState(false);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(null);
+  const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
 
   useEffect(() => {
     setHasHydrated(true);
