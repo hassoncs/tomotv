@@ -68,12 +68,14 @@ The native tvOS search functionality is maintained in a **separate repository**:
 - **Package reference**: `"expo-tvos-search": "github:keiver/expo-tvos-search"`
 
 This package provides a native SwiftUI search interface for tvOS using the `.searchable` modifier. It handles:
+
 - Native tvOS keyboard integration
 - Grid display of search results with poster images
 - Focus management and card styling
 - Fixed 280x420 card dimensions (2:3 aspect ratio) for consistent layout
 
 **When modifying search UI behavior:**
+
 1. Make changes in `~/@keiver/expo-tvos-search/ios/ExpoTvosSearchView.swift`
 2. Commit and push to the repo
 3. Update this project: `npm install github:keiver/expo-tvos-search#branch-name`
@@ -140,7 +142,7 @@ Important functions:
 
 - `getConfig()` - Retrieve cached Jellyfin configuration
 - `syncDevCredentials()` - Sync dev env vars to SecureStore on app load
-- `fetchVideos()` - Get all videos with retry logic
+- `fetchLibraryVideos()` - Get paginated videos with retry logic (fetchVideos is deprecated)
 - `fetchVideoDetails()` - Get video metadata and codec info
 - `getVideoStreamUrl()` - Direct download URL (for supported codecs)
 - `getTranscodingStreamUrl()` - HLS master.m3u8 URL with quality settings
@@ -260,11 +262,13 @@ The API key must be included in query parameters for certain URLs consumed by na
 - **Download URLs:** Direct file download URLs
 
 This is a Jellyfin API requirement - these native components cannot add custom headers to requests. The API key will appear in:
+
 - Server access logs
 - Browser history (web platform)
 - Network capture tools during debugging
 
 **Mitigations:**
+
 - Use HTTPS for remote servers (encrypts URLs in transit)
 - API keys have limited scope (Jellyfin API access only, not system-level)
 - Users can regenerate API keys from Jellyfin dashboard if compromised
@@ -296,56 +300,7 @@ mv .env.local.backup .env.local
 
 ### tvOS App Icons & Top Shelf Images
 
-Located in `ios/tomotv/Images.xcassets/Brand Assets.brandassets/`
-
-**Required Structure:**
-```
-Brand Assets.brandassets/
-├── Contents.json
-├── App Icon.imagestack/           # Home screen icon (400x240)
-│   ├── Front.imagestacklayer/
-│   ├── Middle.imagestacklayer/
-│   └── Back.imagestacklayer/
-├── App Icon - App Store.imagestack/  # App Store icon (1280x768)
-│   ├── Front.imagestacklayer/
-│   ├── Middle.imagestacklayer/
-│   └── Back.imagestacklayer/
-├── Top Shelf Image.imageset/      # Top shelf (1920x720 @1x, @2x)
-└── Top Shelf Image Wide.imageset/ # Top shelf wide (2320x720 @1x, @2x)
-```
-
-**Critical Naming Requirements:**
-- Asset names in `Contents.json` must match exactly:
-  - `"App Icon"` (with space)
-  - `"App Icon - App Store"` (with spaces and hyphen)
-  - `"Top Shelf Image"` (with spaces)
-  - `"Top Shelf Image Wide"` (with spaces)
-
-**Xcode Project Settings (`project.pbxproj`):**
-```
-ASSETCATALOG_COMPILER_APPICON_NAME = "Brand Assets"
-```
-
-**Info.plist Required Keys:**
-```xml
-<key>CFBundleIcons</key>
-<dict>
-  <key>CFBundlePrimaryIcon</key>
-  <string>App Icon</string>
-</dict>
-<key>TVTopShelfImage</key>
-<dict>
-  <key>TVTopShelfPrimaryImage</key>
-  <string>Top Shelf Image</string>
-  <key>TVTopShelfPrimaryImageWide</key>
-  <string>Top Shelf Image Wide</string>
-</dict>
-```
-
-**Common Validation Errors:**
-- `Missing Info.plist Key 'CFBundleIcons.CFBundlePrimaryIcon'` → Add CFBundleIcons to Info.plist
-- `Missing 'TVTopShelfImage.TVTopShelfPrimaryImageWide'` → Add TVTopShelfImage to Info.plist
-- App icon not showing → Check `ASSETCATALOG_COMPILER_APPICON_NAME` matches brand assets folder name
+See `CLAUDE-tvos-icons.md` for detailed tvOS icon setup, folder structure, naming requirements, and common validation errors.
 
 ## Common Patterns
 
@@ -428,16 +383,19 @@ logger.error("Operation failed", { error: err });
 The search screen (`app/(tabs)/search.tsx`) has two implementations:
 
 **Native tvOS Search** (when `isNativeSearchAvailable()` returns true):
+
 - Uses `expo-tvos-search` package (external repo - see External Repositories section)
 - Native SwiftUI `.searchable` modifier for keyboard integration
 - Fixed 280x420 card grid with poster images
 - To modify UI: edit `~/@keiver/expo-tvos-search/ios/ExpoTvosSearchView.swift`
 
 **React Native Fallback** (iOS/Android):
+
 - Debounced text input (300ms delay)
 - Same grid layout as library view using `VideoGridItem` component
 
 **Search API** (`services/jellyfinApi.ts`):
+
 - `searchVideos()` searches across all libraries (Movies, Shows, Music)
 - Supports year filtering: "action 2023", "90s", "2019-2023"
 - Automatically expands Series results to playable Episodes
@@ -506,25 +464,17 @@ The help screen (`app/(tabs)/help.tsx`) is a single-screen landing page:
 
 ## Additional Resources
 
-- `DEVELOPMENT.md` - Detailed development setup guide
-- `PERFORMANCE_ANALYSIS.md` - Performance optimization notes
-- `TVOS_ICONS.md` - Apple TV icon guidelines
+- `CLAUDE-development.md` - Development setup guide
+- `CLAUDE-app-performance.md` - Performance optimization notes
+- `CLAUDE-tvos-icons.md` - Apple TV icon guidelines
+- `CLAUDE-apple-store-metadata.md` - App Store copy and metadata
+- `CLAUDE-apple-store-checklist.md` - Submission checklist
+- `CLAUDE-image-analysis.md` - Image analysis skill
 - `.env.example` - Environment variable template
 
 ## RULES
 
-1. Unless intentionally, DO NOT run commands on the `node_modules` directory, it only wates tokens.
+1. Unless intentionally, DO NOT run commands on the `node_modules` directory
 
-- stop searching node_modules unless required to inspect current lib implementation, I feel you are wasting token by doing this
-- your initial code proposed for any solution needs to be prod ready, you can not relay on running a linter to make sure the code adhers to current code conventions and prod readines
+- Stop searching node_modules unless required to inspect current lib implementation
 
-## Image analysis
-
-See CLAUDE-image-analysis.md for how to analyze and describe images attached to chats.
-
-- stop searching node_modules unless required to inspect current lib implementation, I feel you are wasting token by doing this
-- your initial code proposed for any solution needs to be prod ready, you can not relay on running a linter to make sure the code adhers to current code conventions and prod readines
-
-## Image analysis
-
-See CLAUDE-image-analysis.md for how to analyze and describe images attached to chats.
