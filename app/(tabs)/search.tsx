@@ -4,12 +4,12 @@ import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { getPosterUrl, searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
+import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
-import { logger } from "@/utils/logger";
 
 interface SearchHeaderProps {
   onChangeText: (text: string) => void;
@@ -117,7 +117,8 @@ function NativeSearchScreen() {
     <TvosSearchView
       results={searchResults}
       columns={5}
-      placeholder="Search by title, path, or year..."
+      placeholder="Find by title, path, or year..."
+      emptyStateText="Search library"
       isLoading={isSearching}
       topInset={140}
       onSearch={handleSearch}

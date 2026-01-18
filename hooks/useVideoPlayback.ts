@@ -425,11 +425,8 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           dispatch({ type: "PLAYER_READY" });
         });
 
-        // Check if this is audio-only (skip auto-play for audio to avoid threading issues)
-        const isAudio = videoDetails ? isAudioOnly(videoDetails) : false;
-
-        // Auto-play on first ready (but skip for audio-only files)
-        if (!autoPlayTriggeredRef.current && isMountedRef.current && !isAudio) {
+        // Auto-play on first ready
+        if (!autoPlayTriggeredRef.current && isMountedRef.current) {
           logger.debug("Scheduling auto-play", { service: "useVideoPlayback" });
 
           // Clear any existing timer
@@ -471,8 +468,6 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
             autoPlayTimerRef.current = null;
           }, 100);
-        } else if (isAudio) {
-          logger.info("Audio-only file - skipping auto-play, user must tap play button", { service: "useVideoPlayback" });
         }
       } else if (payload.status === "error") {
         const currentMode = currentModeRef.current;

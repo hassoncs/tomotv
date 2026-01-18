@@ -658,7 +658,8 @@ export function isFolder(item: JellyfinItem): boolean {
     item.Type === "BoxSet" ||
     item.Type === "MusicAlbum" ||
     item.Type === "MusicArtist" ||
-    item.Type === "PhotoAlbum"
+    item.Type === "PhotoAlbum" ||
+    item.Type === "Playlist"
   );
 }
 
@@ -736,7 +737,7 @@ export async function fetchFolderContents(
     async () => {
       const query = new URLSearchParams({
         ParentId: parentId,
-        IncludeItemTypes: "Movie,Video,Folder,CollectionFolder,Series,Season,Episode,BoxSet,MusicAlbum,MusicArtist,PhotoAlbum",
+        IncludeItemTypes: "Movie,Video,Folder,CollectionFolder,Series,Season,Episode,BoxSet,MusicAlbum,MusicArtist,PhotoAlbum,Playlist",
         Fields: "Path,MediaStreams,Genres,ChildCount,ParentId",
         StartIndex: String(startIndex),
         Limit: String(limit),

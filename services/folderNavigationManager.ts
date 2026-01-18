@@ -160,7 +160,7 @@ class FolderNavigationManager {
   }
 
   /**
-   * Load root level and auto-navigate into first library
+   * Load root level (library selection)
    */
   async loadRoot(): Promise<void> {
     logger.info("Loading root libraries", {
@@ -170,26 +170,6 @@ class FolderNavigationManager {
     // Start with empty stack (library selection state)
     this.folderStack = []
     await this.loadFolderContents(null)
-
-    // Auto-navigate into first library if available
-    if (this.items.length > 0) {
-      const firstLibrary = this.items[0]
-      logger.info("Auto-navigating into first library", {
-        service: "FolderNavigationManager",
-        libraryId: firstLibrary.Id,
-        libraryName: firstLibrary.Name
-      })
-
-      // Library becomes the root of the stack
-      this.folderStack = [
-        {
-          id: firstLibrary.Id,
-          name: firstLibrary.Name,
-          parentId: firstLibrary.ParentId
-        }
-      ]
-      await this.loadFolderContents(firstLibrary.Id)
-    }
   }
 
   /**
