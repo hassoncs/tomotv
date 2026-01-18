@@ -537,7 +537,10 @@ describe("jellyfinApi", () => {
 
     it("should fail after max retry attempts", async () => {
       // All attempts fail with network error (retryable)
-      (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("Network error")).mockRejectedValueOnce(new Error("Network error")).mockRejectedValueOnce(new Error("Network error"));
+      (global.fetch as jest.Mock)
+        .mockRejectedValueOnce(new Error("Network error"))
+        .mockRejectedValueOnce(new Error("Network error"))
+        .mockRejectedValueOnce(new Error("Network error"));
 
       await expect(fetchPlaylistContents("playlist-fail")).rejects.toThrow("Network error");
       expect(global.fetch).toHaveBeenCalledTimes(3);
