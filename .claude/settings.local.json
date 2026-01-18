@@ -34,7 +34,8 @@
       "Bash(npm --version)",
       "Bash(git commit:*)",
       "Bash(npx ts-node:*)",
-      "Bash(git stash show:*)"
+      "Bash(git stash show:*)",
+      "Bash(ls:*)"
     ],
     "deny": [],
     "ask": []

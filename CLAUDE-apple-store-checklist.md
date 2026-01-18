@@ -129,7 +129,7 @@ Then update `tomotv.tsx` to use real screenshots instead of placeholders (lines 
 2. Update App Store button URLs in `tomotv.tsx` line 128:
 
    ```tsx
-   appStoreUrl="https://apps.apple.com/us/app/tomotv/YOUR_APP_ID"
+   appStoreUrl = "https://apps.apple.com/us/app/tomotv/YOUR_APP_ID";
    ```
 
 ### 4. Take Apple TV Screenshots (1920x1080)
@@ -256,5 +256,3 @@ If you encounter issues:
 2. Verify app.json is valid JSON
 3. Test app on physical Apple TV device
 4. Review APP_STORE_COPY.md for any missing metadata
-
-**You're in great shape!** The hard work is done—now it's just execution. 🚀
