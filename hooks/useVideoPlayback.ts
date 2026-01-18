@@ -646,12 +646,8 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     state.type === "FETCHING_METADATA" ||
     state.type === "CREATING_STREAM" ||
     state.type === "INITIALIZING_PLAYER" ||
-    // For audio files, hide loading once READY (waiting for manual play)
-    // For video files, show loading during READY state (auto-play is starting)
-    (state.type === "READY" && !isAudioOnlyFile) ||
-    // For audio files, never show loading during PLAYING state
-    // For video files, show loading until stable playback is achieved
-    (state.type === "PLAYING" && !isAudioOnlyFile && !hasStablePlayback);
+    state.type === "READY" ||
+    (state.type === "PLAYING" && !hasStablePlayback);
 
   const showLoadingOverlay = isLoading;
 

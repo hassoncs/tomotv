@@ -5,7 +5,7 @@ import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { VideoView } from "expo-video";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, BackHandler, InteractionManager, LogBox, Platform, StyleSheet, Text, TouchableOpacity, useTVEventHandler, View } from "react-native";
 
 // Suppress known warnings
@@ -67,22 +67,17 @@ export default function VideoPlayerScreen() {
   // Track playing state for audio UI
   const [isPlaying, setIsPlaying] = useState(false);
 
+  // Callback ref for play/pause button - focuses immediately when mounted on TV
+  const playPauseButtonRef = useCallback((node: TouchableOpacity | null) => {
+    if (node && Platform.isTV) {
+      (node as unknown as { requestTVFocus: () => void }).requestTVFocus();
+    }
+  }, []);
+
   // Hide global loader when component mounts
   useEffect(() => {
     hideGlobalLoader();
   }, [hideGlobalLoader]);
-
-  // Handle TV remote events
-  useTVEventHandler(
-    useCallback(
-      (evt: { eventType: string }) => {
-        if (evt.eventType === "menu") {
-          handleBack();
-        }
-      },
-      [handleBack],
-    ),
-  );
 
   // Handle back navigation
   const handleBack = useCallback(() => {
@@ -95,6 +90,37 @@ export default function VideoPlayerScreen() {
     }
     router.back();
   }, [player, router]);
+
+  // Toggle play/pause for audio
+  const handlePlayPause = useCallback(() => {
+    if (!player) return;
+
+    try {
+      if (isPlaying) {
+        player.pause();
+      } else {
+        player.play();
+      }
+    } catch (error) {
+      logger.error("Error toggling playback", error, { service: "VideoPlayer" });
+    }
+  }, [player, isPlaying]);
+
+  // Handle TV remote events
+  useTVEventHandler(
+    useCallback(
+      (evt: { eventType: string }) => {
+        if (evt.eventType === "menu") {
+          handleBack();
+        }
+        // Handle play/pause for audio files via remote buttons
+        if (isAudioOnly && (evt.eventType === "playPause" || evt.eventType === "select")) {
+          handlePlayPause();
+        }
+      },
+      [handleBack, isAudioOnly, handlePlayPause],
+    ),
+  );
 
   // Handle Android TV back button
   useEffect(() => {
@@ -134,21 +160,6 @@ export default function VideoPlayerScreen() {
       subscription.remove();
     };
   }, [player, isAudioOnly]);
-
-  // Toggle play/pause for audio
-  const handlePlayPause = useCallback(() => {
-    if (!player) return;
-
-    try {
-      if (isPlaying) {
-        player.pause();
-      } else {
-        player.play();
-      }
-    } catch (error) {
-      logger.error("Error toggling playback", error, { service: "VideoPlayer" });
-    }
-  }, [player, isPlaying]);
 
   // Render error state (but not if auto-retry is in progress)
   if (state.type === "ERROR") {
@@ -191,11 +202,15 @@ export default function VideoPlayerScreen() {
           <Text style={styles.audioSubtitle}>Audio File</Text>
 
           {/* Play/Pause Button */}
-          {!showLoadingOverlay && (
-            <TouchableOpacity style={styles.playPauseButton} onPress={handlePlayPause} isTVSelectable={true} hasTVPreferredFocus={true}>
-              <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            ref={playPauseButtonRef}
+            style={styles.playPauseButton}
+            onPress={handlePlayPause}
+            activeOpacity={1}
+            isTVSelectable={true}
+          >
+            <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
         {/* Back button */}
@@ -287,11 +302,12 @@ const styles = StyleSheet.create({
     width: Platform.isTV ? 120 : 96,
     height: Platform.isTV ? 120 : 96,
     borderRadius: Platform.isTV ? 60 : 48,
-    // backgroundColor: "rgba(255, 195, 18, 0.2)",
     borderWidth: 3,
-    borderColor: "rgba(255, 195, 18, 1)",
+    borderColor: "#FFC312",
+    backgroundColor: "rgba(255, 195, 18, 0.15)",
     justifyContent: "center",
     alignItems: "center",
+    opacity: 1,
   },
   errorContainer: {
     flex: 1,

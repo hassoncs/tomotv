@@ -737,7 +737,7 @@ export async function fetchFolderContents(
     async () => {
       const query = new URLSearchParams({
         ParentId: parentId,
-        IncludeItemTypes: "Movie,Video,Folder,CollectionFolder,Series,Season,Episode,BoxSet,MusicAlbum,MusicArtist,PhotoAlbum,Playlist",
+        IncludeItemTypes: "Movie,Video,Audio,Folder,CollectionFolder,Series,Season,Episode,BoxSet,MusicAlbum,MusicArtist,PhotoAlbum,Playlist",
         Fields: "Path,MediaStreams,Genres,ChildCount,ParentId",
         StartIndex: String(startIndex),
         Limit: String(limit),
