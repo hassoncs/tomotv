@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     width: 44,
-    backgroundColor: "rgba(0, 0, 0, 0.3)",
+    backgroundColor: "#B339391E",
     overflow: "hidden",
   },
   rotatedContent: {
