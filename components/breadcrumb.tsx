@@ -1,3 +1,4 @@
+import { COLORS } from "@/constants/app";
 import { FolderStackEntry } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
 import { Dimensions, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -16,7 +17,7 @@ function BreadcrumbItem({ entry, isLast }: { entry: FolderStackEntry; isLast: bo
       <Text style={[styles.breadcrumbText, isLast && styles.breadcrumbTextCurrent]} numberOfLines={1}>
         {entry.name}
       </Text>
-      {!isLast && <Ionicons name="chevron-forward" size={IS_TV ? 20 : 16} color="#FFC312" style={styles.separator} />}
+      {!isLast && <Ionicons name="chevron-forward" size={IS_TV ? 20 : 16} color={COLORS.PRIMARY} style={styles.separator} />}
     </View>
   );
 }
@@ -75,7 +76,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   breadcrumbText: {
-    color: "#4CD964",
+    color: COLORS.SUCCESS,
     fontSize: IS_TV ? 20 : 16,
     fontWeight: "600",
   },
