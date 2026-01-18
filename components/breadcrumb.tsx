@@ -81,10 +81,10 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   breadcrumbTextCurrent: {
-    color: "#FFFFFF",
+    color: COLORS.TEXT_PRIMARY,
   },
   breadcrumbTextPlaceholder: {
-    color: "#98989D",
+    color: COLORS.TEXT_SECONDARY,
     fontSize: IS_TV ? 20 : 16,
     fontWeight: "600",
     fontStyle: "italic",
