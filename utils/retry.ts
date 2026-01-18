@@ -13,22 +13,51 @@ export interface RetryOptions {
   retryableErrors?: string[];
 }
 
+// More specific patterns to avoid false positives on errors containing "network" or "fetch" broadly
+// These patterns match actual transient/retryable network errors
+const RETRYABLE_PATTERNS: RegExp[] = [
+  /network\s*(error|request|fail|issue)/i, // Network-specific errors
+  /fetch\s*(error|fail|abort)/i, // Fetch-specific errors
+  /request\s*timeout/i, // Request timeouts
+  /timed?\s*out/i, // General timeouts
+  /connection\s*(refused|reset|closed|timeout|error)/i, // Connection issues
+  /econnreset/i, // Connection reset by peer
+  /econnrefused/i, // Connection refused
+  /enotfound/i, // DNS resolution failures
+  /etimedout/i, // Connection timeout
+  /socket\s*(hang|closed|error)/i, // Socket issues
+  /temporarily\s*unavailable/i, // Temporary server issues (503)
+  /service\s*unavailable/i, // Service unavailable
+  /bad\s*gateway/i, // 502 gateway errors
+  /gateway\s*timeout/i, // 504 gateway timeout
+  /too\s*many\s*requests/i, // Rate limiting (429)
+  /aborted/i, // AbortController aborts (timeouts)
+];
+
 const DEFAULT_OPTIONS: Required<RetryOptions> = {
   maxAttempts: 3,
   initialDelayMs: 1000, // 1 second
   maxDelayMs: 10000, // 10 seconds
   backoffMultiplier: 2,
-  retryableErrors: ['timeout', 'network', 'fetch', 'ECONNREFUSED', 'ETIMEDOUT']
+  retryableErrors: [] // Kept for backward compatibility but patterns are now preferred
 };
 
 /**
- * Check if an error is retryable
+ * Check if an error is retryable using specific patterns
+ * More reliable than substring matching to avoid false positives
  */
-function isRetryableError(error: any, retryableErrors: string[]): boolean {
+function isRetryableError(error: unknown, retryableErrors: string[]): boolean {
   if (!error) return false;
 
-  const errorMessage = error.message?.toLowerCase() || String(error).toLowerCase();
+  const errorMessage = error instanceof Error
+    ? error.message.toLowerCase()
+    : String(error).toLowerCase();
 
+  // First check against specific patterns (preferred)
+  const matchesPattern = RETRYABLE_PATTERNS.some((pattern) => pattern.test(errorMessage));
+  if (matchesPattern) return true;
+
+  // Fall back to legacy keyword matching for backward compatibility
   return retryableErrors.some((retryable) => errorMessage.includes(retryable.toLowerCase()));
 }
 

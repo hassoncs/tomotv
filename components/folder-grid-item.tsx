@@ -1,3 +1,4 @@
+import { DESIGN } from "@/constants/app";
 import { getFolderThumbnailUrl } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
 import { BlurView } from "expo-blur";
@@ -102,14 +103,14 @@ const styles = StyleSheet.create({
     padding: CARD_PADDING,
   },
   card: {
-    borderRadius: 32,
+    borderRadius: DESIGN.BORDER_RADIUS_CARD,
     backgroundColor: "transparent",
     overflow: "hidden",
   },
   imageContainer: {
     width: "100%",
     aspectRatio: 2 / 3,
-    borderRadius: 32,
+    borderRadius: DESIGN.BORDER_RADIUS_CARD,
     overflow: "hidden",
     backgroundColor: "#1C1C1E",
   },
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 32,
+    borderRadius: DESIGN.BORDER_RADIUS_CARD,
     borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.15)",
   },
@@ -155,7 +156,7 @@ const styles = StyleSheet.create({
     top: IS_TV ? 16 : 10,
     right: IS_TV ? 16 : 10,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderRadius: IS_TV ? 12 : 8,
+    borderRadius: IS_TV ? DESIGN.BORDER_RADIUS_MEDIUM : DESIGN.BORDER_RADIUS_SMALL,
     padding: IS_TV ? 8 : 6,
   },
   infoOverlay: {

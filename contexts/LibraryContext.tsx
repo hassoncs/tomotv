@@ -8,10 +8,10 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import { AppState, AppStateStatus } from "react-native";
 import { libraryManager } from "@/services/libraryManager";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
+import { useAppStateRefresh } from "@/hooks/useAppStateRefresh";
 
 interface LibraryContextType {
   videos: JellyfinVideoItem[];
@@ -44,14 +44,18 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     initialState.libraryName,
   );
 
+  // Use ref for isFirstCall to handle both sync and async subscription callbacks
+  const isFirstCallRef = useRef(true);
+
   // Subscribe to singleton state changes
   useEffect(() => {
-    let isFirstCall = true;
+    // Reset on mount in case of strict mode re-runs
+    isFirstCallRef.current = true;
 
     const unsubscribe = libraryManager.subscribe((state) => {
       // Skip first call since we already initialized from getState()
-      if (isFirstCall) {
-        isFirstCall = false;
+      if (isFirstCallRef.current) {
+        isFirstCallRef.current = false;
         logger.debug("Skipping first notification (already initialized)", {
           context: "LibraryContext",
         });
@@ -82,31 +86,11 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
-  // Track app state for foreground refresh
-  const appState = useRef<AppStateStatus>(AppState.currentState);
-
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      // Refresh library when app comes to foreground (background/inactive -> active)
-      if (
-        appState.current.match(/inactive|background/) &&
-        nextAppState === "active"
-      ) {
-        logger.info("App came to foreground, refreshing library", {
-          context: "LibraryContext",
-          previousState: appState.current,
-        });
-        libraryManager.refreshLibrary();
-      }
-      appState.current = nextAppState;
-    };
-
-    const subscription = AppState.addEventListener("change", handleAppStateChange);
-
-    return () => {
-      subscription.remove();
-    };
+  // Refresh library when app comes to foreground
+  const handleForegroundRefresh = useCallback(() => {
+    libraryManager.refreshLibrary();
   }, []);
+  useAppStateRefresh(handleForegroundRefresh, "LibraryContext");
 
   // Stable function references (no dependencies needed)
   const loadLibrary = useCallback(
@@ -126,6 +110,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
     await libraryManager.loadMore();
   }, []);
 
+  // Only memoize stable function references - the state values will change naturally
+  // This prevents unnecessary object recreation while still allowing state updates
   const value = useMemo(
     () => ({
       videos,
@@ -138,6 +124,8 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
       loadLibrary,
       loadMore,
     }),
+    // Note: State values are intentionally included to trigger re-renders when they change
+    // The useCallback wrappers on functions make them stable, so this is optimized
     [videos, isLoading, isLoadingMore, hasMoreResults, error, libraryName, refreshLibrary, loadLibrary, loadMore],
   );
 

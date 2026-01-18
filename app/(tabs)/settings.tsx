@@ -2,6 +2,8 @@ import { FocusableButton } from "@/components/FocusableButton";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { fetchVideos, refreshConfig } from "@/services/jellyfinApi";
+import { folderNavigationManager } from "@/services/folderNavigationManager";
+import { libraryManager } from "@/services/libraryManager";
 import { useRouter } from "expo-router";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
@@ -70,7 +72,6 @@ export default function SettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Refs for text fields
   const serverUrlRef = useRef<TextInput>(null);
@@ -212,6 +213,11 @@ export default function SettingsScreen() {
 
       // Refresh config and test
       await refreshConfig();
+
+      // Clear manager caches to prevent stale data from old server
+      libraryManager.clearCache();
+      folderNavigationManager.clearCache();
+
       const videos = await fetchVideos();
 
       // Refresh both contexts to update the home screen
@@ -253,6 +259,10 @@ export default function SettingsScreen() {
       // Refresh the API service config cache
       await refreshConfig();
 
+      // Clear manager caches to prevent stale data from old server
+      libraryManager.clearCache();
+      folderNavigationManager.clearCache();
+
       // Refresh both contexts so the home screen updates
       logger.info("Settings saved - refreshing contexts and navigating to Library", {
         screen: "settings",
@@ -261,7 +271,7 @@ export default function SettingsScreen() {
       await refreshFolderNavigation();
 
       // Navigate to Library tab - this is the user feedback
-      router.navigate("/(tabs)/");
+      router.navigate("/(tabs)");
     } catch (error) {
       logger.error("Error saving settings", error);
       Alert.alert("Error", "Failed to save settings to iCloud");
@@ -359,22 +369,6 @@ Video Quality: ${qualityLabel}
       },
     ]);
   };
-
-  // const handleRefreshLibrary = useCallback(async () => {
-  //   try {
-  //     setIsRefreshing(true);
-  //     logger.info("Manual library refresh triggered from settings", {
-  //       screen: "settings",
-  //     });
-  //     await refreshLibrary();
-  //     Alert.alert("Success", "Library refreshed successfully!");
-  //   } catch (error) {
-  //     logger.error("Error refreshing library", error);
-  //     Alert.alert("Error", "Failed to refresh library");
-  //   } finally {
-  //     setIsRefreshing(false);
-  //   }
-  // }, [refreshLibrary]);
 
   if (isLoading) {
     return (
@@ -559,20 +553,6 @@ Video Quality: ${qualityLabel}
               marginHorizontal: "auto",
             }}
           />
-          {/* <FocusableButton
-                title="Refresh Library"
-                variant="secondary"
-                onPress={handleRefreshLibrary}
-                disabled={isRefreshing || isSaving || isTesting}
-                isLoading={isRefreshing}
-                icon={<Ionicons name="refresh-outline" size={Platform.isTV ? 24 : 20} color="#FFFFFF" />}
-                style={{
-                  marginTop: Platform.isTV ? 16 : 12,
-                  width: "100%",
-                  maxWidth: 400,
-                  marginHorizontal: "auto",
-                }}
-              /> */}
         </View>
       </ScrollView>
     </View>

@@ -1,3 +1,4 @@
+import {CACHE} from "@/constants/app"
 import {fetchLibraryName, fetchLibraryVideos} from "@/services/jellyfinApi"
 import {JellyfinVideoItem} from "@/types/jellyfin"
 import {logger} from "@/utils/logger"
@@ -33,8 +34,7 @@ class LibraryManager {
 
   private listeners: Set<LibraryListener> = new Set()
 
-  // Cache TTL: 5 minutes
-  private readonly CACHE_TTL = 5 * 60 * 1000
+  private readonly CACHE_TTL = CACHE.DEFAULT_TTL_MS
   private readonly PAGE_SIZE = 60
 
   private constructor() {

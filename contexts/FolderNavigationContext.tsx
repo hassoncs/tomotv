@@ -8,10 +8,10 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import { AppState, AppStateStatus } from "react-native";
 import { folderNavigationManager } from "@/services/folderNavigationManager";
 import { FolderStackEntry, JellyfinItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
+import { useAppStateRefresh } from "@/hooks/useAppStateRefresh";
 
 interface FolderNavigationContextType {
   items: JellyfinItem[];
@@ -41,12 +41,16 @@ export function FolderNavigationProvider({ children }: { children: ReactNode }) 
   const [error, setError] = useState<string | null>(initialState.error);
   const [folderStack, setFolderStack] = useState<FolderStackEntry[]>(initialState.folderStack);
 
+  // Use ref for isFirstCall to handle both sync and async subscription callbacks
+  const isFirstCallRef = useRef(true);
+
   useEffect(() => {
-    let isFirstCall = true;
+    // Reset on mount in case of strict mode re-runs
+    isFirstCallRef.current = true;
 
     const unsubscribe = folderNavigationManager.subscribe((state) => {
-      if (isFirstCall) {
-        isFirstCall = false;
+      if (isFirstCallRef.current) {
+        isFirstCallRef.current = false;
         logger.debug("Skipping first notification (already initialized)", {
           context: "FolderNavigationContext",
         });
@@ -75,26 +79,11 @@ export function FolderNavigationProvider({ children }: { children: ReactNode }) 
     return unsubscribe;
   }, []);
 
-  // Track app state for foreground refresh
-  const appState = useRef<AppStateStatus>(AppState.currentState);
-
-  useEffect(() => {
-    const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (appState.current.match(/inactive|background/) && nextAppState === "active") {
-        logger.info("App came to foreground, refreshing folder contents", {
-          context: "FolderNavigationContext",
-        });
-        folderNavigationManager.refresh();
-      }
-      appState.current = nextAppState;
-    };
-
-    const subscription = AppState.addEventListener("change", handleAppStateChange);
-
-    return () => {
-      subscription.remove();
-    };
+  // Refresh folder contents when app comes to foreground
+  const handleForegroundRefresh = useCallback(() => {
+    folderNavigationManager.refresh();
   }, []);
+  useAppStateRefresh(handleForegroundRefresh, "FolderNavigationContext");
 
   const navigateToFolder = useCallback(async (folder: FolderStackEntry) => {
     await folderNavigationManager.navigateToFolder(folder);
