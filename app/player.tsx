@@ -202,13 +202,7 @@ export default function VideoPlayerScreen() {
           <Text style={styles.audioSubtitle}>Audio File</Text>
 
           {/* Play/Pause Button */}
-          <TouchableOpacity
-            ref={playPauseButtonRef}
-            style={styles.playPauseButton}
-            onPress={handlePlayPause}
-            activeOpacity={1}
-            isTVSelectable={true}
-          >
+          <TouchableOpacity ref={playPauseButtonRef} style={styles.playPauseButton} onPress={handlePlayPause} activeOpacity={1} isTVSelectable={true}>
             <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
           </TouchableOpacity>
         </View>

@@ -1,3 +1,4 @@
+import { DESIGN } from "@/constants/app";
 import { getPosterUrl, hasPoster } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { BlurView } from "expo-blur";
@@ -34,10 +35,7 @@ interface VideoGridItemProps {
  * - Platform values cached at module level
  * - BlurView only rendered when focused
  */
-const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(function VideoGridItemComponent(
-  { video, onPress, index, onItemFocus, onItemBlur, hasTVPreferredFocus = false, nextFocusUp },
-  ref,
-) {
+const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(function VideoGridItemComponent({ video, onPress, index, onItemFocus, onItemBlur, hasTVPreferredFocus = false, nextFocusUp }, ref) {
   const [focused, setFocused] = useState(false);
 
   // Only compute poster URL - this is always needed for display
@@ -101,6 +99,10 @@ const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(
       isTVSelectable={true}
       hasTVPreferredFocus={hasTVPreferredFocus}
       nextFocusUp={nextFocusUp}
+      accessible={true}
+      accessibilityLabel={video.Name || "Video"}
+      accessibilityRole="button"
+      accessibilityHint="Double tap to play this video"
       style={styles.container}>
       <View style={styles.card}>
         <View style={styles.imageContainer}>
@@ -114,6 +116,8 @@ const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(
               cachePolicy="disk" // Disk only - saves 60-100MB RAM
               recyclingKey={video.Id} // Helps with memory recycling
               placeholderContentFit="cover"
+              accessible={true}
+              accessibilityLabel={`${video.Name || "Video"} poster`}
             />
           ) : (
             <View style={styles.placeholderPoster}>
@@ -188,14 +192,14 @@ const styles = StyleSheet.create({
     padding: CARD_PADDING,
   },
   card: {
-    borderRadius: 32,
+    borderRadius: DESIGN.BORDER_RADIUS_CARD,
     backgroundColor: "transparent",
     overflow: "hidden",
   },
   imageContainer: {
     width: "100%",
     aspectRatio: 2 / 3, // Standard movie poster aspect ratio
-    borderRadius: 32,
+    borderRadius: DESIGN.BORDER_RADIUS_CARD,
     overflow: "hidden",
     backgroundColor: "#1C1C1E",
   },
@@ -205,7 +209,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    borderRadius: 32,
+    borderRadius: DESIGN.BORDER_RADIUS_CARD,
     borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.15)",
   },

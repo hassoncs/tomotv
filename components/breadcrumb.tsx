@@ -16,7 +16,7 @@ function BreadcrumbItem({ entry, isLast }: { entry: FolderStackEntry; isLast: bo
       <Text style={[styles.breadcrumbText, isLast && styles.breadcrumbTextCurrent]} numberOfLines={1}>
         {entry.name}
       </Text>
-      {!isLast && <Ionicons name="chevron-forward" size={IS_TV ? 20 : 16} color="#4CD964" style={styles.separator} />}
+      {!isLast && <Ionicons name="chevron-forward" size={IS_TV ? 20 : 16} color="#FFC312" style={styles.separator} />}
     </View>
   );
 }

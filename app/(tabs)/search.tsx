@@ -11,6 +11,20 @@ import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
 
+/**
+ * Gets the native node handle for TV focus management.
+ * Note: findNodeHandle is deprecated in React Native for the Fabric architecture,
+ * but there's no replacement for TV focus management (nextFocusUp/nextFocusDown)
+ * in react-native-tvos yet. This wrapper makes migration easier when an alternative
+ * is available.
+ */
+function getNativeHandle<T>(node: T | null): number | undefined {
+  if (!node || !Platform.isTV) return undefined;
+
+  const handle = findNodeHandle(node as unknown as React.Component);
+  return handle ?? undefined;
+}
+
 interface SearchHeaderProps {
   onChangeText: (text: string) => void;
   onSubmitEditing: () => void;
@@ -143,15 +157,11 @@ function ReactNativeSearchScreen() {
   const searchInputRef = useRef<TextInput>(null);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextStartIndexRef = useRef(0);
-  const firstResultNodeRef = useRef<TouchableOpacity | null>(null);
-  const firstResultRef = useCallback((node: TouchableOpacity | null) => {
+  const firstResultNodeRef = useRef<View | null>(null);
+  const firstResultRef = useCallback((node: View | null) => {
     firstResultNodeRef.current = node;
-    if (node && Platform.isTV) {
-      const handle = findNodeHandle(node);
-      setFirstResultHandle(handle ?? undefined);
-    } else if (!node) {
-      setFirstResultHandle(undefined);
-    }
+    const handle = getNativeHandle(node);
+    setFirstResultHandle(handle);
   }, []);
 
   const handleVideoPress = useCallback(
@@ -167,7 +177,9 @@ function ReactNativeSearchScreen() {
 
   const focusFirstResult = useCallback(() => {
     if (Platform.isTV && firstResultNodeRef.current) {
-      (firstResultNodeRef.current as unknown as { requestTVFocus: () => void }).requestTVFocus();
+      // Cast to access TV-specific focus method
+      const tvNode = firstResultNodeRef.current as unknown as { requestTVFocus?: () => void };
+      tvNode.requestTVFocus?.();
     }
   }, []);
 
@@ -278,11 +290,9 @@ function ReactNativeSearchScreen() {
   const [searchInputHandle, setSearchInputHandle] = useState<number | undefined>(undefined);
 
   const searchInputCallbackRef = useCallback((node: TextInput | null) => {
-    if (node && Platform.isTV) {
-      const handle = findNodeHandle(node);
-      setSearchInputHandle(handle ?? undefined);
-    }
-    (searchInputRef as React.MutableRefObject<TextInput | null>).current = node;
+    setSearchInputHandle(getNativeHandle(node));
+    // Assign to ref for imperative access
+    searchInputRef.current = node;
   }, []);
 
   const renderItem = useCallback(

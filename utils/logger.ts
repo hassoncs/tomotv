@@ -11,7 +11,19 @@
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 interface LogContext {
-  [key: string]: any;
+  [key: string]: unknown;
+}
+
+/**
+ * Check if a value is an Error object
+ * More reliable than checking for 'message' property which can exist on regular objects
+ */
+function isErrorObject(value: unknown): value is Error {
+  return value instanceof Error ||
+    (typeof value === 'object' &&
+     value !== null &&
+     'stack' in value &&
+     typeof (value as Error).stack === 'string');
 }
 
 class Logger {
@@ -44,7 +56,7 @@ class Logger {
     return formattedMessage;
   }
 
-  private log(level: LogLevel, message: string, error?: Error | any, context?: LogContext): void {
+  private log(level: LogLevel, message: string, error?: Error | unknown, context?: LogContext): void {
     if (!this.shouldLog(level)) {
       return;
     }
@@ -82,33 +94,42 @@ class Logger {
   }
 
   /**
-   * Log informational messages with optional error object
+   * Log informational messages
+   * @overload info(message, context) - Log with context only
+   * @overload info(message, error, context) - Log with error and optional context
    */
-  info(message: string, error?: Error | any, context?: LogContext): void {
-    // If second argument is not an error-like object, treat it as context
-    if (error && typeof error === 'object' && !('message' in error || 'stack' in error)) {
-      this.log('info', message, undefined, error as LogContext);
+  info(message: string, errorOrContext?: Error | LogContext | unknown, context?: LogContext): void {
+    // Use isErrorObject for reliable detection - checks for 'stack' property
+    // which is more reliable than 'message' (which regular objects may have)
+    if (isErrorObject(errorOrContext)) {
+      this.log('info', message, errorOrContext, context);
+    } else if (errorOrContext && typeof errorOrContext === 'object' && !isErrorObject(errorOrContext)) {
+      this.log('info', message, undefined, errorOrContext as LogContext);
     } else {
-      this.log('info', message, error, context);
+      this.log('info', message, errorOrContext, context);
     }
   }
 
   /**
-   * Log warning messages with optional error object
+   * Log warning messages
+   * @overload warn(message, context) - Log with context only
+   * @overload warn(message, error, context) - Log with error and optional context
    */
-  warn(message: string, error?: Error | any, context?: LogContext): void {
-    // If second argument is not an error-like object, treat it as context
-    if (error && typeof error === 'object' && !('message' in error || 'stack' in error)) {
-      this.log('warn', message, undefined, error as LogContext);
+  warn(message: string, errorOrContext?: Error | LogContext | unknown, context?: LogContext): void {
+    // Use isErrorObject for reliable detection - checks for 'stack' property
+    if (isErrorObject(errorOrContext)) {
+      this.log('warn', message, errorOrContext, context);
+    } else if (errorOrContext && typeof errorOrContext === 'object' && !isErrorObject(errorOrContext)) {
+      this.log('warn', message, undefined, errorOrContext as LogContext);
     } else {
-      this.log('warn', message, error, context);
+      this.log('warn', message, errorOrContext, context);
     }
   }
 
   /**
    * Log error messages with optional error object
    */
-  error(message: string, error?: Error | any, context?: LogContext): void {
+  error(message: string, error?: Error | unknown, context?: LogContext): void {
     this.log('error', message, error, context);
   }
 }

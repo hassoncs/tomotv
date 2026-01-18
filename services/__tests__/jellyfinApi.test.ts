@@ -249,8 +249,8 @@ describe('jellyfinApi', () => {
         expect.any(Object)
       );
       expect(result.items).toHaveLength(2);
-      // Total now reflects actual items returned
-      expect(result.total).toBe(2);
+      // Total preserves server's TotalRecordCount for proper pagination
+      expect(result.total).toBe(100);
     });
 
     it('should handle pagination with custom startIndex', async () => {
@@ -275,8 +275,8 @@ describe('jellyfinApi', () => {
         expect.any(Object)
       );
       expect(result.items).toHaveLength(2);
-      // Total now reflects actual items returned
-      expect(result.total).toBe(2);
+      // Total preserves server's TotalRecordCount for proper pagination
+      expect(result.total).toBe(100);
     });
 
     it('should use default pagination values when not specified', async () => {
@@ -320,10 +320,10 @@ describe('jellyfinApi', () => {
 
       const result = await searchVideos('action', { limit: 3, startIndex: 0 });
 
-      // Total reflects actual playable items returned (after filtering/expanding)
+      // Total preserves server's TotalRecordCount for proper pagination
       expect(result).toEqual({
         items: mockResponse.Items,
-        total: 3
+        total: 150
       });
     });
 
@@ -398,8 +398,8 @@ describe('jellyfinApi', () => {
       const result = await searchVideos('test', { limit: 60, startIndex: 95 });
 
       expect(result.items).toHaveLength(2);
-      // Total now reflects actual items returned
-      expect(result.total).toBe(2);
+      // Total preserves server's TotalRecordCount for proper pagination
+      expect(result.total).toBe(97);
     });
   });
 });

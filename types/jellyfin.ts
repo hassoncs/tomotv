@@ -34,7 +34,7 @@ export interface JellyfinVideoItem {
 
 export interface JellyfinVideosResponse {
   Items: JellyfinVideoItem[];
-  TotalRecordCount: number;
+  TotalRecordCount?: number; // Optional - Jellyfin API doesn't always include this
   StartIndex: number;
 }
 
@@ -55,6 +55,6 @@ export interface FolderStackEntry {
 // API response for folder contents
 export interface JellyfinFolderResponse {
   Items: JellyfinItem[];
-  TotalRecordCount: number;
+  TotalRecordCount?: number; // Optional - Jellyfin API doesn't always include this
   StartIndex: number;
 }

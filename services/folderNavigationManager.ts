@@ -1,3 +1,4 @@
+import {CACHE} from "@/constants/app"
 import {fetchFolderContents} from "@/services/jellyfinApi"
 import {FolderStackEntry, JellyfinItem} from "@/types/jellyfin"
 import {logger} from "@/utils/logger"
@@ -30,18 +31,21 @@ class FolderNavigationManager {
   private totalRecordCount: number | undefined = undefined
   private isLoadingRef: boolean = false
 
+  // Cache stores only the initial page of items, not accumulated pagination results
+  // This prevents re-navigation from loading all items at once
   private folderCache: Map<
     string,
     {
-      items: JellyfinItem[]
+      items: JellyfinItem[] // Only first page items
       total?: number
       timestamp: number
+      pageSize: number // Track original page size for proper pagination
     }
   > = new Map()
 
   private listeners: Set<FolderNavigationListener> = new Set()
 
-  private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
+  private readonly CACHE_TTL = CACHE.DEFAULT_TTL_MS
   private readonly PAGE_SIZE = 60
 
   private constructor() {}
@@ -222,11 +226,12 @@ class FolderNavigationManager {
       this.nextStartIndex = items.length
       this.hasMoreResults = total !== undefined && items.length < total
 
-      // Update cache
+      // Update cache with only first page items (not accumulated results)
       this.folderCache.set(cacheKey, {
         items,
         total,
-        timestamp: now
+        timestamp: now,
+        pageSize: this.PAGE_SIZE
       })
 
       this.isLoading = false
@@ -293,13 +298,8 @@ class FolderNavigationManager {
       this.nextStartIndex += items.length
       this.hasMoreResults = total !== undefined && this.items.length < total
 
-      // Update cache
-      const cacheKey = folderId || "root"
-      this.folderCache.set(cacheKey, {
-        items: this.items,
-        total,
-        timestamp: Date.now()
-      })
+      // Note: Don't update cache with accumulated items
+      // This preserves proper pagination behavior on re-navigation
 
       this.isLoadingMore = false
       this.notifyListeners()

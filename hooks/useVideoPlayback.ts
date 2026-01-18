@@ -5,6 +5,91 @@ import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, ge
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 
+/**
+ * Error types for video playback classification
+ * Using specific patterns instead of loose string matching
+ */
+export enum PlaybackErrorType {
+  NOT_FOUND = "NOT_FOUND",
+  NETWORK = "NETWORK",
+  TIMEOUT = "TIMEOUT",
+  CORRUPT = "CORRUPT",
+  DECODE = "DECODE",
+  UNKNOWN = "UNKNOWN",
+}
+
+// Patterns for classifying errors - order matters (more specific first)
+const ERROR_PATTERNS: { type: PlaybackErrorType; patterns: RegExp[] }[] = [
+  {
+    type: PlaybackErrorType.NOT_FOUND,
+    patterns: [/not found/i, /404/i, /item.*not.*exist/i],
+  },
+  {
+    type: PlaybackErrorType.TIMEOUT,
+    patterns: [/timed?\s*out/i, /timeout/i, /etimedout/i],
+  },
+  {
+    type: PlaybackErrorType.CORRUPT,
+    patterns: [/HostFunction/i, /corrupted/i, /invalid.*format/i, /invalid.*data/i],
+  },
+  {
+    type: PlaybackErrorType.DECODE,
+    patterns: [/decode/i, /codec.*not.*supported/i, /unable.*play/i],
+  },
+  {
+    type: PlaybackErrorType.NETWORK,
+    patterns: [
+      /network\s*(error|fail|issue)/i,
+      /fetch\s*(error|fail)/i,
+      /connection\s*(refused|reset|closed)/i,
+      /econnreset/i,
+      /econnrefused/i,
+      /unable.*connect/i,
+    ],
+  },
+];
+
+/**
+ * Classifies an error into a specific type using pattern matching
+ * More reliable than loose includes() checks
+ */
+export function classifyPlaybackError(error: unknown): PlaybackErrorType {
+  if (!error) return PlaybackErrorType.UNKNOWN;
+
+  const errorMessage = error instanceof Error
+    ? error.message
+    : String(error);
+
+  for (const { type, patterns } of ERROR_PATTERNS) {
+    if (patterns.some(pattern => pattern.test(errorMessage))) {
+      return type;
+    }
+  }
+
+  return PlaybackErrorType.UNKNOWN;
+}
+
+/**
+ * Gets a user-friendly error message based on error type
+ */
+export function getPlaybackErrorMessage(errorType: PlaybackErrorType, originalError?: string): string {
+  switch (errorType) {
+    case PlaybackErrorType.NOT_FOUND:
+      return "Video not found on server";
+    case PlaybackErrorType.NETWORK:
+      return "Unable to connect to Jellyfin server";
+    case PlaybackErrorType.TIMEOUT:
+      return "Connection timed out. Please check your network";
+    case PlaybackErrorType.CORRUPT:
+      return "This video file appears to be corrupted or in an unsupported format";
+    case PlaybackErrorType.DECODE:
+      return "Unable to decode video. Try a different quality setting";
+    case PlaybackErrorType.UNKNOWN:
+    default:
+      return originalError ? `Playback error: ${originalError}` : "Failed to load video";
+  }
+}
+
 export type PlaybackMode = "direct" | "transcode";
 
 /**
@@ -138,35 +223,54 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const [videoDetails, setVideoDetails] = useState<JellyfinVideoItem | null>(null);
   const [hasTriedTranscoding, setHasTriedTranscoding] = useState(false);
 
-  // Refs to prevent duplicate operations and cleanup issues
+  // Request ID to prevent race conditions when videoId changes
+  // Incremented on each videoId change, async operations check before updating state
+  const requestIdRef = useRef(0);
+
+  // === Refs for synchronous access in event handlers ===
+  // Note: These refs cannot be consolidated into state because event handlers
+  // need synchronous access to avoid race conditions and stale closures.
+
+  // Lifecycle & autoplay control
   const autoPlayTriggeredRef = useRef(false);
   const isMountedRef = useRef(true);
   const autoPlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stablePlaybackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const hasStablePlaybackRef = useRef(false);
 
-  // Ref to track if we're in seeking/buffering state to avoid excessive state transitions
+  // Status tracking (for debouncing rapid status changes)
   const isSeekingRef = useRef(false);
   const lastStatusChangeRef = useRef<number>(0);
+  const hasStablePlaybackRef = useRef(false); // Ref for sync access in handlers
 
-  // Ref to track current playback mode (avoids stale closure in event listeners)
+  // Playback mode & callbacks (avoid stale closures in event listeners)
   const currentModeRef = useRef<PlaybackMode>("direct");
-
-  // Ref for onPlaybackEnd callback (avoids stale closure in event listeners)
   const onPlaybackEndRef = useRef(onPlaybackEnd);
   onPlaybackEndRef.current = onPlaybackEnd;
 
-  // Track stable playback to hide loading spinner at the right time
+  // Track stable playback for UI (state triggers re-renders, ref is for sync checks)
   const [hasStablePlayback, setHasStablePlayback] = useState(false);
 
   /**
    * Step 1: Fetch video metadata and determine playback mode
    */
   const fetchMetadata = useCallback(async () => {
-    logger.debug("Fetching video details", { service: "useVideoPlayback", videoId });
+    // Capture current request ID to check for stale responses
+    const currentRequestId = requestIdRef.current;
+
+    logger.debug("Fetching video details", { service: "useVideoPlayback", videoId, requestId: currentRequestId });
 
     try {
       const details = await fetchVideoDetails(videoId);
+
+      // Check if this response is stale (videoId changed while fetching)
+      if (requestIdRef.current !== currentRequestId) {
+        logger.debug("Ignoring stale metadata response", {
+          service: "useVideoPlayback",
+          expectedRequestId: requestIdRef.current,
+          actualRequestId: currentRequestId,
+        });
+        return;
+      }
 
       if (!details) {
         throw new Error("Video not found or unavailable");
@@ -225,15 +329,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     } catch (err) {
       logger.error("Error fetching metadata", err, { service: "useVideoPlayback", videoId });
 
-      // Provide user-friendly error message
-      const errorMessage =
-        err instanceof Error
-          ? err.message.includes("not found")
-            ? "Video not found on server"
-            : err.message.includes("network") || err.message.includes("fetch")
-              ? "Unable to connect to Jellyfin server"
-              : `Failed to load video details: ${err.message}`
-          : "Failed to load video details";
+      // Classify error and provide user-friendly message
+      const errorType = classifyPlaybackError(err);
+      const originalMessage = err instanceof Error ? err.message : undefined;
+      const errorMessage = getPlaybackErrorMessage(errorType, originalMessage);
 
       dispatch({
         type: "PLAYER_ERROR",
@@ -256,10 +355,18 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     if (state.type !== "CREATING_STREAM") return;
 
     const { mode, details } = state;
+    // Capture current request ID to check for stale responses
+    const currentRequestId = requestIdRef.current;
 
     const generateStreamUrl = async () => {
       try {
-        const url = mode === "transcode" ? await getTranscodingStreamUrl(videoId, details) : getVideoStreamUrl(videoId, details);
+        const url = mode === "transcode" ? await getTranscodingStreamUrl(videoId, details) : getVideoStreamUrl(videoId);
+
+        // Check if this response is stale (videoId changed while fetching)
+        if (requestIdRef.current !== currentRequestId) {
+          logger.debug("Ignoring stale stream URL response", { service: "useVideoPlayback" });
+          return;
+        }
 
         logger.info("Stream URL generated", {
           service: "useVideoPlayback",
@@ -274,6 +381,11 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         setStreamUrl(url);
         dispatch({ type: "STREAM_CREATED", streamUrl: url });
       } catch (error) {
+        // Check for stale response before dispatching error
+        if (requestIdRef.current !== currentRequestId) {
+          return;
+        }
+
         logger.error("Error generating stream URL", error, { service: "useVideoPlayback" });
 
         dispatch({
@@ -351,6 +463,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
    * Reset state when video ID changes
    */
   useEffect(() => {
+    // Increment request ID to invalidate any in-flight async operations
+    requestIdRef.current += 1;
+
     // Clear any pending timers
     if (autoPlayTimerRef.current) {
       clearTimeout(autoPlayTimerRef.current);
@@ -480,24 +595,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           logger.error("Playback error", payload.error, { service: "useVideoPlayback" });
         }
 
-        // Provide user-friendly error message based on error type
-        let errorMessage = "Failed to play video";
-
-        if (payload.error) {
-          const errorStr = String(payload.error.message || payload.error);
-
-          if (errorStr.includes("HostFunction") || errorStr.includes("corrupted") || errorStr.includes("invalid")) {
-            errorMessage = "This video file appears to be corrupted or in an unsupported format";
-          } else if (errorStr.includes("network") || errorStr.includes("connection")) {
-            errorMessage = "Network error: Unable to connect to the server";
-          } else if (errorStr.includes("timeout")) {
-            errorMessage = "Connection timed out. Please check your network";
-          } else if (errorStr.includes("decode")) {
-            errorMessage = "Unable to decode video. Try a different quality setting";
-          } else {
-            errorMessage = `Playback error: ${errorStr}`;
-          }
-        }
+        // Classify error and provide user-friendly message
+        const errorType = classifyPlaybackError(payload.error);
+        const originalMessage = payload.error?.message || String(payload.error || "");
+        const errorMessage = getPlaybackErrorMessage(errorType, originalMessage);
 
         // Ensure error dispatch happens on main thread
         InteractionManager.runAfterInteractions(() => {
