@@ -10,6 +10,15 @@ export interface JellyfinMediaStream {
   Language?: string;
 }
 
+export interface JellyfinMediaSource {
+  Id: string;
+  Name?: string;
+  Path?: string;
+  Protocol?: string;
+  Container?: string;
+  MediaStreams?: JellyfinMediaStream[];
+}
+
 export interface JellyfinVideoItem {
   Name: string;
   Id: string;
@@ -17,6 +26,7 @@ export interface JellyfinVideoItem {
   Type: string;
   Path: string;
   MediaStreams?: JellyfinMediaStream[];
+  MediaSources?: JellyfinMediaSource[];
   Overview?: string;
   PremiereDate?: string;
   ProductionYear?: number;
@@ -50,6 +60,7 @@ export interface FolderStackEntry {
   id: string;
   name: string;
   parentId?: string;
+  type?: "folder" | "playlist";  // Track item type for correct API routing
 }
 
 // API response for folder contents

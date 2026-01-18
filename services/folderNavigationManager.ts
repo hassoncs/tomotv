@@ -1,5 +1,5 @@
 import {CACHE} from "@/constants/app"
-import {fetchFolderContents} from "@/services/jellyfinApi"
+import {fetchFolderContents, fetchPlaylistContents} from "@/services/jellyfinApi"
 import {FolderStackEntry, JellyfinItem} from "@/types/jellyfin"
 import {logger} from "@/utils/logger"
 
@@ -211,15 +211,25 @@ class FolderNavigationManager {
       this.nextStartIndex = 0
       this.notifyListeners()
 
+      // Check if current folder is a playlist to use correct API endpoint
+      const currentEntry = this.folderStack[this.folderStack.length - 1]
+      const isPlaylist = currentEntry?.type === "playlist"
+
       logger.info("Loading folder contents", {
         service: "FolderNavigationManager",
-        folderId: cacheKey
+        folderId: cacheKey,
+        isPlaylist
       })
 
-      const {items, total} = await fetchFolderContents(folderId, {
-        limit: this.PAGE_SIZE,
-        startIndex: 0
-      })
+      const {items, total} = isPlaylist && folderId
+        ? await fetchPlaylistContents(folderId, {
+            limit: this.PAGE_SIZE,
+            startIndex: 0
+          })
+        : await fetchFolderContents(folderId, {
+            limit: this.PAGE_SIZE,
+            startIndex: 0
+          })
 
       this.items = items
       this.totalRecordCount = total
@@ -271,15 +281,24 @@ class FolderNavigationManager {
       this.isLoadingMore = true
       this.notifyListeners()
 
+      // Check if current folder is a playlist to use correct API endpoint
+      const isPlaylist = currentFolder?.type === "playlist"
+
       logger.info("Loading more folder items", {
         service: "FolderNavigationManager",
-        startIndex: this.nextStartIndex
+        startIndex: this.nextStartIndex,
+        isPlaylist
       })
 
-      const {items, total} = await fetchFolderContents(folderId || null, {
-        limit: this.PAGE_SIZE,
-        startIndex: this.nextStartIndex
-      })
+      const {items, total} = isPlaylist && folderId
+        ? await fetchPlaylistContents(folderId, {
+            limit: this.PAGE_SIZE,
+            startIndex: this.nextStartIndex
+          })
+        : await fetchFolderContents(folderId || null, {
+            limit: this.PAGE_SIZE,
+            startIndex: this.nextStartIndex
+          })
 
       // If no new items returned, we've reached the end
       if (items.length === 0) {

@@ -702,6 +702,7 @@ export function isFolder(item: JellyfinItem): boolean {
   return (
     item.Type === "Folder" ||
     item.Type === "CollectionFolder" ||
+    item.Type === "UserView" ||
     item.Type === "Series" ||
     item.Type === "Season" ||
     item.Type === "BoxSet" ||
@@ -747,13 +748,10 @@ export async function fetchUserViews(): Promise<{ items: JellyfinItem[]; total?:
         }
 
         const data = await response.json();
-        // Filter out unsupported collection types (playlists are not playable directly)
-        const supportedItems = (data.Items || []).filter(
-          (item: JellyfinItem) => item.CollectionType !== "playlists"
-        );
+        const items = data.Items || [];
         return {
-          items: supportedItems,
-          total: supportedItems.length,
+          items,
+          total: items.length,
         };
       } catch (error) {
         clearTimeout(timeoutId);
@@ -822,6 +820,79 @@ export async function fetchFolderContents(
         const data: JellyfinFolderResponse = await response.json();
         return {
           items: data.Items || [],
+          total: data.TotalRecordCount,
+        };
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
+      }
+    },
+    { maxAttempts: 3 },
+  );
+}
+
+/**
+ * Fetch contents of a playlist using the playlist-specific endpoint
+ * Playlists require a different API endpoint than regular folders
+ *
+ * @param playlistId - The playlist ID to fetch contents for
+ * @param options - Pagination options
+ */
+export async function fetchPlaylistContents(
+  playlistId: string,
+  { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {},
+): Promise<{ items: JellyfinItem[]; total?: number }> {
+  const config = await getConfig();
+
+  if (!config.server || !config.apiKey || !config.userId) {
+    throw new Error("Jellyfin server not configured.");
+  }
+
+  return retryWithBackoff(
+    async () => {
+      const query = new URLSearchParams({
+        userId: config.userId!,
+        StartIndex: String(startIndex),
+        Limit: String(limit),
+        Fields: "Path,MediaStreams,Genres,ChildCount,ParentId,ImageTags,PrimaryImageAspectRatio",
+      });
+
+      const url = `${config.server}/Playlists/${playlistId}/Items?${query.toString()}`;
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.EXTENDED);
+
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+            Authorization: `MediaBrowser Token="${config.apiKey}"`,
+          },
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch playlist contents: ${response.status}`);
+        }
+
+        const data: JellyfinFolderResponse = await response.json();
+        const items = data.Items || [];
+
+        // Debug logging to diagnose playlist item structure
+        logger.debug("Playlist contents fetched", {
+          service: "JellyfinAPI",
+          playlistId,
+          itemCount: items.length,
+          firstItemId: items[0]?.Id,
+          firstItemName: items[0]?.Name,
+          firstItemType: items[0]?.Type,
+        });
+
+        return {
+          items,
           total: data.TotalRecordCount,
         };
       } catch (error) {
@@ -989,11 +1060,15 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
   // Get user's quality preferences
   const quality = await getQualitySettings();
 
+  // Get MediaSourceId from video details if available, fallback to itemId
+  // This is important for playlist items where MediaSourceId may differ from item Id
+  const mediaSourceId = videoItem?.MediaSources?.[0]?.Id || itemId;
+
   // Use HLS master.m3u8 endpoint for transcoding
   let url =
     `${cachedConfig.server}/Videos/${itemId}/master.m3u8?` +
     `api_key=${cachedConfig.apiKey}` +
-    `&MediaSourceId=${itemId}` +
+    `&MediaSourceId=${mediaSourceId}` +
     `&VideoCodec=h264` +
     `&AudioCodec=aac` +
     `&VideoBitrate=${quality.bitrate}` +
@@ -1021,6 +1096,8 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
       url += `&SubtitleMethod=Encode`; // Burn subtitles into video frames
       logger.info("Transcoding with subtitle burn-in", {
         service: "JellyfinAPI",
+        itemId,
+        mediaSourceId,
         streamIndex: firstSubIndex,
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
@@ -1028,6 +1105,8 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
     } else {
       logger.info("Transcoding without subtitles", {
         service: "JellyfinAPI",
+        itemId,
+        mediaSourceId,
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
       });
@@ -1107,6 +1186,18 @@ export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoIt
           }
 
           const data: JellyfinVideoItem = await response.json();
+
+          // Debug logging to help diagnose playlist item issues
+          logger.debug("Video details fetched", {
+            service: "JellyfinAPI",
+            itemId: data.Id,
+            name: data.Name,
+            type: data.Type,
+            hasMediaSources: !!data.MediaSources,
+            mediaSourceCount: data.MediaSources?.length || 0,
+            mediaSourceId: data.MediaSources?.[0]?.Id,
+          });
+
           return data;
         } catch (error) {
           clearTimeout(timeoutId);

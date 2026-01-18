@@ -143,11 +143,14 @@ Important functions:
 - `getConfig()` - Retrieve cached Jellyfin configuration
 - `syncDevCredentials()` - Sync dev env vars to SecureStore on app load
 - `fetchLibraryVideos()` - Get paginated videos with retry logic (fetchVideos is deprecated)
+- `fetchFolderContents()` - Get folder contents with pagination
+- `fetchPlaylistContents()` - Get playlist items using playlist-specific endpoint
 - `fetchVideoDetails()` - Get video metadata and codec info
 - `getVideoStreamUrl()` - Direct download URL (for supported codecs)
 - `getTranscodingStreamUrl()` - HLS master.m3u8 URL with quality settings
 - `isCodecSupported()` - Check if codec can be direct-played
 - `needsTranscoding()` - Determine if transcoding required
+- `isFolder()` - Check if item is navigable (Folder, Playlist, Series, UserView, etc.)
 
 #### 4. Codec & Streaming Strategy
 
@@ -356,6 +359,7 @@ Features:
 - Per-folder caching with 5-minute TTL
 - Pagination support via `loadMore()`
 - Auto-navigates into first library on root load
+- **Playlist support:** Playlists use a different API endpoint (`/Playlists/{id}/Items`) and are automatically detected via the `type` field in `FolderStackEntry`
 
 ### Showing Global Loading
 
