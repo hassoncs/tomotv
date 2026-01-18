@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-type ColorScheme = 'light' | 'dark' | null;
+type ColorScheme = 'light' | 'dark';
 
 /**
  * Web-specific color scheme hook using matchMedia
