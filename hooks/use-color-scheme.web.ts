@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 
-type ColorScheme = 'light' | 'dark' | null;
+type ColorScheme = 'light' | 'dark';
 
 /**
  * Web-specific color scheme hook using matchMedia
@@ -9,7 +9,7 @@ type ColorScheme = 'light' | 'dark' | null;
  */
 export function useColorScheme(): ColorScheme {
   const [hasHydrated, setHasHydrated] = useState(false);
-  const [colorScheme, setColorScheme] = useState<ColorScheme>(null);
+  const [colorScheme, setColorScheme] = useState<ColorScheme>('light');
 
   useEffect(() => {
     setHasHydrated(true);
