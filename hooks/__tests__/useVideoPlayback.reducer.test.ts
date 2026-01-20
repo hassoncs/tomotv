@@ -97,6 +97,15 @@ describe("error classification", () => {
       expect(classifyPlaybackError(new Error("Unable to play this video"))).toBe(PlaybackErrorType.DECODE);
     });
 
+    it("should classify UNAUTHORIZED errors", () => {
+      expect(classifyPlaybackError(new Error("Unauthorized access"))).toBe(PlaybackErrorType.UNAUTHORIZED);
+      expect(classifyPlaybackError(new Error("HTTP 401 error"))).toBe(PlaybackErrorType.UNAUTHORIZED);
+      expect(classifyPlaybackError(new Error("Not authorized to access this resource"))).toBe(PlaybackErrorType.UNAUTHORIZED);
+      expect(classifyPlaybackError(new Error("Authentication failed"))).toBe(PlaybackErrorType.UNAUTHORIZED);
+      expect(classifyPlaybackError(new Error("Invalid credentials provided"))).toBe(PlaybackErrorType.UNAUTHORIZED);
+      expect(classifyPlaybackError(new Error("NSURLErrorDomain error -1013"))).toBe(PlaybackErrorType.UNAUTHORIZED);
+    });
+
     it("should classify NETWORK errors", () => {
       expect(classifyPlaybackError(new Error("Network error occurred"))).toBe(PlaybackErrorType.NETWORK);
       expect(classifyPlaybackError(new Error("Network failure"))).toBe(PlaybackErrorType.NETWORK);
@@ -119,12 +128,31 @@ describe("error classification", () => {
       expect(classifyPlaybackError(null)).toBe(PlaybackErrorType.UNKNOWN);
       expect(classifyPlaybackError(undefined)).toBe(PlaybackErrorType.UNKNOWN);
     });
+
+    it("should handle plain objects with message property", () => {
+      // This is the critical case - expo-video returns errors as plain objects
+      expect(
+        classifyPlaybackError({
+          message: "Failed to load the player item: The operation couldn't be completed. (NSURLErrorDomain error -1013.)",
+        }),
+      ).toBe(PlaybackErrorType.UNAUTHORIZED);
+
+      expect(classifyPlaybackError({ message: "Video not found" })).toBe(PlaybackErrorType.NOT_FOUND);
+      expect(classifyPlaybackError({ message: "Network error occurred" })).toBe(PlaybackErrorType.NETWORK);
+      expect(classifyPlaybackError({ message: "Request timed out" })).toBe(PlaybackErrorType.TIMEOUT);
+      expect(classifyPlaybackError({ message: "Unauthorized access" })).toBe(PlaybackErrorType.UNAUTHORIZED);
+    });
   });
 
   describe("getPlaybackErrorMessage", () => {
     it("should return user-friendly message for NOT_FOUND", () => {
       const message = getPlaybackErrorMessage(PlaybackErrorType.NOT_FOUND);
       expect(message).toBe("Video not found on server");
+    });
+
+    it("should return user-friendly message for UNAUTHORIZED", () => {
+      const message = getPlaybackErrorMessage(PlaybackErrorType.UNAUTHORIZED);
+      expect(message).toBe("Authentication failed. Your session may have expired.");
     });
 
     it("should return user-friendly message for NETWORK", () => {

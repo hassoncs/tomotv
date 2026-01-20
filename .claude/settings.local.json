@@ -35,7 +35,10 @@
       "Bash(git commit:*)",
       "Bash(npx ts-node:*)",
       "Bash(git stash show:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(curl:*)",
+      "Bash(python3:*)",
+      "Bash(echo:*)"
     ],
     "deny": [],
     "ask": []

@@ -17,11 +17,14 @@ const STORAGE_KEYS = {
   USER_ID: "jellyfin_user_id",
   VIDEO_QUALITY: "app_video_quality",
   IS_DEMO_MODE: "jellyfin_is_demo_mode",
+  DEMO_SERVER_URL: "jellyfin_demo_server_url",
 };
 
-// Demo server credentials (Jellyfin's official public demo server)
+// Demo server credentials (Jellyfin's official public demo servers)
 // Credentials are fetched dynamically as the demo server resets hourly
-const DEMO_SERVER = "https://demo.jellyfin.org/stable";
+// Fallback to unstable if stable is down
+const DEMO_SERVER_STABLE = "https://demo.jellyfin.org/stable";
+const DEMO_SERVER_UNSTABLE = "https://demo.jellyfin.org/unstable";
 const DEMO_USERNAME = "demo";
 const DEMO_PASSWORD = ""; // Empty password
 
@@ -199,9 +202,19 @@ export async function refreshConfig(): Promise<void> {
 /**
  * Sync dev environment variables to SecureStore if not already set
  * This ensures dev credentials are visible in SecureStore for debugging
+ * CRITICAL: Does NOT overwrite demo server credentials
  */
 export async function syncDevCredentials(): Promise<void> {
   try {
+    // CRITICAL: Never overwrite demo mode credentials with dev credentials
+    const demoModeFlag = await SecureStore.getItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
+    if (demoModeFlag === "true") {
+      logger.debug("Skipping dev credential sync (demo mode active)", {
+        service: "JellyfinAPI",
+      });
+      return;
+    }
+
     // Migrate old config format if needed
     const migratedUrl = await migrateOldConfigFormat();
     if (migratedUrl) {
@@ -233,9 +246,10 @@ export async function syncDevCredentials(): Promise<void> {
 /**
  * Fetch demo credentials from Jellyfin API
  * Demo server resets hourly, so credentials must be fetched fresh each time
+ * @param demoServerUrl - The demo server URL to use (stable or unstable)
  */
-async function fetchDemoCredentials(): Promise<{ apiKey: string; userId: string }> {
-  const url = `${DEMO_SERVER}/Users/AuthenticateByName`;
+async function fetchDemoCredentials(demoServerUrl: string): Promise<{ apiKey: string; userId: string }> {
+  const url = `${demoServerUrl}/Users/AuthenticateByName`;
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for real-world conditions
@@ -244,8 +258,10 @@ async function fetchDemoCredentials(): Promise<{ apiKey: string; userId: string 
     const response = await fetch(url, {
       method: "POST",
       headers: {
+        Accept: "application/json",
         "Content-Type": "application/json",
-        "X-Emby-Authorization": `MediaBrowser Client="TomoTV", Device="iOS", DeviceId="demo-device", Version="1.0.0"`,
+        Origin: demoServerUrl,
+        Authorization: `MediaBrowser Client="TomoTV", Device="iOS", DeviceId="demo-device", Version="1.0.0"`,
       },
       body: JSON.stringify({
         Username: DEMO_USERNAME,
@@ -290,6 +306,7 @@ async function fetchDemoCredentials(): Promise<{ apiKey: string; userId: string 
     logger.info("Demo credentials fetched successfully", {
       service: "JellyfinAPI",
       userId: data.User.Id,
+      demoServer: demoServerUrl,
     });
 
     return {
@@ -306,33 +323,108 @@ async function fetchDemoCredentials(): Promise<{ apiKey: string; userId: string 
 }
 
 /**
- * Connect to demo server
+ * Connect to demo server with smart fallback
  * Fetches fresh credentials and stores them in SecureStore
+ * Tries the server that worked last time first, then falls back to the other
+ * Default order: stable first, then unstable
+ * @param clearCaches - Whether to clear library/folder caches (default: true). Set to false when refreshing credentials mid-session.
  */
-export async function connectToDemoServer(): Promise<void> {
-  try {
-    // Fetch fresh credentials from demo server with retry logic
-    const { apiKey, userId } = await retryWithBackoff(() => fetchDemoCredentials(), {
-      maxAttempts: 2, // Lighter retry (2 attempts vs 3 for library)
-      initialDelayMs: 1000, // 1s between retries
+export async function connectToDemoServer(clearCaches: boolean = true): Promise<void> {
+  let demoServerUrl: string | null = null;
+  let apiKey: string | null = null;
+  let userId: string | null = null;
+  let lastError: Error | null = null;
+
+  // Smart server ordering: try the server that worked last time first
+  const lastSuccessfulServer = await SecureStore.getItemAsync(STORAGE_KEYS.DEMO_SERVER_URL).catch(() => null);
+  const serversToTry = [
+    { url: DEMO_SERVER_STABLE, name: "stable" },
+    { url: DEMO_SERVER_UNSTABLE, name: "unstable" },
+  ];
+
+  // If unstable worked last time, try it first (reverse order)
+  if (lastSuccessfulServer === DEMO_SERVER_UNSTABLE) {
+    serversToTry.reverse();
+    logger.debug("Using unstable server first (was successful last time)", {
+      service: "JellyfinAPI",
+    });
+  }
+
+  for (const server of serversToTry) {
+    try {
+      logger.info(`Attempting to connect to ${server.name} demo server`, {
+        service: "JellyfinAPI",
+        serverUrl: server.url,
+      });
+
+      // Fetch fresh credentials from demo server with retry logic
+      const credentials = await retryWithBackoff(() => fetchDemoCredentials(server.url), {
+        maxAttempts: 2, // Lighter retry (2 attempts vs 3 for library)
+        initialDelayMs: 1000, // 1s between retries
+      });
+
+      demoServerUrl = server.url;
+      apiKey = credentials.apiKey;
+      userId = credentials.userId;
+
+      logger.info(`Successfully fetched credentials from ${server.name} demo server`, {
+        service: "JellyfinAPI",
+        serverUrl: server.url,
+      });
+
+      break; // Success, exit the loop
+    } catch (error) {
+      logger.warn(`Failed to connect to ${server.name} demo server, ${server.name === "stable" ? "trying unstable" : "no more servers to try"}`, {
+        service: "JellyfinAPI",
+        serverUrl: server.url,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      lastError = error instanceof Error ? error : new Error("Unknown error");
+    }
+  }
+
+  // If we failed to connect to both servers, throw the last error with additional context
+  if (!demoServerUrl || !apiKey || !userId) {
+    const baseMessage = "Unable to connect to demo servers. They may be temporarily down. " +
+      "Please try again later or configure your own Jellyfin server in Settings.";
+
+    logger.error("Failed to connect to all demo servers", {
+      service: "JellyfinAPI",
+      lastError: lastError?.message,
     });
 
-    // Write credentials first (atomic - all 3 must succeed)
-    await Promise.all([SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, DEMO_SERVER), SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, apiKey), SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, userId)]);
+    // If we have a specific error from the servers, throw that
+    // Otherwise throw the generic helpful message
+    if (lastError) {
+      throw lastError;
+    }
+    throw new Error(baseMessage);
+  }
 
-    // Verify all 3 were written successfully
-    const [verifyUrl, verifyKey, verifyUserId] = await Promise.all([
+  try {
+    // Write credentials first (atomic - all 4 must succeed: server URL, API key, user ID, and demo server URL)
+    await Promise.all([
+      SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, demoServerUrl),
+      SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, apiKey),
+      SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, userId),
+      SecureStore.setItemAsync(STORAGE_KEYS.DEMO_SERVER_URL, demoServerUrl),
+    ]);
+
+    // Verify all 4 were written successfully
+    const [verifyUrl, verifyKey, verifyUserId, verifyDemoUrl] = await Promise.all([
       SecureStore.getItemAsync(STORAGE_KEYS.SERVER_URL),
       SecureStore.getItemAsync(STORAGE_KEYS.API_KEY),
       SecureStore.getItemAsync(STORAGE_KEYS.USER_ID),
+      SecureStore.getItemAsync(STORAGE_KEYS.DEMO_SERVER_URL),
     ]);
 
-    if (verifyUrl !== DEMO_SERVER || verifyKey !== apiKey || verifyUserId !== userId) {
+    if (verifyUrl !== demoServerUrl || verifyKey !== apiKey || verifyUserId !== userId || verifyDemoUrl !== demoServerUrl) {
       // Rollback if any write failed
       await Promise.all([
         SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_URL).catch(() => {}),
         SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY).catch(() => {}),
         SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID).catch(() => {}),
+        SecureStore.deleteItemAsync(STORAGE_KEYS.DEMO_SERVER_URL).catch(() => {}),
       ]);
       throw new Error("Failed to save demo credentials. Please try again.");
     }
@@ -344,7 +436,7 @@ export async function connectToDemoServer(): Promise<void> {
     try {
       await retryWithBackoff(
         async () => {
-          const url = `${DEMO_SERVER}/Users/${userId}/Views`;
+          const url = `${demoServerUrl}/Users/${userId}/Views`;
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 5000);
 
@@ -377,6 +469,7 @@ export async function connectToDemoServer(): Promise<void> {
         SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_URL).catch(() => {}),
         SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY).catch(() => {}),
         SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID).catch(() => {}),
+        SecureStore.deleteItemAsync(STORAGE_KEYS.DEMO_SERVER_URL).catch(() => {}),
       ]);
 
       // CRITICAL: Refresh config cache after rollback to clear demo credentials
@@ -389,21 +482,31 @@ export async function connectToDemoServer(): Promise<void> {
     await SecureStore.setItemAsync(STORAGE_KEYS.IS_DEMO_MODE, "true");
 
     // Clear manager caches to prevent stale data (defensive - don't fail on cache clear errors)
-    try {
-      const { libraryManager } = await import("@/services/libraryManager");
-      const { folderNavigationManager } = await import("@/services/folderNavigationManager");
-      libraryManager.clearCache();
-      folderNavigationManager.clearCache();
-    } catch (cacheError) {
-      // Log but don't fail - cache clearing is not critical for functionality
-      logger.warn("Failed to clear manager caches", cacheError, {
+    // Skip cache clearing when refreshing credentials mid-session to preserve UI state
+    if (clearCaches) {
+      try {
+        const { libraryManager } = await import("@/services/libraryManager");
+        const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+        libraryManager.clearCache();
+        folderNavigationManager.clearCache();
+        logger.debug("Manager caches cleared", {
+          service: "JellyfinAPI",
+        });
+      } catch (cacheError) {
+        // Log but don't fail - cache clearing is not critical for functionality
+        logger.warn("Failed to clear manager caches", cacheError, {
+          service: "JellyfinAPI",
+        });
+      }
+    } else {
+      logger.debug("Skipping cache clear (preserving UI state)", {
         service: "JellyfinAPI",
       });
     }
 
     logger.info("Connected to demo server", {
       service: "JellyfinAPI",
-      server: DEMO_SERVER,
+      server: demoServerUrl,
     });
   } catch (error) {
     logger.error("Failed to connect to demo server", error, {
@@ -438,17 +541,45 @@ export async function isDemoMode(): Promise<boolean> {
 }
 
 /**
+ * Get the active demo server URL
+ * Returns "stable", "unstable", or null if not in demo mode
+ */
+export async function getActiveDemoServer(): Promise<"stable" | "unstable" | null> {
+  try {
+    const isDemo = await isDemoMode();
+    if (!isDemo) {
+      return null;
+    }
+
+    const demoServerUrl = await SecureStore.getItemAsync(STORAGE_KEYS.DEMO_SERVER_URL);
+    if (demoServerUrl === DEMO_SERVER_STABLE) {
+      return "stable";
+    } else if (demoServerUrl === DEMO_SERVER_UNSTABLE) {
+      return "unstable";
+    }
+
+    return null;
+  } catch (error) {
+    logger.error("Error getting active demo server", error, {
+      service: "JellyfinAPI",
+    });
+    return null;
+  }
+}
+
+/**
  * Disconnect from demo server
  * Clears all credentials and returns to unconfigured state
  */
 export async function disconnectFromDemo(): Promise<void> {
   try {
-    // Clear all credentials and demo flag
+    // Clear all credentials, demo flag, and demo server URL
     await Promise.all([
       SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_URL),
       SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY),
       SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID),
       SecureStore.deleteItemAsync(STORAGE_KEYS.IS_DEMO_MODE),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.DEMO_SERVER_URL),
     ]);
 
     // Refresh config to reset to defaults
@@ -1218,7 +1349,15 @@ export function getVideoStreamUrl(itemId: string): string {
     return "";
   }
   // Use direct download endpoint with API key in URL
-  return `${cachedConfig.server}/Items/${itemId}/Download?api_key=${cachedConfig.apiKey}`;
+  const url = `${cachedConfig.server}/Items/${itemId}/Download?api_key=${cachedConfig.apiKey}`;
+
+  logger.debug("Generated direct play stream URL", {
+    service: "JellyfinAPI",
+    server: cachedConfig.server,
+    itemId,
+  });
+
+  return url;
 }
 
 /**
@@ -1287,6 +1426,7 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
         streamIndex: firstSubIndex,
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
+        server: cachedConfig.server,
       });
     } else {
       logger.info("Transcoding without subtitles", {
@@ -1295,9 +1435,17 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
         mediaSourceId,
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
+        server: cachedConfig.server,
       });
     }
   }
+
+  logger.debug("Generated transcoding stream URL", {
+    service: "JellyfinAPI",
+    server: cachedConfig.server,
+    itemId,
+    urlPreview: url.substring(0, 150) + "...",
+  });
 
   return url;
 }
