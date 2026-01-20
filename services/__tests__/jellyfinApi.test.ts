@@ -648,6 +648,7 @@ describe("jellyfinApi", () => {
           if (key === "jellyfin_server_url") return Promise.resolve("https://demo.jellyfin.org/stable");
           if (key === "jellyfin_api_key") return Promise.resolve("demo-api-key-123");
           if (key === "jellyfin_user_id") return Promise.resolve("demo-user-id-456");
+          if (key === "jellyfin_demo_server_url") return Promise.resolve("https://demo.jellyfin.org/stable");
           return Promise.resolve(null);
         });
 
@@ -665,10 +666,11 @@ describe("jellyfinApi", () => {
           })
         );
 
-        // Verify credentials were saved (3 credentials + demo flag)
+        // Verify credentials were saved (3 credentials + demo server URL + demo flag)
         expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith("jellyfin_server_url", "https://demo.jellyfin.org/stable");
         expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith("jellyfin_api_key", "demo-api-key-123");
         expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith("jellyfin_user_id", "demo-user-id-456");
+        expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith("jellyfin_demo_server_url", "https://demo.jellyfin.org/stable");
         expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith("jellyfin_is_demo_mode", "true");
 
         // Note: Cache clearing is wrapped in try-catch and uses dynamic imports,
@@ -689,64 +691,74 @@ describe("jellyfinApi", () => {
       });
 
       it("should handle demo server unavailable (503)", async () => {
-        // Mock 503 for both potential retry attempts
+        // Mock 503 for both stable and unstable attempts (2 retries each = 4 total calls)
         (global.fetch as jest.Mock)
-          .mockResolvedValueOnce({
-            ok: false,
-            status: 503,
-          })
-          .mockResolvedValueOnce({
-            ok: false,
-            status: 503,
-          });
+          .mockResolvedValueOnce({ ok: false, status: 503 })
+          .mockResolvedValueOnce({ ok: false, status: 503 })
+          .mockResolvedValueOnce({ ok: false, status: 503 })
+          .mockResolvedValueOnce({ ok: false, status: 503 });
 
         await expect(connectToDemoServer()).rejects.toThrow("Demo server is temporarily unavailable");
       });
 
       it("should handle demo server error (502)", async () => {
-        // Mock 502 for both potential retry attempts
+        // Mock 502 for both stable and unstable attempts (2 retries each = 4 total calls)
         (global.fetch as jest.Mock)
-          .mockResolvedValueOnce({
-            ok: false,
-            status: 502,
-          })
-          .mockResolvedValueOnce({
-            ok: false,
-            status: 502,
-          });
+          .mockResolvedValueOnce({ ok: false, status: 502 })
+          .mockResolvedValueOnce({ ok: false, status: 502 })
+          .mockResolvedValueOnce({ ok: false, status: 502 })
+          .mockResolvedValueOnce({ ok: false, status: 502 });
 
         await expect(connectToDemoServer()).rejects.toThrow("Demo server is temporarily unavailable");
       });
 
       it("should handle invalid credentials (401)", async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-          ok: false,
-          status: 401,
-        });
+        // Mock 401 for both stable and unstable servers
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({ ok: false, status: 401 })
+          .mockResolvedValueOnce({ ok: false, status: 401 });
 
         await expect(connectToDemoServer()).rejects.toThrow("Demo credentials are invalid");
       });
 
       it("should handle invalid response format (non-JSON)", async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-          ok: true,
-          headers: new Headers({ "content-type": "text/html" }),
-          json: async () => {
-            throw new Error("Invalid JSON");
-          },
-        });
+        // Mock invalid response for both stable and unstable servers
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({
+            ok: true,
+            headers: new Headers({ "content-type": "text/html" }),
+            json: async () => {
+              throw new Error("Invalid JSON");
+            },
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            headers: new Headers({ "content-type": "text/html" }),
+            json: async () => {
+              throw new Error("Invalid JSON");
+            },
+          });
 
         await expect(connectToDemoServer()).rejects.toThrow("Demo server returned invalid response format");
       });
 
       it("should handle missing credentials in response", async () => {
-        (global.fetch as jest.Mock).mockResolvedValueOnce({
-          ok: true,
-          headers: new Headers({ "content-type": "application/json" }),
-          json: async () => ({
-            // Missing AccessToken and User.Id
-          }),
-        });
+        // Mock missing credentials for both stable and unstable servers
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({
+            ok: true,
+            headers: new Headers({ "content-type": "application/json" }),
+            json: async () => ({
+              // Missing AccessToken and User.Id
+            }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            headers: new Headers({ "content-type": "application/json" }),
+            json: async () => ({
+              // Missing AccessToken and User.Id
+            }),
+          });
 
         await expect(connectToDemoServer()).rejects.toThrow("Invalid demo server response: missing credentials");
       });
@@ -794,15 +806,17 @@ describe("jellyfinApi", () => {
           if (key === "jellyfin_server_url") return Promise.resolve("https://demo.jellyfin.org/stable");
           if (key === "jellyfin_api_key") return Promise.resolve("demo-api-key-123");
           if (key === "jellyfin_user_id") return Promise.resolve("demo-user-id-456");
+          if (key === "jellyfin_demo_server_url") return Promise.resolve("https://demo.jellyfin.org/stable");
           return Promise.resolve(null);
         });
 
         await expect(connectToDemoServer()).rejects.toThrow("Demo credentials are invalid");
 
-        // Verify rollback
+        // Verify rollback (including demo server URL)
         expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_server_url");
         expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_api_key");
         expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_user_id");
+        expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_demo_server_url");
       });
 
       it("should retry on network failure", async () => {
@@ -827,6 +841,7 @@ describe("jellyfinApi", () => {
           if (key === "jellyfin_server_url") return Promise.resolve("https://demo.jellyfin.org/stable");
           if (key === "jellyfin_api_key") return Promise.resolve("demo-api-key-123");
           if (key === "jellyfin_user_id") return Promise.resolve("demo-user-id-456");
+          if (key === "jellyfin_demo_server_url") return Promise.resolve("https://demo.jellyfin.org/stable");
           return Promise.resolve(null);
         });
 
@@ -837,15 +852,17 @@ describe("jellyfinApi", () => {
       });
 
       it("should fail after max retry attempts", async () => {
-        // All attempts fail
+        // All attempts fail for both stable (2 attempts) and unstable (2 attempts)
         (global.fetch as jest.Mock)
+          .mockRejectedValueOnce(new Error("Network error"))
+          .mockRejectedValueOnce(new Error("Network error"))
           .mockRejectedValueOnce(new Error("Network error"))
           .mockRejectedValueOnce(new Error("Network error"));
 
         await expect(connectToDemoServer()).rejects.toThrow();
 
-        // Verify max retries (2 attempts for demo server)
-        expect(global.fetch).toHaveBeenCalledTimes(2);
+        // Verify max retries (2 attempts per server * 2 servers = 4 total)
+        expect(global.fetch).toHaveBeenCalledTimes(4);
       });
 
       it("should not mark demo mode active before validation succeeds", async () => {
@@ -878,6 +895,40 @@ describe("jellyfinApi", () => {
           (call) => call[0] === "jellyfin_is_demo_mode"
         );
         expect(demoModeCalls).toHaveLength(0);
+      });
+
+      it("should try unstable server first if it was successful last time", async () => {
+        // Mock that unstable was successful last time
+        mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+          if (key === "jellyfin_demo_server_url") return Promise.resolve("https://demo.jellyfin.org/unstable");
+          if (key === "jellyfin_server_url") return Promise.resolve("https://demo.jellyfin.org/unstable");
+          if (key === "jellyfin_api_key") return Promise.resolve("demo-api-key-123");
+          if (key === "jellyfin_user_id") return Promise.resolve("demo-user-id-456");
+          return Promise.resolve(null);
+        });
+
+        // Mock unstable server success
+        (global.fetch as jest.Mock)
+          .mockResolvedValueOnce({
+            ok: true,
+            headers: new Headers({ "content-type": "application/json" }),
+            json: async () => ({
+              AccessToken: "demo-api-key-123",
+              User: { Id: "demo-user-id-456" },
+            }),
+          })
+          .mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ Items: [] }),
+          });
+
+        mockSecureStore.setItemAsync.mockResolvedValue(undefined);
+
+        await connectToDemoServer();
+
+        // Verify first fetch call was to UNSTABLE (not stable)
+        const firstFetchUrl = (global.fetch as jest.Mock).mock.calls[0][0] as string;
+        expect(firstFetchUrl).toContain("https://demo.jellyfin.org/unstable");
       });
     });
 
@@ -934,6 +985,7 @@ describe("jellyfinApi", () => {
         expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_api_key");
         expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_user_id");
         expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_is_demo_mode");
+        expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_demo_server_url");
       });
 
       it("should complete successfully", async () => {
