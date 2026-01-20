@@ -2,7 +2,7 @@ import { FocusableButton } from "@/components/FocusableButton";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
-import { getPosterUrl, searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
+import { connectToDemoServer, getPosterUrl, searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
@@ -144,8 +144,8 @@ function NativeSearchScreen() {
 
 function ReactNativeSearchScreen() {
   const router = useRouter();
-  const { showGlobalLoader } = useLoading();
-  const { isLoading, error } = useLibrary();
+  const { showGlobalLoader, hideGlobalLoader } = useLoading();
+  const { refreshLibrary, isLoading, error } = useLibrary();
   const [searchResults, setSearchResults] = useState<JellyfinVideoItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeQuery, setActiveQuery] = useState("");
@@ -154,6 +154,7 @@ function ReactNativeSearchScreen() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [hasMoreResults, setHasMoreResults] = useState(false);
   const [firstResultHandle, setFirstResultHandle] = useState<number | undefined>(undefined);
+  const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
   const searchInputRef = useRef<TextInput>(null);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextStartIndexRef = useRef(0);
@@ -247,6 +248,45 @@ function ReactNativeSearchScreen() {
       executeSearch(activeQuery, true);
     }
   }, [hasMoreResults, isLoadingMore, isSearching, activeQuery, executeSearch]);
+
+  const handleTryDemo = useCallback(async () => {
+    if (isConnectingToDemo) return; // Prevent double-click
+
+    setIsConnectingToDemo(true);
+    let connected = false;
+
+    try {
+      showGlobalLoader();
+      await connectToDemoServer();
+      connected = true;
+
+      await refreshLibrary();
+
+      hideGlobalLoader();
+
+      Alert.alert("Demo Server Connected", "You're now browsing Jellyfin's demo library. You can switch to your own server in Settings.", [{ text: "OK" }]);
+    } catch (error) {
+      hideGlobalLoader();
+
+      if (connected) {
+        // Connection succeeded but refresh failed
+        Alert.alert(
+          "Connected to Demo",
+          "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.",
+          [{ text: "OK" }]
+        );
+      } else {
+        // Connection failed
+        Alert.alert(
+          "Connection Failed",
+          error instanceof Error ? error.message : "Unable to connect to demo server",
+          [{ text: "OK" }]
+        );
+      }
+    } finally {
+      setIsConnectingToDemo(false);
+    }
+  }, [isConnectingToDemo, showGlobalLoader, hideGlobalLoader, refreshLibrary]);
 
   useEffect(() => {
     if (searchDelayRef.current) {
@@ -371,13 +411,23 @@ function ReactNativeSearchScreen() {
           <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
           <Text style={styles.errorTitle}>Unable to Load</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <FocusableButton
-            title="Go to Settings"
-            variant="primary"
-            onPress={() => router.push("/(tabs)/settings")}
-            icon={<Ionicons name="settings-outline" size={24} color="#000" />}
-            hasTVPreferredFocus
-          />
+
+          <View style={styles.buttonGroup}>
+            <FocusableButton
+              title="Try Demo Server"
+              variant="secondary"
+              onPress={handleTryDemo}
+              disabled={isConnectingToDemo}
+              icon={<Ionicons name="play-circle-outline" size={Platform.isTV ? 24 : 20} color="#FFC312" />}
+              hasTVPreferredFocus={true}
+            />
+            <FocusableButton
+              title="Go to Settings"
+              variant="primary"
+              onPress={() => router.push("/(tabs)/settings")}
+              icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
+            />
+          </View>
         </View>
       );
     }
@@ -388,7 +438,7 @@ function ReactNativeSearchScreen() {
         <Text style={styles.emptyText}>Search by title, path, or year</Text>
       </View>
     );
-  }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, router, handleRetrySearch]);
+  }, [hasSearchQuery, isSearching, searchError, searchQuery, isLoading, error, isConnectingToDemo, router, handleRetrySearch, handleTryDemo]);
 
   const handleSubmitEditing = useCallback(() => {
     if (shouldShowResults) {
@@ -530,5 +580,12 @@ const styles = StyleSheet.create({
   footerLoadingText: {
     fontSize: Platform.isTV ? 18 : 15,
     color: "#98989D",
+  },
+  buttonGroup: {
+    gap: Platform.isTV ? 16 : 12,
+    marginTop: Platform.isTV ? 32 : 24,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
   },
 });

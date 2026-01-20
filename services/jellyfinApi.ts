@@ -1,4 +1,4 @@
-import { JellyfinItem, JellyfinVideoItem, JellyfinVideosResponse, JellyfinFolderResponse } from "@/types/jellyfin";
+import { JellyfinFolderResponse, JellyfinItem, JellyfinVideoItem, JellyfinVideosResponse } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { retryWithBackoff } from "@/utils/retry";
 import * as SecureStore from "expo-secure-store";
@@ -16,7 +16,14 @@ const STORAGE_KEYS = {
   API_KEY: "jellyfin_api_key",
   USER_ID: "jellyfin_user_id",
   VIDEO_QUALITY: "app_video_quality",
+  IS_DEMO_MODE: "jellyfin_is_demo_mode",
 };
+
+// Demo server credentials (Jellyfin's official public demo server)
+// Credentials are fetched dynamically as the demo server resets hourly
+const DEMO_SERVER = "https://demo.jellyfin.org/stable";
+const DEMO_USERNAME = "demo";
+const DEMO_PASSWORD = ""; // Empty password
 
 // Video quality presets (matches settings page)
 const QUALITY_PRESETS = [
@@ -30,8 +37,8 @@ const DEFAULT_QUALITY = 0; // 480p
 
 // Standardized timeout constants
 const API_TIMEOUTS = {
-  QUICK: 10000,    // 10s - For simple queries, listing items
-  NORMAL: 15000,   // 15s - For fetches with moderate data
+  QUICK: 10000, // 10s - For simple queries, listing items
+  NORMAL: 15000, // 15s - For fetches with moderate data
   EXTENDED: 30000, // 30s - For large data fetches (library items)
 } as const;
 
@@ -220,6 +227,254 @@ export async function syncDevCredentials(): Promise<void> {
     logger.error("Error syncing dev credentials", error, {
       service: "JellyfinAPI",
     });
+  }
+}
+
+/**
+ * Fetch demo credentials from Jellyfin API
+ * Demo server resets hourly, so credentials must be fetched fresh each time
+ */
+async function fetchDemoCredentials(): Promise<{ apiKey: string; userId: string }> {
+  const url = `${DEMO_SERVER}/Users/AuthenticateByName`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for real-world conditions
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Emby-Authorization": `MediaBrowser Client="TomoTV", Device="iOS", DeviceId="demo-device", Version="1.0.0"`,
+      },
+      body: JSON.stringify({
+        Username: DEMO_USERNAME,
+        Pw: DEMO_PASSWORD,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      if (response.status === 503 || response.status === 502) {
+        throw new Error("Demo server is temporarily unavailable. Please try again in a few moments.");
+      } else if (response.status >= 500) {
+        throw new Error("Demo server is experiencing technical difficulties. Please try again later.");
+      } else if (response.status === 401 || response.status === 403) {
+        throw new Error("Demo credentials are invalid. The demo server may have been reset.");
+      } else {
+        throw new Error(`Unable to connect to demo server (error ${response.status}). Please try again.`);
+      }
+    }
+
+    // Validate response is JSON before parsing
+    let data;
+    try {
+      const contentType = response.headers.get("content-type");
+      if (!contentType?.includes("application/json")) {
+        throw new Error("Demo server returned invalid response format. The server may be down or experiencing issues.");
+      }
+      data = await response.json();
+    } catch (jsonError) {
+      if (jsonError instanceof Error && jsonError.message.includes("Demo server returned invalid")) {
+        throw jsonError;
+      }
+      throw new Error("Demo server returned invalid data. Please try again later.");
+    }
+
+    if (!data.AccessToken || !data.User?.Id) {
+      throw new Error("Invalid demo server response: missing credentials");
+    }
+
+    logger.info("Demo credentials fetched successfully", {
+      service: "JellyfinAPI",
+      userId: data.User.Id,
+    });
+
+    return {
+      apiKey: data.AccessToken,
+      userId: data.User.Id,
+    };
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Demo server connection timed out. Please check your internet connection.");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Connect to demo server
+ * Fetches fresh credentials and stores them in SecureStore
+ */
+export async function connectToDemoServer(): Promise<void> {
+  try {
+    // Fetch fresh credentials from demo server with retry logic
+    const { apiKey, userId } = await retryWithBackoff(() => fetchDemoCredentials(), {
+      maxAttempts: 2, // Lighter retry (2 attempts vs 3 for library)
+      initialDelayMs: 1000, // 1s between retries
+    });
+
+    // Write credentials first (atomic - all 3 must succeed)
+    await Promise.all([SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, DEMO_SERVER), SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, apiKey), SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, userId)]);
+
+    // Verify all 3 were written successfully
+    const [verifyUrl, verifyKey, verifyUserId] = await Promise.all([
+      SecureStore.getItemAsync(STORAGE_KEYS.SERVER_URL),
+      SecureStore.getItemAsync(STORAGE_KEYS.API_KEY),
+      SecureStore.getItemAsync(STORAGE_KEYS.USER_ID),
+    ]);
+
+    if (verifyUrl !== DEMO_SERVER || verifyKey !== apiKey || verifyUserId !== userId) {
+      // Rollback if any write failed
+      await Promise.all([
+        SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_URL).catch(() => {}),
+        SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY).catch(() => {}),
+        SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID).catch(() => {}),
+      ]);
+      throw new Error("Failed to save demo credentials. Please try again.");
+    }
+
+    // Refresh config cache with new credentials
+    await refreshConfig();
+
+    // Validate credentials by making a lightweight API call BEFORE marking demo mode active
+    try {
+      await retryWithBackoff(
+        async () => {
+          const url = `${DEMO_SERVER}/Users/${userId}/Views`;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+          try {
+            const response = await fetch(url, {
+              headers: {
+                Accept: "application/json",
+                Authorization: `MediaBrowser Token="${apiKey}"`,
+              },
+              signal: controller.signal,
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+              throw new Error("Invalid credentials");
+            }
+
+            return response;
+          } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
+          }
+        },
+        { maxAttempts: 1 }, // No retry for validation
+      );
+    } catch (validationError) {
+      // Rollback - clear everything if validation fails
+      await Promise.all([
+        SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_URL).catch(() => {}),
+        SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY).catch(() => {}),
+        SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID).catch(() => {}),
+      ]);
+
+      // CRITICAL: Refresh config cache after rollback to clear demo credentials
+      await refreshConfig();
+
+      throw new Error("Demo credentials are invalid. The demo server may be experiencing issues.");
+    }
+
+    // Only mark demo mode active AFTER validation succeeds
+    await SecureStore.setItemAsync(STORAGE_KEYS.IS_DEMO_MODE, "true");
+
+    // Clear manager caches to prevent stale data (defensive - don't fail on cache clear errors)
+    try {
+      const { libraryManager } = await import("@/services/libraryManager");
+      const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+      libraryManager.clearCache();
+      folderNavigationManager.clearCache();
+    } catch (cacheError) {
+      // Log but don't fail - cache clearing is not critical for functionality
+      logger.warn("Failed to clear manager caches", cacheError, {
+        service: "JellyfinAPI",
+      });
+    }
+
+    logger.info("Connected to demo server", {
+      service: "JellyfinAPI",
+      server: DEMO_SERVER,
+    });
+  } catch (error) {
+    logger.error("Failed to connect to demo server", error, {
+      service: "JellyfinAPI",
+    });
+
+    // Don't double-wrap error messages that already contain user-friendly text
+    if (error instanceof Error && (error.message.includes("Demo server") || error.message.includes("Failed to save") || error.message.includes("Invalid credentials"))) {
+      throw error;
+    }
+
+    // Wrap other errors with context
+    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    throw new Error(`Unable to connect to demo server: ${errorMessage}`);
+  }
+}
+
+/**
+ * Check if demo mode is active
+ * Returns true if the app is connected to the demo server
+ */
+export async function isDemoMode(): Promise<boolean> {
+  try {
+    const flag = await SecureStore.getItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
+    return flag === "true";
+  } catch (error) {
+    logger.error("Error checking demo mode", error, {
+      service: "JellyfinAPI",
+    });
+    return false;
+  }
+}
+
+/**
+ * Disconnect from demo server
+ * Clears all credentials and returns to unconfigured state
+ */
+export async function disconnectFromDemo(): Promise<void> {
+  try {
+    // Clear all credentials and demo flag
+    await Promise.all([
+      SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_URL),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID),
+      SecureStore.deleteItemAsync(STORAGE_KEYS.IS_DEMO_MODE),
+    ]);
+
+    // Refresh config to reset to defaults
+    await refreshConfig();
+
+    // Clear manager caches (defensive - don't fail on cache clear errors)
+    try {
+      const { libraryManager } = await import("@/services/libraryManager");
+      const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+      libraryManager.clearCache();
+      folderNavigationManager.clearCache();
+    } catch (cacheError) {
+      // Log but don't fail - cache clearing is not critical for functionality
+      logger.warn("Failed to clear manager caches", cacheError, {
+        service: "JellyfinAPI",
+      });
+    }
+
+    logger.info("Disconnected from demo server", {
+      service: "JellyfinAPI",
+    });
+  } catch (error) {
+    logger.error("Error disconnecting from demo", error, {
+      service: "JellyfinAPI",
+    });
+    throw new Error("Failed to disconnect from demo server");
   }
 }
 
@@ -508,7 +763,7 @@ function parseYearsFromQuery(query: string): { term: string; years: number[] } {
     const century = decadeMatch[1] ? 1900 : 2000;
     const decade = parseInt(decadeMatch[2], 10) * 10;
     // For "90s" without prefix, assume 1990s if >= 30, else 2000s
-    const baseYear = decadeMatch[1] ? century + decade : (decade >= 30 ? 1900 + decade : 2000 + decade);
+    const baseYear = decadeMatch[1] ? century + decade : decade >= 30 ? 1900 + decade : 2000 + decade;
     for (let y = baseYear; y < baseYear + 10; y++) {
       years.push(y);
     }
@@ -744,7 +999,7 @@ export async function fetchUserViews(): Promise<{ items: JellyfinItem[]; total?:
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`Failed to fetch views: ${response.status}`);
+          throw new Error(`Failed to fetch: ${response.status}`);
         }
 
         const data = await response.json();
@@ -769,10 +1024,7 @@ export async function fetchUserViews(): Promise<{ items: JellyfinItem[]; total?:
  * @param parentId - The folder ID to fetch contents for (null for root views)
  * @param options - Pagination options
  */
-export async function fetchFolderContents(
-  parentId: string | null,
-  { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {},
-): Promise<{ items: JellyfinItem[]; total?: number }> {
+export async function fetchFolderContents(parentId: string | null, { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {}): Promise<{ items: JellyfinItem[]; total?: number }> {
   // If no parentId, return user views (root level)
   if (!parentId) {
     return fetchUserViews();
@@ -838,10 +1090,7 @@ export async function fetchFolderContents(
  * @param playlistId - The playlist ID to fetch contents for
  * @param options - Pagination options
  */
-export async function fetchPlaylistContents(
-  playlistId: string,
-  { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {},
-): Promise<{ items: JellyfinItem[]; total?: number }> {
+export async function fetchPlaylistContents(playlistId: string, { limit = 60, startIndex = 0 }: { limit?: number; startIndex?: number } = {}): Promise<{ items: JellyfinItem[]; total?: number }> {
   const config = await getConfig();
 
   if (!config.server || !config.apiKey || !config.userId) {

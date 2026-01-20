@@ -35,7 +35,10 @@ interface VideoGridItemProps {
  * - Platform values cached at module level
  * - BlurView only rendered when focused
  */
-const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(function VideoGridItemComponent({ video, onPress, index, onItemFocus, onItemBlur, hasTVPreferredFocus = false, nextFocusUp }, ref) {
+const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(function VideoGridItemComponent(
+  { video, onPress, index, onItemFocus, onItemBlur, hasTVPreferredFocus = false, nextFocusUp },
+  ref,
+) {
   const [focused, setFocused] = useState(false);
 
   // Only compute poster URL - this is always needed for display
