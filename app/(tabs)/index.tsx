@@ -5,13 +5,13 @@ import { FolderGridItem } from "@/components/folder-grid-item";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
-import { isFolder, syncDevCredentials } from "@/services/jellyfinApi";
+import { connectToDemoServer, isFolder, syncDevCredentials } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo } from "react";
-import { ActivityIndicator, BackHandler, FlatList, Platform, StyleSheet, Text, View, useTVEventHandler } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Alert, BackHandler, FlatList, Platform, StyleSheet, Text, View, useTVEventHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Special marker for the ".." back navigation item
@@ -21,8 +21,9 @@ type GridItem = JellyfinItem | { Id: typeof BACK_ITEM_ID; _isBackItem: true };
 export default function VideoLibraryScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { showGlobalLoader } = useLoading();
-  const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore } = useFolderNavigation();
+  const { showGlobalLoader, hideGlobalLoader } = useLoading();
+  const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore, refresh } = useFolderNavigation();
+  const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
   // Handle TV menu button for back navigation
   useTVEventHandler((event) => {
@@ -94,6 +95,7 @@ export default function VideoLibraryScreen() {
       ...styles.gridContent,
       paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 20,
     }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [insets.bottom],
   );
 
@@ -160,6 +162,38 @@ export default function VideoLibraryScreen() {
     }
   }, [hasMoreResults, isLoadingMore, isLoading, loadMore]);
 
+  const handleTryDemo = useCallback(async () => {
+    if (isConnectingToDemo) return; // Prevent double-click
+
+    setIsConnectingToDemo(true);
+    let connected = false;
+
+    try {
+      showGlobalLoader();
+      await connectToDemoServer();
+      connected = true;
+
+      // Refresh folder navigation to load demo content
+      await refresh();
+
+      hideGlobalLoader();
+
+      Alert.alert("Demo Server Connected", "You're now browsing Jellyfin's demo library. You can switch to your own server in Settings.", [{ text: "OK" }]);
+    } catch (error) {
+      hideGlobalLoader();
+
+      if (connected) {
+        // Connection succeeded but refresh failed
+        Alert.alert("Connected to Demo", "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.", [{ text: "OK" }]);
+      } else {
+        // Connection failed
+        Alert.alert("Connection Failed", error instanceof Error ? error.message : "Unable to connect to demo server", [{ text: "OK" }]);
+      }
+    } finally {
+      setIsConnectingToDemo(false);
+    }
+  }, [isConnectingToDemo, showGlobalLoader, hideGlobalLoader, refresh]);
+
   const renderEmpty = useCallback(() => {
     if (isLoading) {
       return (
@@ -174,16 +208,25 @@ export default function VideoLibraryScreen() {
       return (
         <View style={styles.centerContainer}>
           <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
-          <Text style={styles.errorTitle}>Unable to Load</Text>
+          <Text style={styles.errorTitle}>Error</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <Text style={styles.errorText}></Text>
-          <FocusableButton
-            title="Go to Settings"
-            variant="primary"
-            onPress={() => router.push("/(tabs)/settings")}
-            icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
-            hasTVPreferredFocus={true}
-          />
+
+          <View style={styles.buttonGroup}>
+            <FocusableButton
+              title="Try Demo Server"
+              variant="secondary"
+              onPress={handleTryDemo}
+              disabled={isConnectingToDemo}
+              icon={<Ionicons name="play-circle-outline" size={Platform.isTV ? 24 : 20} color="#FFC312" />}
+              hasTVPreferredFocus={true}
+            />
+            <FocusableButton
+              title="Go to Settings"
+              variant="primary"
+              onPress={() => router.push("/(tabs)/settings")}
+              icon={<Ionicons name="settings-outline" size={Platform.isTV ? 24 : 20} color="#000000" />}
+            />
+          </View>
         </View>
       );
     }
@@ -194,7 +237,7 @@ export default function VideoLibraryScreen() {
         <Text style={styles.emptyText}>This folder is empty</Text>
       </View>
     );
-  }, [isLoading, error, router]);
+  }, [isLoading, error, isConnectingToDemo, router, handleTryDemo]);
 
   return (
     <View style={styles.container}>
@@ -287,5 +330,12 @@ const styles = StyleSheet.create({
     fontSize: Platform.isTV ? 20 : 16,
     color: "#98989D",
     fontWeight: "500",
+  },
+  buttonGroup: {
+    gap: Platform.isTV ? 16 : 12,
+    marginTop: Platform.isTV ? 32 : 24,
+    width: "100%",
+    maxWidth: 400,
+    alignItems: "center",
   },
 });
