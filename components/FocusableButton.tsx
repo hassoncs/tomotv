@@ -33,76 +33,42 @@ interface FocusableButtonProps extends Omit<PressableProps, "style"> {
  */
 export function FocusableButton({ title, variant = "primary", isLoading = false, icon, hasTVPreferredFocus = false, disabled = false, style, textStyle, ...pressableProps }: FocusableButtonProps) {
   const getButtonStyle = (focused: boolean): ViewStyle => {
-    const baseStyle = [styles.button];
-
-    // Variant-specific styles
-    switch (variant) {
-      case "primary":
-        baseStyle.push(styles.primaryButton);
-        if (focused) baseStyle.push(styles.primaryButtonFocused);
-        break;
-      case "secondary":
-        baseStyle.push(styles.secondaryButton);
-        if (focused) baseStyle.push(styles.secondaryButtonFocused);
-        break;
-      case "destructive":
-        baseStyle.push(styles.destructiveButton);
-        if (focused) baseStyle.push(styles.destructiveButtonFocused);
-        break;
-      case "debug":
-        baseStyle.push(styles.debugButton);
-        if (focused) baseStyle.push(styles.debugButtonFocused);
-        break;
-      case "retry":
-        baseStyle.push(styles.retryButton);
-        if (focused) baseStyle.push(styles.retryButtonFocused);
-        break;
-    }
-
-    // Disabled state
-    if (disabled || isLoading) {
-      baseStyle.push(styles.buttonDisabled);
-    }
-
-    // Custom styles
-    if (style) {
-      baseStyle.push(style);
-    }
+    const baseStyle = [
+      styles.button,
+      // Variant-specific styles
+      variant === "primary" && styles.primaryButton,
+      variant === "primary" && focused && styles.primaryButtonFocused,
+      variant === "secondary" && styles.secondaryButton,
+      variant === "secondary" && focused && styles.secondaryButtonFocused,
+      variant === "destructive" && styles.destructiveButton,
+      variant === "destructive" && focused && styles.destructiveButtonFocused,
+      variant === "debug" && styles.debugButton,
+      variant === "debug" && focused && styles.debugButtonFocused,
+      variant === "retry" && styles.retryButton,
+      variant === "retry" && focused && styles.retryButtonFocused,
+      // Disabled state
+      (disabled || isLoading) && styles.buttonDisabled,
+      // Custom styles
+      style,
+    ].filter(Boolean) as ViewStyle[];
 
     return StyleSheet.flatten(baseStyle);
   };
 
   const getTextStyle = (): TextStyle => {
-    const baseStyle = [styles.buttonText];
-
-    // Variant-specific text styles
-    switch (variant) {
-      case "primary":
-        baseStyle.push(styles.primaryButtonText);
-        break;
-      case "secondary":
-        baseStyle.push(styles.secondaryButtonText);
-        break;
-      case "destructive":
-        baseStyle.push(styles.destructiveButtonText);
-        break;
-      case "debug":
-        baseStyle.push(styles.debugButtonText);
-        break;
-      case "retry":
-        baseStyle.push(styles.retryButtonText);
-        break;
-    }
-
-    // Disabled state
-    if (disabled || isLoading) {
-      baseStyle.push(styles.buttonTextDisabled);
-    }
-
-    // Custom text styles
-    if (textStyle) {
-      baseStyle.push(textStyle);
-    }
+    const baseStyle = [
+      styles.buttonText,
+      // Variant-specific text styles
+      variant === "primary" && styles.primaryButtonText,
+      variant === "secondary" && styles.secondaryButtonText,
+      variant === "destructive" && styles.destructiveButtonText,
+      variant === "debug" && styles.debugButtonText,
+      variant === "retry" && styles.retryButtonText,
+      // Disabled state
+      (disabled || isLoading) && styles.buttonTextDisabled,
+      // Custom text styles
+      textStyle,
+    ].filter(Boolean) as TextStyle[];
 
     return StyleSheet.flatten(baseStyle);
   };
@@ -112,8 +78,14 @@ export function FocusableButton({ title, variant = "primary", isLoading = false,
       {...pressableProps}
       style={({ pressed, focused }) => [getButtonStyle(focused || false), pressed && styles.buttonPressed]}
       disabled={disabled || isLoading}
-      isTVSelectable={true}
+      isTVSelectable={!disabled && !isLoading}
       hasTVPreferredFocus={hasTVPreferredFocus}
+      accessibilityLabel={title}
+      accessibilityRole="button"
+      accessibilityState={{
+        disabled: disabled || isLoading,
+        busy: isLoading,
+      }}
       tvParallaxProperties={{
         magnification: 1.05,
         pressMagnification: 1.0,

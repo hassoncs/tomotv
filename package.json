@@ -1,7 +1,32 @@
 {
   "name": "tomotv",
+  "version": "1.1.0",
+  "description": "Stream videos from your Jellyfin server on Apple TV with automatic transcoding",
   "main": "expo-router/entry",
-  "version": "1.0.9",
+  "author": "Keiver Hernandez <keiver@keiver.dev>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keiver/tomotv.git"
+  },
+  "bugs": {
+    "url": "https://github.com/keiver/tomotv/issues"
+  },
+  "homepage": "https://keiver.dev/lab/tomotv",
+  "keywords": [
+    "jellyfin",
+    "tvos",
+    "apple-tv",
+    "react-native",
+    "video-player",
+    "streaming",
+    "expo",
+    "transcoding"
+  ],
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "postinstall": "patch-package",
     "start": "expo start",
@@ -38,6 +63,7 @@
     "@react-native-tvos/config-tv": "^0.1.4",
     "@types/jest": "29.5.14",
     "@types/react": "~19.1.10",
+    "@types/react-test-renderer": "^19.1.0",
     "eslint": "^9.39.1",
     "eslint-config-expo": "~10.0.0",
     "eslint-config-prettier": "^10.1.8",
@@ -45,7 +71,6 @@
     "jest": "~29.7.0",
     "jest-expo": "^54.0.13",
     "patch-package": "^8.0.0",
-    "postinstall-postinstall": "^2.1.0",
     "prettier": "^3.6.2",
     "react-test-renderer": "19.1.0",
     "ts-jest": "^29.4.5",

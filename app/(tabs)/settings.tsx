@@ -1,12 +1,12 @@
 import { FocusableButton } from "@/components/FocusableButton";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
-import { fetchVideos, refreshConfig, isDemoMode, disconnectFromDemo } from "@/services/jellyfinApi";
 import { folderNavigationManager } from "@/services/folderNavigationManager";
+import { disconnectFromDemo, fetchLibraryVideos, isDemoMode, refreshConfig } from "@/services/jellyfinApi";
 import { libraryManager } from "@/services/libraryManager";
-import { useRouter } from "expo-router";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
@@ -226,7 +226,7 @@ export default function SettingsScreen() {
       libraryManager.clearCache();
       folderNavigationManager.clearCache();
 
-      const videos = await fetchVideos();
+      const { items: videos } = await fetchLibraryVideos({ limit: 60, startIndex: 0 });
 
       // Refresh both contexts to update the home screen
       await refreshLibrary();
@@ -379,38 +379,34 @@ Video Quality: ${qualityLabel}
   };
 
   const handleDisconnectDemo = () => {
-    Alert.alert(
-      "Disconnect from Demo",
-      "This will clear the demo server connection. You can reconnect anytime from error screens or by using 'Try Demo Server'.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Disconnect",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await disconnectFromDemo();
-              await refreshLibrary();
-              await refreshFolderNavigation();
-              setIsDemoModeActive(false);
+    Alert.alert("Disconnect from Demo", "This will clear the demo server connection. You can reconnect anytime from error screens or by using 'Try Demo Server'.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Disconnect",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await disconnectFromDemo();
+            await refreshLibrary();
+            await refreshFolderNavigation();
+            setIsDemoModeActive(false);
 
-              // Clear form to show empty state
-              setServerUrl("");
-              setApiKey("");
-              setUserId("");
-              currentServerUrl.current = "";
-              currentApiKey.current = "";
-              currentUserId.current = "";
+            // Clear form to show empty state
+            setServerUrl("");
+            setApiKey("");
+            setUserId("");
+            currentServerUrl.current = "";
+            currentApiKey.current = "";
+            currentUserId.current = "";
 
-              Alert.alert("Success", "Disconnected from demo server");
-            } catch (error) {
-              logger.error("Error disconnecting from demo", error);
-              Alert.alert("Error", "Failed to disconnect from demo server");
-            }
-          },
+            Alert.alert("Success", "Disconnected from demo server");
+          } catch (error) {
+            logger.error("Error disconnecting from demo", error);
+            Alert.alert("Error", "Failed to disconnect from demo server");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (isLoading) {
@@ -434,19 +430,6 @@ Video Quality: ${qualityLabel}
         contentInsetAdjustmentBehavior="automatic"
         focusable={false}>
         <View style={styles.contentContainer}>
-          {/* Demo Mode Banner */}
-          {isDemoModeActive && (
-            <View style={styles.demoBanner}>
-              <Ionicons name="information-circle" size={Platform.isTV ? 28 : 24} color="#FFC312" />
-              <View style={styles.demoBannerText}>
-                <Text style={styles.demoBannerTitle}>Demo Mode Active</Text>
-                <Text style={styles.demoBannerSubtitle}>
-                  You&apos;re browsing Jellyfin&apos;s demo library
-                </Text>
-              </View>
-            </View>
-          )}
-
           {/* Jellyfin Server Section */}
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderText}>JELLYFIN SERVER</Text>
@@ -551,7 +534,11 @@ Video Quality: ${qualityLabel}
                 onPress={() => handleQualityChange(preset.value)}
                 tvParallaxProperties={{ magnification: 1.01 }}
                 isTVSelectable={true}
-                hasTVPreferredFocus={false}>
+                hasTVPreferredFocus={false}
+                accessibilityLabel={`${preset.label} quality`}
+                accessibilityRole="button"
+                accessibilityState={{ selected: videoQuality === preset.value }}
+                accessibilityHint={`Set video quality to ${preset.label}. ${preset.description}`}>
                 <View style={styles.listItemContent}>
                   <View style={styles.listItemLeft}>
                     <Text style={styles.listItemTitle}>{preset.label}</Text>

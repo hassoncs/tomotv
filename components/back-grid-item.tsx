@@ -24,7 +24,17 @@ function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGri
   }, []);
 
   return (
-    <TouchableOpacity onPress={onPress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={hasTVPreferredFocus} style={styles.container}>
+    <TouchableOpacity
+      onPress={onPress}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      activeOpacity={0.95}
+      isTVSelectable={true}
+      hasTVPreferredFocus={hasTVPreferredFocus}
+      style={styles.container}
+      accessibilityLabel="Go Back"
+      accessibilityRole="button"
+      accessibilityHint="Return to previous folder">
       <View style={styles.card}>
         <View style={styles.imageContainer}>
           <View style={styles.placeholderPoster}>

@@ -142,6 +142,9 @@ Important functions:
 
 - `getConfig()` - Retrieve cached Jellyfin configuration
 - `syncDevCredentials()` - Sync dev env vars to SecureStore on app load
+- `connectToDemoServer()` - Connect to Jellyfin's official demo server (no setup required)
+- `disconnectFromDemo()` - Disconnect from demo server and clear credentials
+- `isDemoMode()` - Check if currently connected to demo server
 - `fetchLibraryVideos()` - Get paginated videos with retry logic (fetchVideos is deprecated)
 - `fetchFolderContents()` - Get folder contents with pagination
 - `fetchPlaylistContents()` - Get playlist items using playlist-specific endpoint
@@ -238,6 +241,14 @@ The app uses a smart fallback system:
 1. `.env.local` is NOT included (git-ignored)
 2. Users must configure via Settings screen
 3. Credentials stored securely in native secure storage
+
+**Demo Mode (Testing without setup):**
+
+1. One-tap connection to Jellyfin's official demo server (`https://demo.jellyfin.org/stable`)
+2. Credentials fetched dynamically via API (demo server resets hourly)
+3. Stores demo credentials in SecureStore with `IS_DEMO_MODE` flag
+4. Users can disconnect from demo and configure their own server anytime
+5. Perfect for App Store reviewers or first-time users
 
 ### Environment Variables
 

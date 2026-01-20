@@ -13,8 +13,6 @@ import { ActivityIndicator, Alert, BackHandler, InteractionManager, LogBox, Plat
 
 // Suppress known warnings
 LogBox.ignoreLogs([
-  "allowsFullscreen",
-  "The `allowsFullscreen` prop is deprecated",
   "JS object is no longer associated",
   "Operation requires a client callback",
   "Operation requires a client data source",
@@ -73,7 +71,7 @@ export default function VideoPlayerScreen() {
   const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
   // Callback ref for play/pause button - focuses immediately when mounted on TV
-  const playPauseButtonRef = useCallback((node: TouchableOpacity | null) => {
+  const playPauseButtonRef = useCallback((node: React.ElementRef<typeof TouchableOpacity> | null) => {
     if (node && Platform.isTV) {
       (node as unknown as { requestTVFocus: () => void }).requestTVFocus();
     }
@@ -139,18 +137,10 @@ export default function VideoPlayerScreen() {
 
       if (connected) {
         // Connection succeeded but refresh failed
-        Alert.alert(
-          "Connected to Demo",
-          "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.",
-          [{ text: "OK" }]
-        );
+        Alert.alert("Connected to Demo", "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.", [{ text: "OK" }]);
       } else {
         // Connection failed
-        Alert.alert(
-          "Connection Failed",
-          error instanceof Error ? error.message : "Unable to connect to demo server",
-          [{ text: "OK" }]
-        );
+        Alert.alert("Connection Failed", error instanceof Error ? error.message : "Unable to connect to demo server", [{ text: "OK" }]);
       }
     } finally {
       setIsConnectingToDemo(false);
@@ -234,26 +224,9 @@ export default function VideoPlayerScreen() {
         <Text style={styles.errorText}>{state.error}</Text>
 
         <View style={styles.buttonGroup}>
-          <FocusableButton
-            title="Retry"
-            onPress={retry}
-            variant="retry"
-            style={styles.button}
-            hasTVPreferredFocus={true}
-          />
-          <FocusableButton
-            title="Try Demo Server"
-            onPress={handleTryDemo}
-            disabled={isConnectingToDemo}
-            variant="secondary"
-            style={styles.button}
-          />
-          <FocusableButton
-            title="Go Back"
-            onPress={handleBack}
-            variant="secondary"
-            style={styles.button}
-          />
+          <FocusableButton title="Retry" onPress={retry} variant="retry" style={styles.button} hasTVPreferredFocus={true} />
+          <FocusableButton title="Try Demo Server" onPress={handleTryDemo} disabled={isConnectingToDemo} variant="secondary" style={styles.button} />
+          <FocusableButton title="Go Back" onPress={handleBack} variant="secondary" style={styles.button} />
         </View>
       </View>
     );
@@ -270,14 +243,22 @@ export default function VideoPlayerScreen() {
           <Text style={styles.audioSubtitle}>Audio File</Text>
 
           {/* Play/Pause Button */}
-          <TouchableOpacity ref={playPauseButtonRef} style={styles.playPauseButton} onPress={handlePlayPause} activeOpacity={1} isTVSelectable={true}>
+          <TouchableOpacity
+            ref={playPauseButtonRef}
+            style={styles.playPauseButton}
+            onPress={handlePlayPause}
+            activeOpacity={1}
+            isTVSelectable={true}
+            accessibilityLabel={isPlaying ? "Pause" : "Play"}
+            accessibilityRole="button"
+            accessibilityHint={isPlaying ? "Pause audio playback" : "Resume audio playback"}>
             <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
         {/* Back button */}
         {!Platform.isTV && (
-          <TouchableOpacity style={styles.iosBackButton} onPress={handleBack}>
+          <TouchableOpacity style={styles.iosBackButton} onPress={handleBack} accessibilityLabel="Close" accessibilityRole="button" accessibilityHint="Close player and return to library">
             <Ionicons name="close" size={30} color="#FFFFFF" />
           </TouchableOpacity>
         )}
@@ -300,7 +281,7 @@ export default function VideoPlayerScreen() {
 
       {/* Back button for iOS */}
       {!Platform.isTV && (
-        <TouchableOpacity style={styles.iosBackButton} onPress={handleBack}>
+        <TouchableOpacity style={styles.iosBackButton} onPress={handleBack} accessibilityLabel="Close" accessibilityRole="button" accessibilityHint="Close player and return to library">
           <Ionicons name="close" size={30} color="#FFFFFF" />
         </TouchableOpacity>
       )}

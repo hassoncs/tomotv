@@ -35,7 +35,7 @@ interface VideoGridItemProps {
  * - Platform values cached at module level
  * - BlurView only rendered when focused
  */
-const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(function VideoGridItemComponent(
+const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpacity>, VideoGridItemProps>(function VideoGridItemComponent(
   { video, onPress, index, onItemFocus, onItemBlur, hasTVPreferredFocus = false, nextFocusUp },
   ref,
 ) {
@@ -113,12 +113,12 @@ const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(
             <Image
               source={{ uri: posterUrl }}
               style={styles.poster}
-              contentFit="cover"
+              contentFit="contain"
               transition={0}
               priority={index < 10 ? "high" : "normal"}
               cachePolicy="disk" // Disk only - saves 60-100MB RAM
               recyclingKey={video.Id} // Helps with memory recycling
-              placeholderContentFit="cover"
+              placeholderContentFit="contain"
               accessible={true}
               accessibilityLabel={`${video.Name || "Video"} poster`}
             />
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
     aspectRatio: 2 / 3, // Standard movie poster aspect ratio
     borderRadius: DESIGN.BORDER_RADIUS_CARD,
     overflow: "hidden",
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#2C2C2E", // Elevated card color - provides backdrop for landscape images
   },
   borderOverlay: {
     position: "absolute",
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#2C2C2E", // Elevated card color - matches design system
   },
   placeholderText: {
     color: "#98989D",

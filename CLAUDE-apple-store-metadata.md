@@ -33,6 +33,7 @@ Alternative:
 
 **FEATURES**
 • Browse and search your library
+• Demo mode - try the app instantly without setup
 • Full playlist support - browse and play from playlists
 • Quality presets: 480p, 540p, 720p, 1080p
 • Subtitle support
@@ -71,17 +72,20 @@ Keywords Strategy:
 
 ## What's New (4,000 characters max)
 
-### Version 1.0.9
-**Playlist Support**
+### Version 1.1.0
+**Demo Mode & Playlist Support**
 
 **New Features:**
-• Full playlist support - browse and play videos from your Jellyfin playlists
+• Demo mode - Try TomoTV instantly with Jellyfin's official demo server (no setup required)
+• Full playlist support - Browse and play videos from your Jellyfin playlists
+• One-tap demo connection in Settings for instant testing
 • Navigate into playlists just like folders with breadcrumb navigation
-• Play any video directly from a playlist
 
 **Technical:**
+• Auto-fetched demo credentials from Jellyfin's public demo server
 • Added playlist-specific API endpoint for proper Jellyfin integration
 • Improved folder type detection for UserView and Playlist types
+• Enhanced error handling for demo server connectivity
 
 ---
 
@@ -346,8 +350,8 @@ Notes:
 
 ## Build Number & Version Notes
 
-**Version:** 1.0.9 (matches app.json)
-**Build Number:** 5 (increment with each submission)
+**Version:** 1.1.0 (matches app.json)
+**Build Number:** 6 (increment with each submission)
 
 **Version Naming Convention Going Forward:**
 - 1.0.x - Bug fixes, minor tweaks

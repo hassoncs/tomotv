@@ -1,4 +1,22 @@
-import { isCodecSupported, needsTranscoding, isAudioOnly, formatDuration, hasPoster, searchVideos, fetchPlaylistContents, connectToDemoServer, isDemoMode, disconnectFromDemo } from "../jellyfinApi";
+import {
+  isCodecSupported,
+  needsTranscoding,
+  isAudioOnly,
+  formatDuration,
+  hasPoster,
+  searchVideos,
+  fetchPlaylistContents,
+  connectToDemoServer,
+  isDemoMode,
+  disconnectFromDemo,
+  getVideoStreamUrl,
+  getTranscodingStreamUrl,
+  getPosterUrl,
+  getFolderThumbnailUrl,
+  getSubtitleUrl,
+  refreshConfig,
+  syncDevCredentials,
+} from "../jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 
 // Mock expo-secure-store
@@ -930,6 +948,269 @@ describe("jellyfinApi", () => {
 
         await expect(disconnectFromDemo()).rejects.toThrow("Failed to disconnect from demo server");
       });
+    });
+  });
+
+  describe("URL generation", () => {
+    const mockSecureStore = require("expo-secure-store");
+    const mockConfig = {
+      jellyfin_server_url: "http://192.168.1.100:8096",
+      jellyfin_api_key: "test-api-key",
+      jellyfin_user_id: "test-user-id",
+    };
+
+    beforeEach(async () => {
+      jest.clearAllMocks();
+      mockSecureStore.getItemAsync.mockImplementation((key: string) =>
+        Promise.resolve(mockConfig[key as keyof typeof mockConfig] || null)
+      );
+      // Need to call refreshConfig to populate cachedConfig
+      await refreshConfig();
+    });
+
+    describe("getVideoStreamUrl", () => {
+      it("should generate direct play URL with API key", () => {
+        const url = getVideoStreamUrl("video123");
+
+        expect(url).toBe("http://192.168.1.100:8096/Items/video123/Download?api_key=test-api-key");
+        expect(url).toContain("/Items/video123/Download");
+        expect(url).toContain("api_key=test-api-key");
+      });
+
+      it("should handle HTTPS server URLs", async () => {
+        mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+          if (key === "jellyfin_server_url") return Promise.resolve("https://jellyfin.example.com");
+          return Promise.resolve(mockConfig[key as keyof typeof mockConfig] || null);
+        });
+
+        await refreshConfig();
+        const url = getVideoStreamUrl("video123");
+
+        expect(url).toContain("https://jellyfin.example.com");
+        expect(url).toContain("/Items/video123/Download");
+      });
+    });
+
+    describe("getTranscodingStreamUrl", () => {
+      it("should generate HLS master.m3u8 URL with quality settings", async () => {
+        // Mock quality settings - use index 3 for 1080p
+        mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+          if (key === "app_video_quality") return Promise.resolve("3"); // 1080p index
+          return Promise.resolve(mockConfig[key as keyof typeof mockConfig] || null);
+        });
+
+        await refreshConfig();
+        const url = await getTranscodingStreamUrl("video123");
+
+        expect(url).toContain("/Videos/video123/master.m3u8");
+        expect(url).toContain("VideoCodec=h264");
+        expect(url).toContain("AudioCodec=aac");
+        expect(url).toContain("MaxWidth=1920");
+        expect(url).toContain("MaxHeight=1080");
+        expect(url).toContain("VideoBitrate=8000000");
+        expect(url).toContain("api_key=test-api-key");
+      });
+
+      it("should use MediaSourceId from videoItem when available", async () => {
+        const videoItem: any = {
+          Id: "video123",
+          MediaSources: [{ Id: "source-456" }],
+        };
+
+        
+        const url = await getTranscodingStreamUrl("video123", videoItem);
+
+        expect(url).toContain("MediaSourceId=source-456");
+      });
+
+      it("should burn in external subtitles when present", async () => {
+        const videoItem: any = {
+          Id: "video123",
+          MediaStreams: [
+            { Type: "Video", Codec: "h264", Index: 0 },
+            { Type: "Subtitle", IsExternal: true, Index: 2, Codec: "srt" },
+          ],
+        };
+
+        
+        const url = await getTranscodingStreamUrl("video123", videoItem);
+
+        expect(url).toContain("SubtitleStreamIndex=2");
+        expect(url).toContain("SubtitleMethod=Encode");
+      });
+
+      it("should not add subtitle params when no external subtitles", async () => {
+        const videoItem: any = {
+          Id: "video123",
+          MediaStreams: [
+            { Type: "Video", Codec: "h264", Index: 0 },
+            { Type: "Audio", Codec: "aac", Index: 1 },
+          ],
+        };
+
+        
+        const url = await getTranscodingStreamUrl("video123", videoItem);
+
+        expect(url).not.toContain("SubtitleStreamIndex");
+        expect(url).not.toContain("SubtitleMethod");
+      });
+
+    });
+
+    describe("getPosterUrl", () => {
+      it("should generate poster URL with default maxHeight", async () => {
+        
+        const url = getPosterUrl("item123");
+
+        expect(url).toBe("http://192.168.1.100:8096/Items/item123/Images/Primary?api_key=test-api-key&maxHeight=450&quality=90");
+      });
+
+      it("should generate poster URL with custom maxHeight", async () => {
+        
+        const url = getPosterUrl("item123", 600);
+
+        expect(url).toContain("maxHeight=600");
+      });
+
+    });
+
+    describe("getFolderThumbnailUrl", () => {
+      it("should generate folder thumbnail URL with default maxHeight", async () => {
+        
+        const url = getFolderThumbnailUrl("folder123");
+
+        expect(url).toBe("http://192.168.1.100:8096/Items/folder123/Images/Primary?api_key=test-api-key&maxHeight=300&quality=90");
+      });
+
+      it("should generate folder thumbnail URL with custom maxHeight", async () => {
+        
+        const url = getFolderThumbnailUrl("folder123", 400);
+
+        expect(url).toContain("maxHeight=400");
+      });
+    });
+
+    describe("getSubtitleUrl", () => {
+      it("should generate subtitle URL with default VTT format", async () => {
+        
+        const url = getSubtitleUrl("video123", 2);
+
+        expect(url).toBe("http://192.168.1.100:8096/Videos/video123/video123/Subtitles/2/Stream.vtt?api_key=test-api-key");
+      });
+
+      it("should generate subtitle URL with custom format", async () => {
+        
+        const url = getSubtitleUrl("video123", 3, "srt");
+
+        expect(url).toContain("/Subtitles/3/Stream.srt");
+        expect(url).toContain("api_key=test-api-key");
+      });
+    });
+  });
+
+  describe("config migration", () => {
+    const mockSecureStore = require("expo-secure-store");
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it("should migrate old IP/port format to URL format", async () => {
+      // Setup old format keys
+      mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+        const oldConfig: Record<string, string> = {
+          jellyfin_server_url: "", // New format doesn't exist yet
+          jellyfin_server_ip: "192.168.1.100",
+          jellyfin_server_port: "8096",
+          jellyfin_server_protocol: "http",
+          jellyfin_api_key: "old-api-key",
+          jellyfin_user_id: "old-user-id",
+        };
+        return Promise.resolve(oldConfig[key] || null);
+      });
+
+      
+      await syncDevCredentials();
+
+      // Should have migrated to new URL format
+      expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+        "jellyfin_server_url",
+        "http://192.168.1.100:8096"
+      );
+
+      // Should have deleted old keys
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_server_ip");
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_server_port");
+      expect(mockSecureStore.deleteItemAsync).toHaveBeenCalledWith("jellyfin_server_protocol");
+    });
+
+    it("should skip migration if new format already exists", async () => {
+      mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+        if (key === "jellyfin_server_url") return Promise.resolve("http://192.168.1.100:8096");
+        return Promise.resolve(null);
+      });
+
+      
+      await syncDevCredentials();
+
+      // Should not have called setItemAsync for migration
+      expect(mockSecureStore.setItemAsync).not.toHaveBeenCalledWith(
+        "jellyfin_server_url",
+        expect.any(String)
+      );
+    });
+
+    it("should skip migration if old format doesn't exist", async () => {
+      mockSecureStore.getItemAsync.mockResolvedValue(null);
+
+      
+      await syncDevCredentials();
+
+      // Should not have called setItemAsync for migration
+      expect(mockSecureStore.setItemAsync).not.toHaveBeenCalledWith(
+        "jellyfin_server_url",
+        expect.any(String)
+      );
+    });
+
+    it("should handle HTTPS protocol in migration", async () => {
+      mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+        const oldConfig: Record<string, string> = {
+          jellyfin_server_url: "",
+          jellyfin_server_ip: "jellyfin.example.com",
+          jellyfin_server_port: "443",
+          jellyfin_server_protocol: "https",
+        };
+        return Promise.resolve(oldConfig[key] || null);
+      });
+
+      
+      await syncDevCredentials();
+
+      expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+        "jellyfin_server_url",
+        "https://jellyfin.example.com:443"
+      );
+    });
+
+    it("should use default values when old protocol/port missing", async () => {
+      mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+        const oldConfig: Record<string, string> = {
+          jellyfin_server_url: "",
+          jellyfin_server_ip: "192.168.1.50",
+          // No port or protocol specified
+        };
+        return Promise.resolve(oldConfig[key] || null);
+      });
+
+      
+      await syncDevCredentials();
+
+      // Should default to http://ip:8096
+      expect(mockSecureStore.setItemAsync).toHaveBeenCalledWith(
+        "jellyfin_server_url",
+        "http://192.168.1.50:8096"
+      );
     });
   });
 });
