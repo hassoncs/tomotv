@@ -1,7 +1,7 @@
 import { FocusableButton } from "@/components/FocusableButton";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
-import { fetchVideos, refreshConfig, isDemoMode, disconnectFromDemo } from "@/services/jellyfinApi";
+import { fetchLibraryVideos, refreshConfig, isDemoMode, disconnectFromDemo } from "@/services/jellyfinApi";
 import { folderNavigationManager } from "@/services/folderNavigationManager";
 import { libraryManager } from "@/services/libraryManager";
 import { useRouter } from "expo-router";
@@ -226,7 +226,7 @@ export default function SettingsScreen() {
       libraryManager.clearCache();
       folderNavigationManager.clearCache();
 
-      const videos = await fetchVideos();
+      const { items: videos } = await fetchLibraryVideos({ limit: 60, startIndex: 0 });
 
       // Refresh both contexts to update the home screen
       await refreshLibrary();

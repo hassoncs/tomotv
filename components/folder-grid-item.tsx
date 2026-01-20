@@ -39,7 +39,22 @@ function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus =
   const itemCount = folder.ChildCount;
 
   return (
-    <TouchableOpacity onPress={handlePress} onFocus={handleFocus} onBlur={handleBlur} activeOpacity={0.95} isTVSelectable={true} hasTVPreferredFocus={hasTVPreferredFocus} style={styles.container}>
+    <TouchableOpacity
+      onPress={handlePress}
+      onFocus={handleFocus}
+      onBlur={handleBlur}
+      activeOpacity={0.95}
+      isTVSelectable={true}
+      hasTVPreferredFocus={hasTVPreferredFocus}
+      style={styles.container}
+      accessibilityLabel={folder.Name || "Folder"}
+      accessibilityRole="button"
+      accessibilityHint={
+        itemCount !== undefined
+          ? `Navigate to ${folder.Name} with ${itemCount} ${itemCount === 1 ? "item" : "items"}`
+          : `Navigate to ${folder.Name}`
+      }
+    >
       <View style={styles.card}>
         <View style={styles.imageContainer}>
           {thumbnailUrl ? (

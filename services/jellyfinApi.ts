@@ -659,69 +659,6 @@ export async function fetchLibraryVideos({ limit = 60, startIndex = 0 }: { limit
 }
 
 /**
- * Fetch all videos from Jellyfin server
- * Loads all videos at once - use fetchLibraryVideos() for paginated loading
- * @deprecated Use fetchLibraryVideos() with pagination for better performance
- */
-export async function fetchVideos(): Promise<JellyfinVideoItem[]> {
-  try {
-    const config = await getConfig();
-
-    // Validate configuration before making request
-    // This will only fail in production when user hasn't configured AND no dev credentials
-    if (!config.server || !config.apiKey || !config.userId) {
-      throw new Error("Jellyfin server not configured. Please go to Settings and configure your server connection.");
-    }
-
-    const pageSize = 200;
-    const maxBatches = 50;
-    const aggregated: JellyfinVideoItem[] = [];
-    let startIndex = 0;
-    let totalRecordCount: number | undefined;
-    let batches = 0;
-
-    while (batches < maxBatches) {
-      batches += 1;
-      const { items, total } = await retryWithBackoff(
-        () =>
-          requestLibraryItems(config, {
-            startIndex,
-            limit: pageSize,
-          }),
-        { maxAttempts: 3 },
-      );
-
-      totalRecordCount = total ?? totalRecordCount;
-      aggregated.push(...items);
-
-      if (items.length < pageSize) {
-        break;
-      }
-
-      if (totalRecordCount !== undefined && aggregated.length >= totalRecordCount) {
-        break;
-      }
-
-      startIndex += items.length;
-
-      if (batches === maxBatches) {
-        logger.warn("Reached library fetch batch limit", {
-          service: "JellyfinAPI",
-          fetched: aggregated.length,
-        });
-      }
-    }
-
-    return aggregated;
-  } catch (error) {
-    logger.error("Error fetching videos from Jellyfin", error, {
-      service: "JellyfinAPI",
-    });
-    throw error;
-  }
-}
-
-/**
  * Parse year(s) from search query
  * Supports patterns like:
  * - Full years: "2023", "action 2023", "(2020)"

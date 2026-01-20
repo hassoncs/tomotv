@@ -73,7 +73,7 @@ export default function VideoPlayerScreen() {
   const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
   // Callback ref for play/pause button - focuses immediately when mounted on TV
-  const playPauseButtonRef = useCallback((node: TouchableOpacity | null) => {
+  const playPauseButtonRef = useCallback((node: React.ElementRef<typeof TouchableOpacity> | null) => {
     if (node && Platform.isTV) {
       (node as unknown as { requestTVFocus: () => void }).requestTVFocus();
     }
@@ -245,14 +245,29 @@ export default function VideoPlayerScreen() {
           <Text style={styles.audioSubtitle}>Audio File</Text>
 
           {/* Play/Pause Button */}
-          <TouchableOpacity ref={playPauseButtonRef} style={styles.playPauseButton} onPress={handlePlayPause} activeOpacity={1} isTVSelectable={true}>
+          <TouchableOpacity
+            ref={playPauseButtonRef}
+            style={styles.playPauseButton}
+            onPress={handlePlayPause}
+            activeOpacity={1}
+            isTVSelectable={true}
+            accessibilityLabel={isPlaying ? "Pause" : "Play"}
+            accessibilityRole="button"
+            accessibilityHint={isPlaying ? "Pause audio playback" : "Resume audio playback"}
+          >
             <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
         {/* Back button */}
         {!Platform.isTV && (
-          <TouchableOpacity style={styles.iosBackButton} onPress={handleBack}>
+          <TouchableOpacity
+            style={styles.iosBackButton}
+            onPress={handleBack}
+            accessibilityLabel="Close"
+            accessibilityRole="button"
+            accessibilityHint="Close player and return to library"
+          >
             <Ionicons name="close" size={30} color="#FFFFFF" />
           </TouchableOpacity>
         )}
@@ -275,7 +290,13 @@ export default function VideoPlayerScreen() {
 
       {/* Back button for iOS */}
       {!Platform.isTV && (
-        <TouchableOpacity style={styles.iosBackButton} onPress={handleBack}>
+        <TouchableOpacity
+          style={styles.iosBackButton}
+          onPress={handleBack}
+          accessibilityLabel="Close"
+          accessibilityRole="button"
+          accessibilityHint="Close player and return to library"
+        >
           <Ionicons name="close" size={30} color="#FFFFFF" />
         </TouchableOpacity>
       )}

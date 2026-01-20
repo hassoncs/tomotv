@@ -35,7 +35,7 @@ interface VideoGridItemProps {
  * - Platform values cached at module level
  * - BlurView only rendered when focused
  */
-const VideoGridItemComponent = forwardRef<TouchableOpacity, VideoGridItemProps>(function VideoGridItemComponent(
+const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpacity>, VideoGridItemProps>(function VideoGridItemComponent(
   { video, onPress, index, onItemFocus, onItemBlur, hasTVPreferredFocus = false, nextFocusUp },
   ref,
 ) {

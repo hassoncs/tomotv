@@ -5,6 +5,18 @@
  */
 
 import * as jellyfinApi from "@/services/jellyfinApi";
+import { JellyfinVideoItem } from "@/types/jellyfin";
+
+/**
+ * Helper function to create mock video items with all required properties
+ */
+const createMockVideo = (id: string, name: string): JellyfinVideoItem => ({
+  Id: id,
+  Name: name,
+  Type: "Movie",
+  RunTimeTicks: 36000000000,
+  Path: `/media/${id}.mp4`,
+});
 
 // Mock dependencies
 jest.mock("@/services/jellyfinApi");
@@ -303,10 +315,7 @@ describe("Search Screen Pagination", () => {
           // Page 1
           startIndex: 0,
           response: {
-            items: Array.from({ length: 60 }, (_, i) => ({
-              Id: `${i + 1}`,
-              Name: `Video ${i + 1}`,
-            })),
+            items: Array.from({ length: 60 }, (_, i) => createMockVideo(`${i + 1}`, `Video ${i + 1}`)),
             total: 150,
           },
         },
@@ -314,10 +323,7 @@ describe("Search Screen Pagination", () => {
           // Page 2
           startIndex: 60,
           response: {
-            items: Array.from({ length: 60 }, (_, i) => ({
-              Id: `${i + 61}`,
-              Name: `Video ${i + 61}`,
-            })),
+            items: Array.from({ length: 60 }, (_, i) => createMockVideo(`${i + 61}`, `Video ${i + 61}`)),
             total: 150,
           },
         },
@@ -325,10 +331,7 @@ describe("Search Screen Pagination", () => {
           // Page 3 (last page)
           startIndex: 120,
           response: {
-            items: Array.from({ length: 30 }, (_, i) => ({
-              Id: `${i + 121}`,
-              Name: `Video ${i + 121}`,
-            })),
+            items: Array.from({ length: 30 }, (_, i) => createMockVideo(`${i + 121}`, `Video ${i + 121}`)),
             total: 150,
           },
         },
