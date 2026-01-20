@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef, useCallback, useReducer } from "react";
 import { useVideoPlayer, VideoSource } from "expo-video";
 import { InteractionManager } from "react-native";
-import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getVideoStreamUrl, getTranscodingStreamUrl } from "@/services/jellyfinApi";
+import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 
@@ -11,6 +11,7 @@ import { logger } from "@/utils/logger";
  */
 export enum PlaybackErrorType {
   NOT_FOUND = "NOT_FOUND",
+  UNAUTHORIZED = "UNAUTHORIZED",
   NETWORK = "NETWORK",
   TIMEOUT = "TIMEOUT",
   CORRUPT = "CORRUPT",
@@ -23,6 +24,17 @@ const ERROR_PATTERNS: { type: PlaybackErrorType; patterns: RegExp[] }[] = [
   {
     type: PlaybackErrorType.NOT_FOUND,
     patterns: [/not found/i, /404/i, /item.*not.*exist/i],
+  },
+  {
+    type: PlaybackErrorType.UNAUTHORIZED,
+    patterns: [
+      /unauthorized/i,
+      /401/i,
+      /not authorized/i,
+      /authentication.*fail/i,
+      /invalid.*credentials/i,
+      /error -1013/i, // NSURLErrorResourceUnavailable (often indicates 401/403)
+    ],
   },
   {
     type: PlaybackErrorType.TIMEOUT,
@@ -56,9 +68,15 @@ const ERROR_PATTERNS: { type: PlaybackErrorType; patterns: RegExp[] }[] = [
 export function classifyPlaybackError(error: unknown): PlaybackErrorType {
   if (!error) return PlaybackErrorType.UNKNOWN;
 
-  const errorMessage = error instanceof Error
-    ? error.message
-    : String(error);
+  // Extract error message from Error instances, plain objects with message property, or convert to string
+  let errorMessage: string;
+  if (error instanceof Error) {
+    errorMessage = error.message;
+  } else if (typeof error === 'object' && error !== null && 'message' in error) {
+    errorMessage = String((error as { message: unknown }).message);
+  } else {
+    errorMessage = String(error);
+  }
 
   for (const { type, patterns } of ERROR_PATTERNS) {
     if (patterns.some(pattern => pattern.test(errorMessage))) {
@@ -76,6 +94,8 @@ export function getPlaybackErrorMessage(errorType: PlaybackErrorType, originalEr
   switch (errorType) {
     case PlaybackErrorType.NOT_FOUND:
       return "Video not found on server";
+    case PlaybackErrorType.UNAUTHORIZED:
+      return "Authentication failed. Your session may have expired.";
     case PlaybackErrorType.NETWORK:
       return "Unable to connect to Jellyfin server";
     case PlaybackErrorType.TIMEOUT:
@@ -222,6 +242,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   // Persistent data across states
   const [videoDetails, setVideoDetails] = useState<JellyfinVideoItem | null>(null);
   const [hasTriedTranscoding, setHasTriedTranscoding] = useState(false);
+  const [hasTriedCredentialRefresh, setHasTriedCredentialRefresh] = useState(false);
 
   // Request ID to prevent race conditions when videoId changes
   // Incremented on each videoId change, async operations check before updating state
@@ -480,6 +501,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     setVideoDetails(null);
     setStreamUrl(null);
     setHasTriedTranscoding(false);
+    setHasTriedCredentialRefresh(false);
     setHasStablePlayback(false);
     hasStablePlaybackRef.current = false;
     autoPlayTriggeredRef.current = false;
@@ -588,6 +610,76 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         const currentMode = currentModeRef.current;
         const willRetryWithTranscode = currentMode === "direct" && !hasTriedTranscoding;
 
+        // Classify error first to determine if it's a 401
+        const errorType = classifyPlaybackError(payload.error);
+        const originalMessage = payload.error?.message || String(payload.error || "");
+
+        logger.debug("Error classified", {
+          service: "useVideoPlayback",
+          errorType,
+          willRetryWithTranscode,
+          hasTriedCredentialRefresh,
+        });
+
+        // Check if this is a 401 error in demo mode - try refreshing credentials
+        const is401Error = errorType === PlaybackErrorType.UNAUTHORIZED;
+
+        if (is401Error && !hasTriedCredentialRefresh) {
+          logger.info("Authentication error detected, attempting to refresh demo credentials", {
+            service: "useVideoPlayback",
+            error: originalMessage,
+          });
+
+          // Try to refresh demo credentials and retry playback
+          (async () => {
+            try {
+              const inDemoMode = await isDemoMode();
+              if (inDemoMode) {
+                logger.info("Reconnecting to demo server for fresh credentials", {
+                  service: "useVideoPlayback",
+                });
+
+                // Pass false to preserve folder navigation and library state
+                await connectToDemoServer(false);
+                await refreshConfig();
+
+                logger.info("Demo credentials refreshed, retrying playback", {
+                  service: "useVideoPlayback",
+                });
+
+                // Mark that we tried credential refresh
+                setHasTriedCredentialRefresh(true);
+
+                // Retry playback by resetting state
+                InteractionManager.runAfterInteractions(() => {
+                  if (!isMountedRef.current) return;
+                  dispatch({ type: "RETRY" });
+                });
+
+                return;
+              }
+            } catch (error) {
+              logger.error("Failed to refresh demo credentials", error, {
+                service: "useVideoPlayback",
+              });
+            }
+
+            // If not in demo mode or refresh failed, show the error
+            const errorMessage = getPlaybackErrorMessage(errorType, originalMessage);
+            InteractionManager.runAfterInteractions(() => {
+              if (!isMountedRef.current) return;
+              dispatch({
+                type: "PLAYER_ERROR",
+                error: { message: errorMessage },
+                mode: currentMode,
+                hasTriedTranscode: hasTriedTranscoding,
+              });
+            });
+          })();
+
+          return;
+        }
+
         // Log at INFO level if we'll auto-retry, ERROR level if this is a real failure
         if (willRetryWithTranscode) {
           logger.info("Direct play failed, will retry with transcoding", payload.error, { service: "useVideoPlayback" });
@@ -595,9 +687,6 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           logger.error("Playback error", payload.error, { service: "useVideoPlayback" });
         }
 
-        // Classify error and provide user-friendly message
-        const errorType = classifyPlaybackError(payload.error);
-        const originalMessage = payload.error?.message || String(payload.error || "");
         const errorMessage = getPlaybackErrorMessage(errorType, originalMessage);
 
         // Ensure error dispatch happens on main thread

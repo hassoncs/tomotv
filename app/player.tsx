@@ -225,7 +225,6 @@ export default function VideoPlayerScreen() {
 
         <View style={styles.buttonGroup}>
           <FocusableButton title="Retry" onPress={retry} variant="retry" style={styles.button} hasTVPreferredFocus={true} />
-          <FocusableButton title="Try Demo Server" onPress={handleTryDemo} disabled={isConnectingToDemo} variant="secondary" style={styles.button} />
           <FocusableButton title="Go Back" onPress={handleBack} variant="secondary" style={styles.button} />
         </View>
       </View>

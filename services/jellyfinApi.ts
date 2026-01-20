@@ -260,7 +260,7 @@ async function fetchDemoCredentials(demoServerUrl: string): Promise<{ apiKey: st
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
-        Origin: "https://demo.jellyfin.org",
+        Origin: demoServerUrl,
         Authorization: `MediaBrowser Client="TomoTV", Device="iOS", DeviceId="demo-device", Version="1.0.0"`,
       },
       body: JSON.stringify({
@@ -327,8 +327,9 @@ async function fetchDemoCredentials(demoServerUrl: string): Promise<{ apiKey: st
  * Fetches fresh credentials and stores them in SecureStore
  * Tries the server that worked last time first, then falls back to the other
  * Default order: stable first, then unstable
+ * @param clearCaches - Whether to clear library/folder caches (default: true). Set to false when refreshing credentials mid-session.
  */
-export async function connectToDemoServer(): Promise<void> {
+export async function connectToDemoServer(clearCaches: boolean = true): Promise<void> {
   let demoServerUrl: string | null = null;
   let apiKey: string | null = null;
   let userId: string | null = null;
@@ -481,14 +482,24 @@ export async function connectToDemoServer(): Promise<void> {
     await SecureStore.setItemAsync(STORAGE_KEYS.IS_DEMO_MODE, "true");
 
     // Clear manager caches to prevent stale data (defensive - don't fail on cache clear errors)
-    try {
-      const { libraryManager } = await import("@/services/libraryManager");
-      const { folderNavigationManager } = await import("@/services/folderNavigationManager");
-      libraryManager.clearCache();
-      folderNavigationManager.clearCache();
-    } catch (cacheError) {
-      // Log but don't fail - cache clearing is not critical for functionality
-      logger.warn("Failed to clear manager caches", cacheError, {
+    // Skip cache clearing when refreshing credentials mid-session to preserve UI state
+    if (clearCaches) {
+      try {
+        const { libraryManager } = await import("@/services/libraryManager");
+        const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+        libraryManager.clearCache();
+        folderNavigationManager.clearCache();
+        logger.debug("Manager caches cleared", {
+          service: "JellyfinAPI",
+        });
+      } catch (cacheError) {
+        // Log but don't fail - cache clearing is not critical for functionality
+        logger.warn("Failed to clear manager caches", cacheError, {
+          service: "JellyfinAPI",
+        });
+      }
+    } else {
+      logger.debug("Skipping cache clear (preserving UI state)", {
         service: "JellyfinAPI",
       });
     }
@@ -1338,7 +1349,15 @@ export function getVideoStreamUrl(itemId: string): string {
     return "";
   }
   // Use direct download endpoint with API key in URL
-  return `${cachedConfig.server}/Items/${itemId}/Download?api_key=${cachedConfig.apiKey}`;
+  const url = `${cachedConfig.server}/Items/${itemId}/Download?api_key=${cachedConfig.apiKey}`;
+
+  logger.debug("Generated direct play stream URL", {
+    service: "JellyfinAPI",
+    server: cachedConfig.server,
+    itemId,
+  });
+
+  return url;
 }
 
 /**
@@ -1407,6 +1426,7 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
         streamIndex: firstSubIndex,
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
+        server: cachedConfig.server,
       });
     } else {
       logger.info("Transcoding without subtitles", {
@@ -1415,9 +1435,17 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
         mediaSourceId,
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
+        server: cachedConfig.server,
       });
     }
   }
+
+  logger.debug("Generated transcoding stream URL", {
+    service: "JellyfinAPI",
+    server: cachedConfig.server,
+    itemId,
+    urlPreview: url.substring(0, 150) + "...",
+  });
 
   return url;
 }
