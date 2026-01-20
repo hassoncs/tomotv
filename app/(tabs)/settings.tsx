@@ -379,38 +379,34 @@ Video Quality: ${qualityLabel}
   };
 
   const handleDisconnectDemo = () => {
-    Alert.alert(
-      "Disconnect from Demo",
-      "This will clear the demo server connection. You can reconnect anytime from error screens or by using 'Try Demo Server'.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Disconnect",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await disconnectFromDemo();
-              await refreshLibrary();
-              await refreshFolderNavigation();
-              setIsDemoModeActive(false);
+    Alert.alert("Disconnect from Demo", "This will clear the demo server connection. You can reconnect anytime from error screens or by using 'Try Demo Server'.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Disconnect",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await disconnectFromDemo();
+            await refreshLibrary();
+            await refreshFolderNavigation();
+            setIsDemoModeActive(false);
 
-              // Clear form to show empty state
-              setServerUrl("");
-              setApiKey("");
-              setUserId("");
-              currentServerUrl.current = "";
-              currentApiKey.current = "";
-              currentUserId.current = "";
+            // Clear form to show empty state
+            setServerUrl("");
+            setApiKey("");
+            setUserId("");
+            currentServerUrl.current = "";
+            currentApiKey.current = "";
+            currentUserId.current = "";
 
-              Alert.alert("Success", "Disconnected from demo server");
-            } catch (error) {
-              logger.error("Error disconnecting from demo", error);
-              Alert.alert("Error", "Failed to disconnect from demo server");
-            }
-          },
+            Alert.alert("Success", "Disconnected from demo server");
+          } catch (error) {
+            logger.error("Error disconnecting from demo", error);
+            Alert.alert("Error", "Failed to disconnect from demo server");
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   if (isLoading) {
@@ -440,9 +436,7 @@ Video Quality: ${qualityLabel}
               <Ionicons name="information-circle" size={Platform.isTV ? 28 : 24} color="#FFC312" />
               <View style={styles.demoBannerText}>
                 <Text style={styles.demoBannerTitle}>Demo Mode Active</Text>
-                <Text style={styles.demoBannerSubtitle}>
-                  You&apos;re browsing Jellyfin&apos;s demo library
-                </Text>
+                <Text style={styles.demoBannerSubtitle}>You&apos;re browsing Jellyfin&apos;s demo library</Text>
               </View>
             </View>
           )}

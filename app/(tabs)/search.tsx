@@ -270,18 +270,10 @@ function ReactNativeSearchScreen() {
 
       if (connected) {
         // Connection succeeded but refresh failed
-        Alert.alert(
-          "Connected to Demo",
-          "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.",
-          [{ text: "OK" }]
-        );
+        Alert.alert("Connected to Demo", "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.", [{ text: "OK" }]);
       } else {
         // Connection failed
-        Alert.alert(
-          "Connection Failed",
-          error instanceof Error ? error.message : "Unable to connect to demo server",
-          [{ text: "OK" }]
-        );
+        Alert.alert("Connection Failed", error instanceof Error ? error.message : "Unable to connect to demo server", [{ text: "OK" }]);
       }
     } finally {
       setIsConnectingToDemo(false);

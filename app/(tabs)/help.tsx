@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { Image, Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Platform, StyleSheet, Text, View } from "react-native";
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -12,7 +12,7 @@ interface Feature {
 const features: Feature[] = [
   { icon: "play-circle", label: "Adaptive Streaming" },
   { icon: "cloud-done", label: "iCloud Sync" },
-  { icon: "flash", label: "Direct Play" },
+  { icon: "search-circle", label: "Native Search" },
 ];
 
 const DOCS_URL = "keiver.dev/lab/tomotv";
@@ -44,11 +44,11 @@ export default function HelpScreen() {
 
             {/* Feature pills */}
             <View style={styles.pillsRow}>
-              {features.map((f, i) => (
-                <Pressable key={f.label} style={({ focused }) => [styles.pill, focused && styles.pillFocused]} isTVSelectable hasTVPreferredFocus={i === 0}>
+              {features.map((f) => (
+                <View key={f.label} style={styles.pill}>
                   <Ionicons name={f.icon} size={18} color="#FFC312" />
                   <Text style={styles.pillText}>{f.label}</Text>
-                </Pressable>
+                </View>
               ))}
             </View>
           </View>
@@ -65,7 +65,7 @@ export default function HelpScreen() {
 
         {/* Center - QR Card */}
         <View style={styles.centerColumn}>
-          <Pressable style={({ focused }) => [styles.qrCard, focused && styles.qrCardFocused]} isTVSelectable>
+          <View style={styles.qrCard}>
             <LinearGradient colors={["rgba(52,199,89,0.15)", "rgba(52,199,89,0.05)", "transparent"]} style={styles.qrGradient} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} />
 
             <Text style={styles.qrEyebrow}>SETUP GUIDE</Text>
@@ -76,7 +76,7 @@ export default function HelpScreen() {
 
             <Text style={styles.qrUrl}>{DOCS_URL}</Text>
             <Text style={styles.qrHint}>Scan to get started</Text>
-          </Pressable>
+          </View>
         </View>
       </View>
     </View>
@@ -177,10 +177,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255, 195, 18, 0.4)",
   },
-  pillFocused: {
-    backgroundColor: "rgba(255, 195, 18, 0.15)",
-    borderColor: "#FFC312",
-  },
   pillText: {
     fontSize: TV ? 17 : 13,
     fontWeight: "600",
@@ -230,10 +226,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "rgba(255,255,255,0.06)",
     overflow: "hidden",
-  },
-  qrCardFocused: {
-    borderColor: "rgba(52, 199, 89, 0.5)",
-    backgroundColor: "rgba(52, 199, 89, 0.08)",
   },
   qrGradient: {
     position: "absolute",

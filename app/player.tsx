@@ -139,18 +139,10 @@ export default function VideoPlayerScreen() {
 
       if (connected) {
         // Connection succeeded but refresh failed
-        Alert.alert(
-          "Connected to Demo",
-          "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.",
-          [{ text: "OK" }]
-        );
+        Alert.alert("Connected to Demo", "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.", [{ text: "OK" }]);
       } else {
         // Connection failed
-        Alert.alert(
-          "Connection Failed",
-          error instanceof Error ? error.message : "Unable to connect to demo server",
-          [{ text: "OK" }]
-        );
+        Alert.alert("Connection Failed", error instanceof Error ? error.message : "Unable to connect to demo server", [{ text: "OK" }]);
       }
     } finally {
       setIsConnectingToDemo(false);
@@ -234,26 +226,9 @@ export default function VideoPlayerScreen() {
         <Text style={styles.errorText}>{state.error}</Text>
 
         <View style={styles.buttonGroup}>
-          <FocusableButton
-            title="Retry"
-            onPress={retry}
-            variant="retry"
-            style={styles.button}
-            hasTVPreferredFocus={true}
-          />
-          <FocusableButton
-            title="Try Demo Server"
-            onPress={handleTryDemo}
-            disabled={isConnectingToDemo}
-            variant="secondary"
-            style={styles.button}
-          />
-          <FocusableButton
-            title="Go Back"
-            onPress={handleBack}
-            variant="secondary"
-            style={styles.button}
-          />
+          <FocusableButton title="Retry" onPress={retry} variant="retry" style={styles.button} hasTVPreferredFocus={true} />
+          <FocusableButton title="Try Demo Server" onPress={handleTryDemo} disabled={isConnectingToDemo} variant="secondary" style={styles.button} />
+          <FocusableButton title="Go Back" onPress={handleBack} variant="secondary" style={styles.button} />
         </View>
       </View>
     );
