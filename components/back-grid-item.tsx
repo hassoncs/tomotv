@@ -34,8 +34,7 @@ function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGri
       style={styles.container}
       accessibilityLabel="Go Back"
       accessibilityRole="button"
-      accessibilityHint="Return to previous folder"
-    >
+      accessibilityHint="Return to previous folder">
       <View style={styles.card}>
         <View style={styles.imageContainer}>
           <View style={styles.placeholderPoster}>

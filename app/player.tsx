@@ -13,8 +13,6 @@ import { ActivityIndicator, Alert, BackHandler, InteractionManager, LogBox, Plat
 
 // Suppress known warnings
 LogBox.ignoreLogs([
-  "allowsFullscreen",
-  "The `allowsFullscreen` prop is deprecated",
   "JS object is no longer associated",
   "Operation requires a client callback",
   "Operation requires a client data source",
@@ -253,21 +251,14 @@ export default function VideoPlayerScreen() {
             isTVSelectable={true}
             accessibilityLabel={isPlaying ? "Pause" : "Play"}
             accessibilityRole="button"
-            accessibilityHint={isPlaying ? "Pause audio playback" : "Resume audio playback"}
-          >
+            accessibilityHint={isPlaying ? "Pause audio playback" : "Resume audio playback"}>
             <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
 
         {/* Back button */}
         {!Platform.isTV && (
-          <TouchableOpacity
-            style={styles.iosBackButton}
-            onPress={handleBack}
-            accessibilityLabel="Close"
-            accessibilityRole="button"
-            accessibilityHint="Close player and return to library"
-          >
+          <TouchableOpacity style={styles.iosBackButton} onPress={handleBack} accessibilityLabel="Close" accessibilityRole="button" accessibilityHint="Close player and return to library">
             <Ionicons name="close" size={30} color="#FFFFFF" />
           </TouchableOpacity>
         )}
@@ -290,13 +281,7 @@ export default function VideoPlayerScreen() {
 
       {/* Back button for iOS */}
       {!Platform.isTV && (
-        <TouchableOpacity
-          style={styles.iosBackButton}
-          onPress={handleBack}
-          accessibilityLabel="Close"
-          accessibilityRole="button"
-          accessibilityHint="Close player and return to library"
-        >
+        <TouchableOpacity style={styles.iosBackButton} onPress={handleBack} accessibilityLabel="Close" accessibilityRole="button" accessibilityHint="Close player and return to library">
           <Ionicons name="close" size={30} color="#FFFFFF" />
         </TouchableOpacity>
       )}

@@ -49,12 +49,7 @@ function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus =
       style={styles.container}
       accessibilityLabel={folder.Name || "Folder"}
       accessibilityRole="button"
-      accessibilityHint={
-        itemCount !== undefined
-          ? `Navigate to ${folder.Name} with ${itemCount} ${itemCount === 1 ? "item" : "items"}`
-          : `Navigate to ${folder.Name}`
-      }
-    >
+      accessibilityHint={itemCount !== undefined ? `Navigate to ${folder.Name} with ${itemCount} ${itemCount === 1 ? "item" : "items"}` : `Navigate to ${folder.Name}`}>
       <View style={styles.card}>
         <View style={styles.imageContainer}>
           {thumbnailUrl ? (

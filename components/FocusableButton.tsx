@@ -84,7 +84,7 @@ export function FocusableButton({ title, variant = "primary", isLoading = false,
       accessibilityRole="button"
       accessibilityState={{
         disabled: disabled || isLoading,
-        busy: isLoading
+        busy: isLoading,
       }}
       tvParallaxProperties={{
         magnification: 1.05,
