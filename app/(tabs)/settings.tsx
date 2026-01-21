@@ -2,7 +2,7 @@ import { FocusableButton } from "@/components/FocusableButton";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { folderNavigationManager } from "@/services/folderNavigationManager";
-import { disconnectFromDemo, fetchLibraryVideos, isDemoMode, refreshConfig } from "@/services/jellyfinApi";
+import { fetchLibraryVideos, refreshConfig } from "@/services/jellyfinApi";
 import { libraryManager } from "@/services/libraryManager";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
@@ -72,7 +72,6 @@ export default function SettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [isDemoModeActive, setIsDemoModeActive] = useState(false);
 
   // Refs for text fields
   const serverUrlRef = useRef<TextInput>(null);
@@ -86,15 +85,8 @@ export default function SettingsScreen() {
 
   useEffect(() => {
     loadSettings();
-    checkDemoMode();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const checkDemoMode = async () => {
-    const isDemo = await isDemoMode();
-    setIsDemoModeActive(isDemo);
-    logger.debug("Demo mode check", { isDemoMode: isDemo });
-  };
 
   const loadSettings = async () => {
     try {
@@ -378,37 +370,6 @@ Video Quality: ${qualityLabel}
     ]);
   };
 
-  const handleDisconnectDemo = () => {
-    Alert.alert("Disconnect from Demo", "This will clear the demo server connection. You can reconnect anytime from error screens or by using 'Try Demo Server'.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Disconnect",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await disconnectFromDemo();
-            await refreshLibrary();
-            await refreshFolderNavigation();
-            setIsDemoModeActive(false);
-
-            // Clear form to show empty state
-            setServerUrl("");
-            setApiKey("");
-            setUserId("");
-            currentServerUrl.current = "";
-            currentApiKey.current = "";
-            currentUserId.current = "";
-
-            Alert.alert("Success", "Disconnected from demo server");
-          } catch (error) {
-            logger.error("Error disconnecting from demo", error);
-            Alert.alert("Error", "Failed to disconnect from demo server");
-          }
-        },
-      },
-    ]);
-  };
-
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -582,22 +543,6 @@ Video Quality: ${qualityLabel}
               marginHorizontal: "auto",
             }}
           />
-
-          {/* Disconnect from Demo */}
-          {isDemoModeActive && (
-            <FocusableButton
-              title="Disconnect from Demo"
-              variant="secondary"
-              onPress={handleDisconnectDemo}
-              icon={<Ionicons name="log-out-outline" size={Platform.isTV ? 24 : 20} color="#FFC312" />}
-              style={{
-                marginTop: Platform.isTV ? 16 : 12,
-                width: "100%",
-                maxWidth: 400,
-                marginHorizontal: "auto",
-              }}
-            />
-          )}
 
           {/* Clear Settings */}
           <FocusableButton
