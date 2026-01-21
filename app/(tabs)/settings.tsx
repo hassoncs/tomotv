@@ -6,9 +6,9 @@ import { fetchLibraryVideos, refreshConfig } from "@/services/jellyfinApi";
 import { libraryManager } from "@/services/libraryManager";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 const STORAGE_KEYS = {
@@ -83,10 +83,14 @@ export default function SettingsScreen() {
   const currentApiKey = useRef(apiKey);
   const currentUserId = useRef(userId);
 
-  useEffect(() => {
-    loadSettings();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Reload settings whenever the screen comes into focus
+  // This ensures demo server credentials are shown after connecting
+  useFocusEffect(
+    useCallback(() => {
+      loadSettings();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
 
   const loadSettings = async () => {
     try {
@@ -495,7 +499,6 @@ Video Quality: ${qualityLabel}
                 onPress={() => handleQualityChange(preset.value)}
                 tvParallaxProperties={{ magnification: 1.01 }}
                 isTVSelectable={true}
-                hasTVPreferredFocus={false}
                 accessibilityLabel={`${preset.label} quality`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: videoQuality === preset.value }}
@@ -676,30 +679,5 @@ const styles = StyleSheet.create({
   buttonGroup: {
     gap: Platform.isTV ? 16 : 12,
     marginTop: Platform.isTV ? 24 : 16,
-  },
-  // Demo Mode Banner
-  demoBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 195, 18, 0.15)",
-    borderColor: "#FFC312",
-    borderWidth: 2,
-    borderRadius: Platform.isTV ? 16 : 12,
-    padding: Platform.isTV ? 24 : 16,
-    marginBottom: Platform.isTV ? 32 : 24,
-    gap: 16,
-  },
-  demoBannerText: {
-    flex: 1,
-  },
-  demoBannerTitle: {
-    fontSize: Platform.isTV ? 22 : 17,
-    fontWeight: "600",
-    color: "#FFC312",
-    marginBottom: 4,
-  },
-  demoBannerSubtitle: {
-    fontSize: Platform.isTV ? 18 : 14,
-    color: "#8E8E93",
   },
 });

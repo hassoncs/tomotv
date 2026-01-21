@@ -1,5 +1,6 @@
 # Performance Analysis - TomoTV
 
+**Last Updated:** January 21, 2026
 **Last Inspection:** After image cache and API optimization
 **Current Memory Usage:** 250-350MB during browsing and video playback
 
@@ -47,30 +48,30 @@
 ## Completed Optimizations
 
 ### VideoGridItem (`components/video-grid-item.tsx`)
-- ✅ Lazy metadata computation (line 43-76)
-- ✅ Conditional BlurView (line 133)
-- ✅ Disk-only image caching (line 120)
-- ✅ Smaller images: 300px/200px (line 11)
-- ✅ Conditional image priority (line 119)
-- ✅ Native-driver animation (lines 81-95)
-- ✅ Platform value caching (lines 9-12)
+- ✅ Lazy metadata computation (useEffect with isFocused dependency)
+- ✅ Conditional BlurView (rendered only when focused)
+- ✅ Disk-only image caching (cachePolicy="disk")
+- ✅ Smaller images: 300px/200px (platform-specific constants)
+- ✅ Conditional image priority (first 10 items high priority)
+- ✅ Native-driver animation (Animated.spring with useNativeDriver)
+- ✅ Platform value caching (POSTER_WIDTH/HEIGHT constants)
 
 ### FlatList (`app/(tabs)/index.tsx`)
-- ✅ Correct getItemLayout (line 195)
-- ✅ Memoized renderItem (lines 201-206)
-- ✅ `removeClippedSubviews={true}` (line 235)
-- ✅ `initialNumToRender={10/9}` (line 231)
+- ✅ Correct getItemLayout (getItemLayout function in VideoLibraryScreen)
+- ✅ Memoized renderItem (renderItem callback with useCallback)
+- ✅ `removeClippedSubviews={true}` (FlatList prop)
+- ✅ `initialNumToRender={10/9}` (FlatList prop, platform-specific)
 - ✅ All callbacks memoized
 
 ### API (`services/jellyfinApi.ts`)
-- ✅ Reduced payload fields (line 318)
+- ✅ Reduced payload fields (fetchLibraryVideos function with Fields parameter)
 - ✅ Removed unused: Overview, PremiereDate, Ratings
 
 ---
 
 ## Primary Memory Issue: FlatList windowSize
 
-**Location**: `app/(tabs)/index.tsx:233`
+**Location**: VideoLibraryScreen FlatList component in `app/(tabs)/index.tsx`
 
 **Current**:
 ```typescript
@@ -95,7 +96,7 @@ windowSize={3} // Render 3 screens above + 1 current + 3 below = 70 items
 
 ## Secondary Optimization: LoadingContext
 
-**Location**: `contexts/LoadingContext.tsx:24`
+**Location**: LoadingProvider component in `contexts/LoadingContext.tsx`
 
 **Current**:
 ```typescript
@@ -134,14 +135,14 @@ const value = useMemo(
 ## Recommended Actions (Priority Order)
 
 ### 1. Reduce windowSize (HIGH - Implement Now)
-**File**: `app/(tabs)/index.tsx:233`
+**File**: VideoLibraryScreen FlatList in `app/(tabs)/index.tsx`
 ```typescript
 windowSize={3} // Change from 5
 ```
 **Expected**: 20-30MB reduction
 
 ### 2. Memoize LoadingContext (MEDIUM - Good Practice)
-**File**: `contexts/LoadingContext.tsx:24`
+**File**: LoadingProvider component in `contexts/LoadingContext.tsx`
 ```typescript
 const value = useMemo(
   () => ({ showGlobalLoader, hideGlobalLoader, isLoading }),
