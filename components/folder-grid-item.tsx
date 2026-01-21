@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     top: IS_TV ? 16 : 10,
     right: IS_TV ? 16 : 10,
     backgroundColor: "rgba(0, 0, 0, 0.6)",
-    borderRadius: IS_TV ? DESIGN.BORDER_RADIUS_MEDIUM : DESIGN.BORDER_RADIUS_SMALL,
+    borderRadius: DESIGN.BORDER_RADIUS_ROUND,
     padding: IS_TV ? 8 : 6,
   },
   infoOverlay: {

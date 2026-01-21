@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+**Last Updated:** January 21, 2026
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
@@ -83,6 +85,12 @@ This package provides a native SwiftUI search interface for tvOS using the `.sea
 
 **Note**: Changes to `packages/expo-tvos-search/` in this repo are NOT used. The actual package comes from GitHub via npm.
 
+**Current Integration Status (as of January 2026):**
+- Package version: GitHub main branch
+- Last updated: January 21, 2026
+- Integration: Stable, no pending changes
+- Modification workflow: Documented above
+
 ### Folder Structure
 
 ```
@@ -136,7 +144,18 @@ Single service for all Jellyfin communication with:
 - Request timeouts (10-30 seconds)
 - Configuration caching for synchronous URL generation
 - Development fallback to `.env.local` credentials
-- Quality preset system (480p, 540p, 720p, 1080p)
+- Quality preset system with adaptive bitrates
+
+**Video Quality Presets:**
+
+| Preset | Resolution | Bitrate | Use Case |
+|--------|-----------|---------|----------|
+| 480p | 854×480 | 1.5 Mbps | Slow connections, data saving |
+| 540p | 960×540 | 2.5 Mbps | Balanced quality |
+| 720p | 1280×720 | 4 Mbps | HD quality, good bandwidth |
+| 1080p | 1920×1080 | 8 Mbps | Full HD, fast connections |
+
+**Note:** Bitrates are optimized for quality (increased from original 1/1.5/3/5 Mbps values).
 
 Important functions:
 
@@ -250,6 +269,35 @@ The app uses a smart fallback system:
 4. Users can disconnect from demo and configure their own server anytime
 5. Perfect for App Store reviewers or first-time users
 
+**Demo Server Advanced Features:**
+
+The `connectToDemoServer()` function supports cache management:
+
+```typescript
+connectToDemoServer(clearCaches: boolean = true)
+```
+
+**Parameters:**
+- `clearCaches` (default: `true`): Controls cache behavior
+  - `true`: Full cache clear (use when initially connecting to demo server)
+  - `false`: Preserve UI state (use when refreshing expired credentials mid-session, e.g., during video playback)
+
+**SecureStore Keys:**
+
+| Key | Purpose | Type |
+|-----|---------|------|
+| `jellyfin_server_url` | Jellyfin server URL | string |
+| `jellyfin_api_key` | API authentication token | string (hex) |
+| `jellyfin_user_id` | User GUID | string (hex) |
+| `app_video_quality` | Transcoding quality preset (0-3) | string (number) |
+| `jellyfin_is_demo_mode` | Demo server connection flag | "true" \| null |
+
+**Note:** All keys are stored in iCloud Keychain (iOS) / Android Keystore automatically.
+
+**Protection Logic:**
+
+The `syncDevCredentials()` function checks the `jellyfin_is_demo_mode` flag before syncing development credentials to SecureStore. This prevents `.env.local` credentials from overwriting demo server credentials during development.
+
 ### Environment Variables
 
 All environment variables must use `EXPO_PUBLIC_` prefix:
@@ -315,6 +363,37 @@ mv .env.local.backup .env.local
 ### tvOS App Icons & Top Shelf Images
 
 See `CLAUDE-tvos-icons.md` for detailed tvOS icon setup, folder structure, naming requirements, and common validation errors.
+
+### Settings Screen Implementation
+
+The Settings screen (`app/(tabs)/settings.tsx`) uses specialized patterns for credential management and UI state synchronization.
+
+**Auto-Reload Pattern:**
+
+The settings screen uses `useFocusEffect` instead of `useEffect` to reload credentials whenever the screen comes into focus:
+
+```typescript
+useFocusEffect(
+  useCallback(() => {
+    loadSettings();
+  }, [])
+);
+```
+
+This ensures:
+- Demo server credentials are visible after connecting from error screens
+- Settings always reflect current SecureStore state
+- Multi-screen workflows work seamlessly
+
+**Form State Management:**
+
+Uses refs (`currentServerUrl.current`) alongside state to maintain sync between input fields and validation logic without causing unnecessary re-renders.
+
+**Demo Mode UI:**
+
+Demo server connection is NOT available from Settings screen (removed in commit 740d791). Demo mode is only accessible via:
+- "Try Demo Server" button on Library error screen
+- Programmatic `connectToDemoServer()` calls
 
 ## Common Patterns
 

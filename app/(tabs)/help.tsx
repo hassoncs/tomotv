@@ -38,7 +38,7 @@ export default function HelpScreen() {
               </View>
               <View style={styles.titleBlock}>
                 <Text style={styles.title}>Tomo TV</Text>
-                <Text style={styles.subtitle}>Play videos from your Jellyfin library on Apple TV.</Text>
+                <Text style={styles.subtitle}>Play any video and audio from your Jellyfin library.</Text>
               </View>
             </View>
 

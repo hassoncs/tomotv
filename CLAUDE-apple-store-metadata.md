@@ -1,5 +1,7 @@
 # App Store Metadata for TomoTV
 
+**Last Updated:** January 21, 2026
+
 ## App Name (30 characters max)
 **TomoTV - Jellyfin Player**
 (29 characters)
@@ -71,6 +73,18 @@ Keywords Strategy:
 ---
 
 ## What's New (4,000 characters max)
+
+### Version 1.1.1
+**Stability & Polish**
+
+**Improvements:**
+• Updated expo-tvos-search to v1.3.1 with improved native search integration
+• Removed deprecated UI code for better performance
+• Updated settings screen for improved reliability
+• Documentation updates for developers
+• Minor bug fixes and optimizations
+
+---
 
 ### Version 1.1.0
 **Demo Mode & Playlist Support**
@@ -194,7 +208,7 @@ Thank you for supporting independent development!
 
 ## Privacy Policy URL (Required)
 
-**Placeholder:** https://yourwebsite.com/tomotv/privacy
+**URL:** https://keiver.dev/lab/tomotv
 
 **Minimum Privacy Policy Content:**
 ```
@@ -220,14 +234,14 @@ DATA TRANSMISSION
 • All network requests are made directly to your configured Jellyfin instance.
 
 CONTACT
-For questions or concerns: your-email@example.com
+For questions or concerns: contact@keiver.dev
 ```
 
 ---
 
 ## Support URL (Required)
 
-**Placeholder:** https://yourwebsite.com/tomotv/support
+**URL:** https://keiver.dev/lab/tomotv
 
 **Minimum Support Page Content:**
 ```
@@ -254,15 +268,15 @@ Q: Settings not saving
 A: Check iCloud Keychain is enabled in iOS Settings → [Your Name] → iCloud → Keychain
 
 CONTACT
-Email: your-email@example.com
-GitHub Issues: [if you make it open source]
+Email: contact@keiver.dev
+GitHub Issues: https://github.com/keiver/tomotv/issues
 ```
 
 ---
 
 ## Marketing URL (Optional)
 
-**Placeholder:** https://yourwebsite.com/tomotv
+**URL:** https://keiver.dev/lab/tomotv
 
 **Suggested Landing Page Sections:**
 1. Hero: "Stream Your Jellyfin Library on Apple TV"

@@ -2,13 +2,13 @@ import { FocusableButton } from "@/components/FocusableButton";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { folderNavigationManager } from "@/services/folderNavigationManager";
-import { disconnectFromDemo, fetchLibraryVideos, isDemoMode, refreshConfig } from "@/services/jellyfinApi";
+import { fetchLibraryVideos, refreshConfig } from "@/services/jellyfinApi";
 import { libraryManager } from "@/services/libraryManager";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 const STORAGE_KEYS = {
@@ -72,7 +72,6 @@ export default function SettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
-  const [isDemoModeActive, setIsDemoModeActive] = useState(false);
 
   // Refs for text fields
   const serverUrlRef = useRef<TextInput>(null);
@@ -84,17 +83,14 @@ export default function SettingsScreen() {
   const currentApiKey = useRef(apiKey);
   const currentUserId = useRef(userId);
 
-  useEffect(() => {
-    loadSettings();
-    checkDemoMode();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const checkDemoMode = async () => {
-    const isDemo = await isDemoMode();
-    setIsDemoModeActive(isDemo);
-    logger.debug("Demo mode check", { isDemoMode: isDemo });
-  };
+  // Reload settings whenever the screen comes into focus
+  // This ensures demo server credentials are shown after connecting
+  useFocusEffect(
+    useCallback(() => {
+      loadSettings();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []),
+  );
 
   const loadSettings = async () => {
     try {
@@ -378,37 +374,6 @@ Video Quality: ${qualityLabel}
     ]);
   };
 
-  const handleDisconnectDemo = () => {
-    Alert.alert("Disconnect from Demo", "This will clear the demo server connection. You can reconnect anytime from error screens or by using 'Try Demo Server'.", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Disconnect",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            await disconnectFromDemo();
-            await refreshLibrary();
-            await refreshFolderNavigation();
-            setIsDemoModeActive(false);
-
-            // Clear form to show empty state
-            setServerUrl("");
-            setApiKey("");
-            setUserId("");
-            currentServerUrl.current = "";
-            currentApiKey.current = "";
-            currentUserId.current = "";
-
-            Alert.alert("Success", "Disconnected from demo server");
-          } catch (error) {
-            logger.error("Error disconnecting from demo", error);
-            Alert.alert("Error", "Failed to disconnect from demo server");
-          }
-        },
-      },
-    ]);
-  };
-
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -534,7 +499,6 @@ Video Quality: ${qualityLabel}
                 onPress={() => handleQualityChange(preset.value)}
                 tvParallaxProperties={{ magnification: 1.01 }}
                 isTVSelectable={true}
-                hasTVPreferredFocus={false}
                 accessibilityLabel={`${preset.label} quality`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: videoQuality === preset.value }}
@@ -582,22 +546,6 @@ Video Quality: ${qualityLabel}
               marginHorizontal: "auto",
             }}
           />
-
-          {/* Disconnect from Demo */}
-          {isDemoModeActive && (
-            <FocusableButton
-              title="Disconnect from Demo"
-              variant="secondary"
-              onPress={handleDisconnectDemo}
-              icon={<Ionicons name="log-out-outline" size={Platform.isTV ? 24 : 20} color="#FFC312" />}
-              style={{
-                marginTop: Platform.isTV ? 16 : 12,
-                width: "100%",
-                maxWidth: 400,
-                marginHorizontal: "auto",
-              }}
-            />
-          )}
 
           {/* Clear Settings */}
           <FocusableButton
@@ -731,30 +679,5 @@ const styles = StyleSheet.create({
   buttonGroup: {
     gap: Platform.isTV ? 16 : 12,
     marginTop: Platform.isTV ? 24 : 16,
-  },
-  // Demo Mode Banner
-  demoBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(255, 195, 18, 0.15)",
-    borderColor: "#FFC312",
-    borderWidth: 2,
-    borderRadius: Platform.isTV ? 16 : 12,
-    padding: Platform.isTV ? 24 : 16,
-    marginBottom: Platform.isTV ? 32 : 24,
-    gap: 16,
-  },
-  demoBannerText: {
-    flex: 1,
-  },
-  demoBannerTitle: {
-    fontSize: Platform.isTV ? 22 : 17,
-    fontWeight: "600",
-    color: "#FFC312",
-    marginBottom: 4,
-  },
-  demoBannerSubtitle: {
-    fontSize: Platform.isTV ? 18 : 14,
-    color: "#8E8E93",
   },
 });
