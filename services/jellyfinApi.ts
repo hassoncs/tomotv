@@ -1,4 +1,4 @@
-import { JellyfinFolderResponse, JellyfinItem, JellyfinVideoItem, JellyfinVideosResponse } from "@/types/jellyfin";
+import { JellyfinFolderResponse, JellyfinItem, JellyfinMediaStream, JellyfinVideoItem, JellyfinVideosResponse } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { retryWithBackoff } from "@/utils/retry";
 import * as SecureStore from "expo-secure-store";
@@ -1464,7 +1464,8 @@ export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoIt
     // Wrap the fetch operation with retry logic
     return await retryWithBackoff(
       async () => {
-        const url = `${config.server}/Users/${config.userId}/Items/${itemId}?Fields=Path,MediaStreams,Overview,MediaSources`;
+        // Use GetPlaybackInfo endpoint for reliable MediaStreams data
+        const url = `${config.server}/Items/${itemId}/PlaybackInfo?UserId=${config.userId}`;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.NORMAL);
@@ -1485,17 +1486,60 @@ export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoIt
             throw new Error(`Failed to fetch video details: ${response.status} ${response.statusText}`);
           }
 
-          const data: JellyfinVideoItem = await response.json();
+          const playbackInfoResponse = await response.json();
 
-          // Debug logging to help diagnose playlist item issues
-          logger.debug("Video details fetched", {
+          // Extract MediaSources from PlaybackInfoResponse
+          const mediaSource = playbackInfoResponse.MediaSources?.[0];
+
+          if (!mediaSource) {
+            throw new Error("No media sources available for this video");
+          }
+
+          // Construct a JellyfinVideoItem-compatible object from the playback info
+          // We still need basic item metadata, so fetch it separately
+          const itemUrl = `${config.server}/Users/${config.userId}/Items/${itemId}?Fields=Path,Overview`;
+          const itemResponse = await fetch(itemUrl, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `MediaBrowser Token="${config.apiKey}"`,
+            },
+          });
+
+          if (!itemResponse.ok) {
+            throw new Error(`Failed to fetch item metadata: ${itemResponse.status}`);
+          }
+
+          const itemData = await itemResponse.json();
+
+          // Merge item metadata with MediaSources from PlaybackInfo
+          const data: JellyfinVideoItem = {
+            ...itemData,
+            MediaSources: playbackInfoResponse.MediaSources,
+            MediaStreams: mediaSource.MediaStreams || [],
+          };
+
+          // Debug logging to help diagnose multi-audio track issues
+          const audioStreams = mediaSource.MediaStreams?.filter((s: JellyfinMediaStream) => s.Type === "Audio") || [];
+
+          logger.info("Video details fetched via PlaybackInfo endpoint", {
             service: "JellyfinAPI",
             itemId: data.Id,
             name: data.Name,
             type: data.Type,
             hasMediaSources: !!data.MediaSources,
             mediaSourceCount: data.MediaSources?.length || 0,
-            mediaSourceId: data.MediaSources?.[0]?.Id,
+            mediaSourceId: mediaSource.Id,
+            hasMediaStreams: !!mediaSource.MediaStreams,
+            mediaStreamCount: mediaSource.MediaStreams?.length || 0,
+            audioTrackCount: audioStreams.length,
+            audioTracks: audioStreams.map((s: JellyfinMediaStream) => ({
+              index: s.Index,
+              language: s.Language || "und",
+              codec: s.Codec,
+              channels: s.Channels,
+              displayTitle: s.DisplayTitle,
+            })),
           });
 
           return data;

@@ -37,21 +37,53 @@ export interface AudioTrackInfo {
  */
 export function isMultiAudioAvailable(): boolean {
   if (Platform.OS !== "ios") {
+    logger.debug("Multi-audio not available: not iOS platform", {
+      service: "MultiAudioLoader",
+      platform: Platform.OS,
+    });
     return false;
   }
 
-  return MultiAudioResourceLoader !== null && MultiAudioResourceLoader !== undefined;
+  const available = MultiAudioResourceLoader !== null && MultiAudioResourceLoader !== undefined;
+
+  logger.info("Multi-audio module availability check", {
+    service: "MultiAudioLoader",
+    available,
+    module: MultiAudioResourceLoader,
+  });
+
+  return available;
 }
 
 /**
  * Extract audio track information from video metadata
  */
 export function getAudioTracks(videoItem: JellyfinVideoItem): AudioTrackInfo[] {
-  if (!videoItem.MediaStreams) {
+  // MediaStreams can be at the top level OR in MediaSources[0].MediaStreams
+  let mediaStreams = videoItem.MediaStreams;
+
+  // Fallback to MediaSources if top-level MediaStreams is empty
+  if ((!mediaStreams || mediaStreams.length === 0) && videoItem.MediaSources && videoItem.MediaSources.length > 0) {
+    mediaStreams = videoItem.MediaSources[0].MediaStreams;
+    logger.debug("Using MediaStreams from MediaSources[0]", {
+      service: "MultiAudioLoader",
+      streamCount: mediaStreams?.length || 0,
+    });
+  }
+
+  if (!mediaStreams || mediaStreams.length === 0) {
+    logger.warn("No MediaStreams found in video metadata", {
+      service: "MultiAudioLoader",
+      videoId: videoItem.Id,
+      hasTopLevelStreams: !!videoItem.MediaStreams,
+      topLevelCount: videoItem.MediaStreams?.length || 0,
+      hasMediaSources: !!videoItem.MediaSources,
+      mediaSourceCount: videoItem.MediaSources?.length || 0,
+    });
     return [];
   }
 
-  const audioStreams = videoItem.MediaStreams.filter(
+  const audioStreams = mediaStreams.filter(
     (stream: JellyfinMediaStream) => stream.Type === "Audio"
   );
 
@@ -117,10 +149,11 @@ export async function prepareMultiAudioPlayback(
     // Generate custom URL
     const customUrl = await MultiAudioResourceLoader.generateCustomUrl(videoId);
 
-    logger.info("Multi-audio custom URL generated", {
+    logger.info("Multi-audio manifest file URL generated", {
       service: "MultiAudioLoader",
       videoId,
-      customUrl,
+      fileUrl: customUrl,
+      urlType: customUrl.startsWith("file://") ? "local_file" : "unknown",
     });
 
     return customUrl;
@@ -142,9 +175,20 @@ export async function prepareMultiAudioPlayback(
  */
 export function shouldUseMultiAudio(videoItem: JellyfinVideoItem): boolean {
   if (!isMultiAudioAvailable()) {
+    logger.debug("Multi-audio not available, skipping", {
+      service: "MultiAudioLoader",
+    });
     return false;
   }
 
   const audioTracks = getAudioTracks(videoItem);
+
+  logger.info("Checking if video should use multi-audio", {
+    service: "MultiAudioLoader",
+    videoId: videoItem.Id,
+    audioTrackCount: audioTracks.length,
+    tracks: audioTracks,
+  });
+
   return audioTracks.length > 1;
 }
