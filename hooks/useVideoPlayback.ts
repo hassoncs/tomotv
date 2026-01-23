@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef, useCallback, useReducer } from "react";
 import { useVideoPlayer, VideoSource } from "expo-video";
 import { InteractionManager } from "react-native";
-import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig } from "@/services/jellyfinApi";
+import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getAudioTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 
@@ -401,6 +401,22 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
         setStreamUrl(url);
         dispatch({ type: "STREAM_CREATED", streamUrl: url });
+
+        // Log available tracks when using HLS transcoding
+        if (mode === "transcode" && details) {
+          const subtitles = getSubtitleTracks(details);
+          const audioTracks = getAudioTracks(details);
+
+          if (subtitles.length > 0 || audioTracks.length > 0) {
+            logger.debug("Available tracks in HLS stream", {
+              service: "useVideoPlayback",
+              subtitleCount: subtitles.length,
+              audioTrackCount: audioTracks.length,
+              subtitleLanguages: subtitles.map(s => s.language).join(", "),
+              audioLanguages: audioTracks.map(a => a.language).join(", "),
+            });
+          }
+        }
       } catch (error) {
         // Check for stale response before dispatching error
         if (requestIdRef.current !== currentRequestId) {

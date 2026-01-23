@@ -1345,19 +1345,20 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
     `&AllowVideoStreamCopy=false` + // Ensure predictable behavior
     `&RequireAvc=true`; // Force H.264/AVC output
 
-  // Check for external subtitles and burn them in
+  // Check for external subtitles and include them as HLS tracks
   if (videoItem && videoItem.MediaStreams) {
     const subtitleStreams = videoItem.MediaStreams.filter((stream) => stream.Type === "Subtitle" && stream.IsExternal && stream.Index !== undefined);
 
     if (subtitleStreams.length > 0) {
-      const firstSubIndex = subtitleStreams[0].Index;
-      url += `&SubtitleStreamIndex=${firstSubIndex}`;
-      url += `&SubtitleMethod=Encode`; // Burn subtitles into video frames
-      logger.info("Transcoding with subtitle burn-in", {
+      // Use SubtitleMethod=Hls to include all subtitles as separate WebVTT streams
+      // DO NOT set SubtitleStreamIndex - this includes ALL subtitle tracks
+      url += `&SubtitleMethod=Hls`;
+
+      logger.info("Transcoding with HLS subtitle tracks", {
         service: "JellyfinAPI",
         itemId,
         mediaSourceId,
-        streamIndex: firstSubIndex,
+        subtitleCount: subtitleStreams.length,
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
         server: cachedConfig.server,
@@ -1370,6 +1371,20 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
         server: cachedConfig.server,
+      });
+    }
+
+    // Include ALL audio tracks in HLS manifest
+    const audioStreams = videoItem.MediaStreams.filter(
+      (stream) => stream.Type === "Audio" && stream.Index !== undefined
+    );
+
+    if (audioStreams.length > 1) {
+      logger.info("Multiple audio tracks available", {
+        service: "JellyfinAPI",
+        itemId,
+        audioTrackCount: audioStreams.length,
+        languages: audioStreams.map(s => s.Language || "und").join(", "),
       });
     }
   }
@@ -1638,6 +1653,55 @@ export function getSubtitleTracks(videoItem: JellyfinVideoItem | null): Subtitle
         uri: track.uri,
       });
     }
+  }
+
+  return tracks;
+}
+
+/**
+ * Audio track interface for expo-video
+ * Matches expo-video's AudioTrack type (id, language, label)
+ */
+export interface AudioTrack {
+  id: string;
+  language: string;
+  label: string;
+}
+
+/**
+ * Get all audio tracks available for a video
+ * Returns audio streams from MediaStreams for informational/logging purposes
+ * expo-video will auto-discover these from HLS manifest
+ */
+export function getAudioTracks(videoItem: JellyfinVideoItem | null): AudioTrack[] {
+  if (!videoItem || !videoItem.MediaStreams) {
+    return [];
+  }
+
+  const audioStreams = videoItem.MediaStreams.filter(
+    (stream) => stream.Type === "Audio" && stream.Index !== undefined
+  );
+
+  if (audioStreams.length === 0) {
+    return [];
+  }
+
+  const tracks: AudioTrack[] = [];
+
+  for (const stream of audioStreams) {
+    const track: AudioTrack = {
+      id: String(stream.Index),
+      language: stream.Language || "und",
+      label: stream.DisplayTitle || stream.Language || `Audio ${stream.Index}`,
+    };
+    tracks.push(track);
+
+    logger.debug("Found audio track", {
+      service: "AudioTracks",
+      label: track.label,
+      language: track.language,
+      codec: stream.Codec,
+    });
   }
 
   return tracks;

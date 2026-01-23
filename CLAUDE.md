@@ -592,7 +592,7 @@ Demo server connection is NOT available from Settings screen (removed in commit 
 Use the `useVideoPlayback` hook:
 
 ```typescript
-const { state, videoRef, currentSubtitleTrack, availableSubtitleTracks, error, playVideo, retryPlayback, changeSubtitleTrack } = useVideoPlayback();
+const { state, videoRef, error, playVideo, retryPlayback } = useVideoPlayback();
 ```
 
 The hook handles:
@@ -600,7 +600,21 @@ The hook handles:
 - Codec detection and transcoding decisions
 - Stream URL generation
 - Error recovery with retry
-- Subtitle track switching
+
+### Track Selection (Subtitles & Audio)
+
+The app leverages iOS/tvOS native player controls for subtitle and audio track selection:
+
+**How it works:**
+- Jellyfin HLS endpoint includes ALL subtitle/audio tracks in manifest (using `SubtitleMethod=Hls`)
+- expo-video auto-discovers tracks from HLS `#EXT-X-MEDIA` tags
+- Native controls (enabled via `nativeControls={true}`) provide selection UI
+- User selects track via native iOS/tvOS system UI
+- No custom UI needed - seamless platform-native experience
+
+**API Functions:**
+- `getSubtitleTracks(videoItem)` - Returns array of external subtitle tracks for logging
+- `getAudioTracks(videoItem)` - Returns array of audio tracks for logging
 
 ### Custom React Hooks
 

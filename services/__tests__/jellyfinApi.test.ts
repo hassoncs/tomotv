@@ -14,6 +14,8 @@ import {
   getPosterUrl,
   getFolderThumbnailUrl,
   getSubtitleUrl,
+  getSubtitleTracks,
+  getAudioTracks,
   refreshConfig,
   syncDevCredentials,
 } from "../jellyfinApi";
@@ -1014,20 +1016,21 @@ describe("jellyfinApi", () => {
         expect(url).toContain("MediaSourceId=source-456");
       });
 
-      it("should burn in external subtitles when present", async () => {
+      it("should use SubtitleMethod=Hls for external subtitles", async () => {
         const videoItem: any = {
           Id: "video123",
           MediaStreams: [
             { Type: "Video", Codec: "h264", Index: 0 },
-            { Type: "Subtitle", IsExternal: true, Index: 2, Codec: "srt" },
+            { Type: "Subtitle", IsExternal: true, Index: 2, Language: "eng" },
+            { Type: "Subtitle", IsExternal: true, Index: 3, Language: "spa" },
           ],
         };
 
-        
+
         const url = await getTranscodingStreamUrl("video123", videoItem);
 
-        expect(url).toContain("SubtitleStreamIndex=2");
-        expect(url).toContain("SubtitleMethod=Encode");
+        expect(url).toContain("SubtitleMethod=Hls");
+        expect(url).not.toContain("SubtitleStreamIndex=");
       });
 
       it("should not add subtitle params when no external subtitles", async () => {
@@ -1046,6 +1049,80 @@ describe("jellyfinApi", () => {
         expect(url).not.toContain("SubtitleMethod");
       });
 
+    });
+
+    describe("getSubtitleTracks", () => {
+      it("should return empty array when no MediaStreams", () => {
+        const videoItem = { MediaStreams: undefined } as any;
+        expect(getSubtitleTracks(videoItem)).toEqual([]);
+      });
+
+      it("should return empty array when videoItem is null", () => {
+        expect(getSubtitleTracks(null)).toEqual([]);
+      });
+
+      it("should extract external subtitle tracks from MediaStreams", () => {
+        const videoItem = {
+          Id: "video123",
+          MediaStreams: [
+            { Type: "Video", Codec: "h264" },
+            { Type: "Subtitle", IsExternal: true, Index: 0, Language: "eng", DisplayTitle: "English" },
+            { Type: "Subtitle", IsExternal: true, Index: 1, Language: "spa", DisplayTitle: "Spanish" },
+            { Type: "Subtitle", IsExternal: false, Index: 2, Language: "fra" }, // Embedded subtitle
+          ],
+        } as any;
+
+        const tracks = getSubtitleTracks(videoItem);
+        expect(tracks).toHaveLength(2);
+        expect(tracks[0]).toMatchObject({
+          language: "eng",
+          label: "English",
+          type: "text/vtt",
+        });
+        expect(tracks[1]).toMatchObject({
+          language: "spa",
+          label: "Spanish",
+          type: "text/vtt",
+        });
+      });
+    });
+
+    describe("getAudioTracks", () => {
+      it("should return empty array when no MediaStreams", () => {
+        const videoItem = { MediaStreams: undefined } as any;
+        expect(getAudioTracks(videoItem)).toEqual([]);
+      });
+
+      it("should return empty array when videoItem is null", () => {
+        expect(getAudioTracks(null)).toEqual([]);
+      });
+
+      it("should extract audio tracks from MediaStreams", () => {
+        const videoItem = {
+          MediaStreams: [
+            { Type: "Video", Codec: "h264" },
+            { Type: "Audio", Index: 0, Language: "eng", DisplayTitle: "English Stereo" },
+            { Type: "Audio", Index: 1, Language: "spa", DisplayTitle: "Spanish 5.1" },
+          ],
+        } as any;
+
+        const tracks = getAudioTracks(videoItem);
+        expect(tracks).toHaveLength(2);
+        expect(tracks[0]).toEqual({ id: "0", language: "eng", label: "English Stereo" });
+        expect(tracks[1]).toEqual({ id: "1", language: "spa", label: "Spanish 5.1" });
+      });
+
+      it("should handle audio tracks without language or display title", () => {
+        const videoItem = {
+          MediaStreams: [
+            { Type: "Audio", Index: 0 },
+          ],
+        } as any;
+
+        const tracks = getAudioTracks(videoItem);
+        expect(tracks).toHaveLength(1);
+        expect(tracks[0]).toEqual({ id: "0", language: "und", label: "Audio 0" });
+      });
     });
 
     describe("getPosterUrl", () => {
