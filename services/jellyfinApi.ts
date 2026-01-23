@@ -269,42 +269,42 @@ async function fetchDemoCredentials(demoServerUrl: string): Promise<{ apiKey: st
 
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      if (response.status === 503 || response.status === 502) {
-        throw new Error("Demo server is temporarily unavailable. Please try again in a few moments.");
-      } else if (response.status >= 500) {
-        throw new Error("Demo server is experiencing technical difficulties. Please try again later.");
-      } else if (response.status === 401 || response.status === 403) {
-        throw new Error("Demo credentials are invalid. The demo server may have been reset.");
-      } else {
-        throw new Error(`Unable to connect to demo server (error ${response.status}). Please try again.`);
-      }
+  if (!response.ok) {
+    if (response.status === 503 || response.status === 502) {
+      throw new Error("Demo server is temporarily unavailable. Please try again in a few moments.");
+    } else if (response.status >= 500) {
+      throw new Error("Demo server is experiencing technical difficulties. Please try again later.");
+    } else if (response.status === 401 || response.status === 403) {
+      throw new Error("Demo credentials are invalid. The demo server may have been reset.");
+    } else {
+      throw new Error(`Unable to connect to demo server (error ${response.status}). Please try again.`);
     }
+  }
 
-    // Validate response is JSON before parsing
-    let data;
-    try {
-      const contentType = response.headers.get("content-type");
-      if (!contentType?.includes("application/json")) {
-        throw new Error("Demo server returned invalid response format. The server may be down or experiencing issues.");
-      }
-      data = await response.json();
-    } catch (jsonError) {
-      if (jsonError instanceof Error && jsonError.message.includes("Demo server returned invalid")) {
-        throw jsonError;
-      }
-      throw new Error("Demo server returned invalid data. Please try again later.");
+  // Validate response is JSON before parsing
+  let data;
+  try {
+    const contentType = response.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      throw new Error("Demo server returned invalid response format. The server may be down or experiencing issues.");
     }
-
-    if (!data.AccessToken || !data.User?.Id) {
-      throw new Error("Invalid demo server response: missing credentials");
+    data = await response.json();
+  } catch (jsonError) {
+    if (jsonError instanceof Error && jsonError.message.includes("Demo server returned invalid")) {
+      throw jsonError;
     }
+    throw new Error("Demo server returned invalid data. Please try again later.");
+  }
 
-    logger.info("Demo credentials fetched successfully", {
-      service: "JellyfinAPI",
-      userId: data.User.Id,
-      demoServer: demoServerUrl,
-    });
+  if (!data.AccessToken || !data.User?.Id) {
+    throw new Error("Invalid demo server response: missing credentials");
+  }
+
+  logger.info("Demo credentials fetched successfully", {
+    service: "JellyfinAPI",
+    userId: data.User.Id,
+    demoServer: demoServerUrl,
+  });
 
     return {
       apiKey: data.AccessToken,
