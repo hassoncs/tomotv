@@ -4,9 +4,9 @@ This directory contains flattened composite images used by the `@react-native-tv
 
 ## Files
 
-### App Icons (Composites from layered sources)
+### App Icons (Composites from backup sources)
 
-These images are created by compositing the three layers (back, middle, front) from `assets/images/icon/` and `assets/images/app-store/`:
+These images are created by compositing the three layers (back, middle, front) from the backup in `Images.xcassets/Brand Assets.brandassets/`:
 
 - **icon-400x240.png** - Home screen icon @1x
 - **icon-800x480.png** - Home screen icon @2x  
@@ -34,10 +34,40 @@ See `app.json` plugin configuration and `CLAUDE-tvos-icons.md` for more details.
 
 ## Regenerating Composite Icons
 
-If you need to regenerate the composite icons from source layers, use the Python script in `/tmp/composite_icons.py` (temporary location during build):
+If you need to regenerate the composite icons from the backup source layers in `Images.xcassets/Brand Assets.brandassets/`, use this Python script:
 
-```bash
-python3 /tmp/composite_icons.py /home/runner/work/tomotv/tomotv
+```python
+#!/usr/bin/env python3
+from PIL import Image
+import os
+
+def composite_layers(back_path, middle_path, front_path, output_path):
+    back = Image.open(back_path).convert('RGBA')
+    middle = Image.open(middle_path).convert('RGBA')
+    front = Image.open(front_path).convert('RGBA')
+    result = Image.alpha_composite(Image.alpha_composite(back, middle), front)
+    result.convert('RGB').save(output_path, 'PNG')
+
+base = 'Images.xcassets/Brand Assets.brandassets'
+output = 'assets/images/tvos-flattened'
+
+# Composite the icons
+composites = [
+    ('icon-400x240.png', 'App Icon.imagestack', '@1x'),
+    ('icon-800x480.png', 'App Icon.imagestack', '@2x'),
+    ('icon-1280x768.png', 'App Icon - App Store.imagestack', '@1x'),
+]
+
+for name, stack, scale in composites:
+    suffix = scale.replace('@', '@') if scale != '@1x' else '@1x' if '800' in name else ''
+    if 'App Store' in stack:
+        suffix = '@1x' if scale == '@1x' else ''
+    
+    back = f'{base}/{stack}/Back.imagestacklayer/Content.imageset/back{suffix}.png'
+    middle = f'{base}/{stack}/Middle.imagestacklayer/Content.imageset/middle{suffix}.png'
+    front = f'{base}/{stack}/Front.imagestacklayer/Content.imageset/front{suffix}.png'
+    
+    composite_layers(back, middle, front, f'{output}/{name}')
 ```
 
-This will composite the back, middle, and front layers into single flattened images.
+This composites the back, middle, and front layers from the backup into single flattened images.
