@@ -2,19 +2,26 @@
 
 This document covers Apple TV icon setup, folder structure, naming requirements, and common validation errors.
 
-## Backup & Restore
+## Automatic Icon Generation
 
-There is a backup copy of Image.xcassets in the `./Images.xcassets` folder. This contains the multilayer icon setup for tvOS. If `npm run prebuild` is ran, copy the contents of this folder back into the `./ios/tomotv/Images.xcassets` folder to restore the multilayer icon setup.
+The `@react-native-tvos/config-tv` plugin is now configured with `appleTVImages` paths in `app.json`. This means tvOS icons are automatically generated during prebuild from the flattened source images in `assets/images/tvos-flattened/`.
 
 ```bash
 export EXPO_TV=1
 npm run prebuild
 ```
 
-After prebuild, restore the backup:
-```bash
-cp -r ./Images.xcassets/* ./ios/tomotv/Images.xcassets/
-```
+The plugin will automatically:
+1. Create the `TVAppIcon.brandassets` folder structure
+2. Generate imagestack layers from the flattened source images
+3. Copy top shelf images for the tvOS home screen
+4. Configure the Xcode project to use the brand assets
+
+**No manual restoration is needed!** The icons are preserved across prebuild runs.
+
+### Backup Reference
+
+A backup copy of the original multilayer icons exists in `./Images.xcassets/Brand Assets.brandassets/` for reference. The flattened versions used by the plugin are in `assets/images/tvos-flattened/`.
 
 ## Asset Location
 
@@ -97,3 +104,19 @@ tvOS icons use a parallax effect with 3 layers:
 - **Back** - Background (solid color, gradient, or pattern)
 
 Each layer is a separate PNG in its respective `.imagestacklayer` folder.
+
+## Source Images for Automatic Generation
+
+The plugin uses flattened composite images from `assets/images/tvos-flattened/`:
+
+| File | Dimensions | Purpose |
+|------|-----------|---------|
+| icon-1280x768.png | 1280×768 | App Store icon (large) |
+| icon-400x240.png | 400×240 | Home screen icon @1x |
+| icon-800x480.png | 800×480 | Home screen icon @2x |
+| topshelf-1920x720.png | 1920×720 | Top shelf @1x |
+| topshelf-3840x1440.png | 3840×1440 | Top shelf @2x |
+| topshelf-wide-2320x720.png | 2320×720 | Top shelf wide @1x |
+| topshelf-wide-4640x1440.png | 4640×1440 | Top shelf wide @2x |
+
+These flattened images are composites of the layered icons from `assets/images/icon/` and `assets/images/app-store/`, where each icon consists of three layers (back, middle, front) that are composited together.
