@@ -55,7 +55,8 @@
         }
       ],
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      "./plugins/withMultiAudioResourceLoader"
     ],
     "experiments": {
       "typedRoutes": true,

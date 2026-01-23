@@ -1,9 +1,10 @@
 import { useEffect, useState, useMemo, useRef, useCallback, useReducer } from "react";
 import { useVideoPlayer, VideoSource } from "expo-video";
 import { InteractionManager } from "react-native";
-import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getAudioTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig } from "@/services/jellyfinApi";
+import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getAudioTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig, getConfig } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
+import { prepareMultiAudioPlayback, shouldUseMultiAudio, isMultiAudioAvailable } from "@/services/multiAudioLoader";
 
 /**
  * Error types for video playback classification
@@ -322,7 +323,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           logger.info("Codec not supported, using transcoding", { service: "useVideoPlayback" });
         }
         if (hasExternalSubs) {
-          logger.info("Found subtitles, using HLS with burn-in", {
+          logger.info("Found external subtitles, using HLS with subtitle tracks", {
             service: "useVideoPlayback",
             subtitleCount: subtitles.length,
           });
@@ -381,7 +382,39 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
     const generateStreamUrl = async () => {
       try {
-        const url = mode === "transcode" ? await getTranscodingStreamUrl(videoId, details) : getVideoStreamUrl(videoId);
+        let url: string;
+
+        if (mode === "transcode") {
+          // Check if we should use multi-audio custom protocol
+          const useMultiAudio = isMultiAudioAvailable() && shouldUseMultiAudio(details);
+
+          if (useMultiAudio) {
+            // Use multi-audio loader for seamless track switching
+            logger.info("Using multi-audio custom protocol", {
+              service: "useVideoPlayback",
+              audioTrackCount: getAudioTracks(details).length,
+            });
+
+            // First get the base transcoding URL
+            const baseUrl = await getTranscodingStreamUrl(videoId, details);
+
+            // Then prepare multi-audio playback with custom protocol
+            const cachedConfig = await getConfig();
+
+            url = await prepareMultiAudioPlayback(
+              videoId,
+              details,
+              baseUrl,
+              cachedConfig.apiKey
+            );
+          } else {
+            // Regular transcoding
+            url = await getTranscodingStreamUrl(videoId, details);
+          }
+        } else {
+          // Direct play
+          url = getVideoStreamUrl(videoId);
+        }
 
         // Check if this response is stale (videoId changed while fetching)
         if (requestIdRef.current !== currentRequestId) {
@@ -393,6 +426,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           service: "useVideoPlayback",
           mode: mode.toUpperCase(),
           streamType: url.includes(".m3u8") ? "HLS" : "Direct",
+          isMultiAudio: url.includes("jellyfin-multi://"),
         });
 
         if (!url) {
@@ -771,6 +805,48 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       }
     });
 
+    // Log available subtitle tracks discovered from HLS manifest
+    const subtitleTracksSubscription = player.addListener("availableSubtitleTracksChange", (payload) => {
+      if (!isMountedRef.current) return;
+
+      logger.info("Subtitle tracks discovered from HLS manifest", {
+        service: "useVideoPlayback",
+        trackCount: payload.availableSubtitleTracks.length,
+        tracks: payload.availableSubtitleTracks.map(t => ({
+          id: t.id,
+          language: t.language,
+          label: t.label,
+        })),
+      });
+
+      // Also log what the player property shows
+      logger.debug("Player subtitle tracks property", {
+        service: "useVideoPlayback",
+        availableSubtitleTracks: player.availableSubtitleTracks,
+      });
+    });
+
+    // Log available audio tracks discovered from HLS manifest
+    const audioTracksSubscription = player.addListener("availableAudioTracksChange", (payload) => {
+      if (!isMountedRef.current) return;
+
+      logger.info("Audio tracks discovered from HLS manifest", {
+        service: "useVideoPlayback",
+        trackCount: payload.availableAudioTracks.length,
+        tracks: payload.availableAudioTracks.map(t => ({
+          id: t.id,
+          language: t.language,
+          label: t.label,
+        })),
+      });
+
+      // Also log what the player property shows
+      logger.debug("Player audio tracks property", {
+        service: "useVideoPlayback",
+        availableAudioTracks: player.availableAudioTracks,
+      });
+    });
+
     return () => {
       // Clear timeouts if pending
       if (autoPlayTimerRef.current) {
@@ -786,6 +862,8 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       try {
         statusSubscription.remove();
         playingSubscription.remove();
+        subtitleTracksSubscription.remove();
+        audioTracksSubscription.remove();
       } catch (_error) {
         // Silently ignore subscription cleanup errors
       }

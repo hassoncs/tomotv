@@ -130,7 +130,7 @@ export async function waitForConfig(): Promise<void> {
  * Falls back to .env.local development credentials if user hasn't configured settings
  * Also updates the cache for synchronous functions
  */
-async function getConfig(): Promise<{
+export async function getConfig(): Promise<{
   server: string;
   apiKey: string;
   userId: string;
@@ -1331,11 +1331,11 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
     `&VideoCodec=h264` +
     `&AudioCodec=aac` +
     `&VideoBitrate=${quality.bitrate}` +
-    `&AudioBitrate=192000` + // 192kbps (better for AAC)
+    `&AudioBitrate=192000` + // 192kbps AAC for quality
     `&MaxWidth=${quality.width}` +
     `&MaxHeight=${quality.height}` +
     `&VideoLevel=41` + // H.264 level 4.1 (was 30)
-    `&TranscodingMaxAudioChannels=2` +
+    `&TranscodingMaxAudioChannels=2` + // Stereo output
     `&SegmentContainer=ts` +
     `&MinSegments=1` +
     `&SegmentLength=10` + // 10 second segments (was 8)
@@ -1345,20 +1345,30 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
     `&AllowVideoStreamCopy=false` + // Ensure predictable behavior
     `&RequireAvc=true`; // Force H.264/AVC output
 
-  // Check for external subtitles and include them as HLS tracks
+  // Check for subtitles (both external and embedded) and include them as HLS tracks
   if (videoItem && videoItem.MediaStreams) {
-    const subtitleStreams = videoItem.MediaStreams.filter((stream) => stream.Type === "Subtitle" && stream.IsExternal && stream.Index !== undefined);
+    // Include ALL subtitle tracks (external .srt files AND embedded subtitles)
+    // Previously only included IsExternal=true, which missed embedded subtitle streams
+    const subtitleStreams = videoItem.MediaStreams.filter(
+      (stream) => stream.Type === "Subtitle" && stream.Index !== undefined
+    );
 
     if (subtitleStreams.length > 0) {
       // Use SubtitleMethod=Hls to include all subtitles as separate WebVTT streams
       // DO NOT set SubtitleStreamIndex - this includes ALL subtitle tracks
       url += `&SubtitleMethod=Hls`;
 
+      const externalCount = subtitleStreams.filter(s => s.IsExternal).length;
+      const embeddedCount = subtitleStreams.length - externalCount;
+
       logger.info("Transcoding with HLS subtitle tracks", {
         service: "JellyfinAPI",
         itemId,
         mediaSourceId,
         subtitleCount: subtitleStreams.length,
+        externalSubtitles: externalCount,
+        embeddedSubtitles: embeddedCount,
+        languages: subtitleStreams.map(s => s.Language || "und").join(", "),
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
         server: cachedConfig.server,
@@ -1394,6 +1404,13 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
     server: cachedConfig.server,
     itemId,
     urlPreview: url.substring(0, 150) + "...",
+  });
+
+  // Log full URL for debugging (helps inspect HLS manifest for multi-audio/subtitle tracks)
+  logger.info("Full HLS transcoding URL generated", {
+    service: "JellyfinAPI",
+    itemId,
+    fullUrl: url,
   });
 
   return url;
