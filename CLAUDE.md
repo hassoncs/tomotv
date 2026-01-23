@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated:** January 21, 2026
+**Last Updated:** January 22, 2026
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -65,31 +65,49 @@ npm run prebuild:tv    # Prebuild with Apple TV support (EXPO_TV=1)
 
 The native tvOS search functionality is maintained in a **separate repository**:
 
-- **GitHub**: [github.com/keiver/expo-tvos-search](https://github.com/keiver/expo-tvos-search)
-- **Local clone**: `~/@keiver/expo-tvos-search`
-- **Package reference**: `"expo-tvos-search": "github:keiver/expo-tvos-search"`
+- **GitHub:** [github.com/keiver/expo-tvos-search](https://github.com/keiver/expo-tvos-search)
+- **npm:** `expo-tvos-search@^1.3.1`
+- **Package reference:** `"expo-tvos-search": "^1.3.1"` (npm registry)
+- **Demo app:** Local clone at `~/@keiver/expo-tvos-search-demo`
 
-This package provides a native SwiftUI search interface for tvOS using the `.searchable` modifier. It handles:
+This package provides a native SwiftUI search interface for tvOS using the `.searchable` modifier.
 
+**Features:**
 - Native tvOS keyboard integration
-- Grid display of search results with poster images
-- Focus management and card styling
-- Fixed 280x420 card dimensions (2:3 aspect ratio) for consistent layout
+- Grid display with poster images (configurable columns)
+- Marquee text scrolling for long titles
+- Focus management with SwiftUI focus engine
+- Comprehensive input validation (500-char limit, URL scheme checking)
+- Customizable card dimensions (default 280×420, 2:3 aspect ratio)
+- Image content modes: fill, fit, contain
+- Error and validation warning events
 
-**When modifying search UI behavior:**
-
-1. Make changes in `~/@keiver/expo-tvos-search/ios/ExpoTvosSearchView.swift`
-2. Commit and push to the repo
-3. Update this project: `npm install github:keiver/expo-tvos-search#branch-name`
-4. Rebuild: `npm run prebuild:tv && npm run ios`
-
-**Note**: Changes to `packages/expo-tvos-search/` in this repo are NOT used. The actual package comes from GitHub via npm.
-
-**Current Integration Status (as of January 2026):**
-- Package version: GitHub main branch
+**Current Integration:**
+- Version: 1.3.1 (npm registry)
 - Last updated: January 21, 2026
-- Integration: Stable, no pending changes
-- Modification workflow: Documented above
+- Status: Stable, production-ready
+- No local modifications needed
+
+**Usage in TomoTV:**
+```typescript
+import { TvosSearchView, isNativeSearchAvailable } from 'expo-tvos-search';
+
+if (isNativeSearchAvailable()) {
+  // Use native search on tvOS
+} else {
+  // Fallback to React Native TextInput
+}
+```
+
+**Modifying Search UI:**
+To contribute to the search package:
+1. Clone: `git clone https://github.com/keiver/expo-tvos-search.git`
+2. Make changes to `ios/ExpoTvosSearchView.swift`
+3. Submit PR to repository
+4. After merge, update TomoTV: `npm install expo-tvos-search@latest`
+5. Rebuild: `npm run prebuild:tv && npm run ios`
+
+**Note:** The package at `~/@keiver/expo-tvos-search` is for reference only. TomoTV uses the npm registry version, not a local file dependency.
 
 ### Folder Structure
 
@@ -99,7 +117,7 @@ app/              # Expo Router screens (file-based routing)
   player.tsx      # Full-screen video player (modal)
 components/       # Reusable UI components
 contexts/         # React Context providers + singleton manager wrappers
-hooks/            # Custom React hooks (useVideoPlayback, useColorScheme)
+hooks/            # Custom React hooks (useVideoPlayback, useColorScheme, useAppStateRefresh)
 services/         # API integration + singleton state managers
 utils/            # Utility functions (logger, retry)
 types/            # TypeScript type definitions
@@ -136,6 +154,35 @@ Key features:
 - Subtitle track management (burned-in or separate)
 - Thread-safe with proper cleanup
 
+### Error Classification System
+
+**PlaybackErrorType Enum:**
+
+| Error Type | Description | Recovery Strategy |
+|------------|-------------|-------------------|
+| `METADATA_FETCH` | Failed to fetch video details from server | User retry only |
+| `STREAM_URL` | Failed to generate stream URL | User retry only |
+| `PLAYBACK` | Video player initialization failed | **Auto-retry with transcoding** |
+| `NETWORK` | Network timeout or connection error | User retry only |
+| `UNKNOWN` | Unclassified errors | User retry only |
+
+**Auto-Retry Logic:**
+- Only `PLAYBACK` errors trigger automatic retry
+- First attempt: Direct play (if codec H.264/HEVC)
+- Second attempt: Transcoding (if first attempt fails)
+- Maximum 1 auto-retry per video session
+- Prevents infinite retry loops
+
+**Error Pattern Matching:**
+Errors are classified by matching against known patterns:
+- Metadata: "fetch", "metadata", "details"
+- Stream URL: "stream URL", "generate", "transcod"
+- Playback: Native player errors, codec issues
+- Network: "timeout", "network", "connection"
+
+**User-Facing Messages:**
+All errors show user-friendly messages without technical details or credentials.
+
 #### 3. Jellyfin API Integration (`services/jellyfinApi.ts`)
 
 Single service for all Jellyfin communication with:
@@ -157,22 +204,62 @@ Single service for all Jellyfin communication with:
 
 **Note:** Bitrates are optimized for quality (increased from original 1/1.5/3/5 Mbps values).
 
-Important functions:
+### API Functions Reference
 
-- `getConfig()` - Retrieve cached Jellyfin configuration
-- `syncDevCredentials()` - Sync dev env vars to SecureStore on app load
-- `connectToDemoServer()` - Connect to Jellyfin's official demo server (no setup required)
-- `disconnectFromDemo()` - Disconnect from demo server and clear credentials
-- `isDemoMode()` - Check if currently connected to demo server
-- `fetchLibraryVideos()` - Get paginated videos with retry logic (fetchVideos is deprecated)
-- `fetchFolderContents()` - Get folder contents with pagination
-- `fetchPlaylistContents()` - Get playlist items using playlist-specific endpoint
-- `fetchVideoDetails()` - Get video metadata and codec info
-- `getVideoStreamUrl()` - Direct download URL (for supported codecs)
-- `getTranscodingStreamUrl()` - HLS master.m3u8 URL with quality settings
-- `isCodecSupported()` - Check if codec can be direct-played
-- `needsTranscoding()` - Determine if transcoding required
-- `isFolder()` - Check if item is navigable (Folder, Playlist, Series, UserView, etc.)
+#### Configuration Management
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `refreshConfig()` | Reload from SecureStore (async) | `Promise<void>` |
+| `waitForConfig()` | Wait for initialization | `Promise<void>` |
+| `isConfigReady()` | Check if config initialized | `boolean` |
+
+#### Server Connection
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `connectToDemoServer(clearCaches?)` | Connect to Jellyfin demo server | `Promise<void>` |
+| `disconnectFromDemo()` | Disconnect and clear credentials | `Promise<void>` |
+| `isDemoMode()` | Check if using demo server | `boolean` |
+| `syncDevCredentials()` | Sync .env.local to SecureStore | `Promise<void>` |
+
+#### Library & Content
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `fetchLibraryVideos(startIndex, limit)` | Get paginated videos | `Promise<{items, total}>` |
+| `fetchFolderContents(folderId, startIndex, limit)` | Get folder items | `Promise<{items, total}>` |
+| `fetchPlaylistContents(playlistId, startIndex, limit)` | Get playlist items | `Promise<{items, total}>` |
+| `fetchVideoDetails(videoId)` | Get video metadata | `Promise<VideoMetadata>` |
+| `fetchUserViews()` | Get root library views | `Promise<JellyfinItem[]>` |
+
+#### Search
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `searchVideos(query, startIndex, limit)` | Search with year filtering | `Promise<{items, total}>` |
+
+#### Streaming & URLs
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `getVideoStreamUrl(itemId)` | Direct download URL | `string` |
+| `getTranscodingStreamUrl(itemId, videoItem?)` | HLS transcode URL (async) | `Promise<string>` |
+| `getPosterUrl(itemId, maxHeight?)` | Poster image URL | `string` |
+| `getFolderThumbnailUrl(itemId, maxHeight?)` | Folder/collection thumbnail | `string` |
+| `getSubtitleUrl(itemId, streamIndex, format?)` | Subtitle stream URL | `string` |
+
+#### Utilities
+
+| Function | Purpose | Returns |
+|----------|---------|---------|
+| `isCodecSupported(codec)` | Check native codec support | `boolean` |
+| `needsTranscoding(videoItem)` | Determine if transcode needed | `boolean` |
+| `isFolder(item)` | Check if item is navigable | `boolean` |
+| `isAudioOnly(videoItem)` | Detect audio-only media | `boolean` |
+| `hasPoster(item)` | Check if item has poster | `boolean` |
+| `formatDuration(ticks)` | Ticks to human-readable | `string` |
+| `getSubtitleTracks(videoItem)` | Get subtitle metadata | `SubtitleTrack[]` |
 
 #### 4. Codec & Streaming Strategy
 
@@ -211,8 +298,61 @@ The app uses a **Singleton Manager + Context wrapper** pattern for global state:
 
 **Singleton Managers** (`services/`):
 
-- `LibraryManager` - Manages video library with pagination, caching (5-min TTL), and subscriber notifications
-- `FolderNavigationManager` - Manages folder navigation with breadcrumb stack
+##### LibraryManager
+
+**Public API:**
+- `getInstance()` - Get singleton instance
+- `getState()` - Get current state snapshot
+  ```typescript
+  {
+    videos: JellyfinItem[];
+    isLoading: boolean;
+    isLoadingMore: boolean;
+    hasMoreResults: boolean;
+    error: string | null;
+    libraryName: string;
+  }
+  ```
+- `subscribe(callback)` - Subscribe to state changes (returns unsubscribe function)
+- `refreshLibrary()` - Force refresh from API
+- `loadMore()` - Load next page
+- `clearCache()` - Clear cached videos and state
+
+**Cache Strategy:**
+- 5-minute TTL on library data
+- Automatic refresh on cache expiration
+- Clears on credential changes
+
+##### FolderNavigationManager
+
+**Public API:**
+- `getInstance()` - Get singleton instance
+- `getState()` - Get navigation state snapshot
+  ```typescript
+  {
+    items: JellyfinItem[];
+    isLoading: boolean;
+    isLoadingMore: boolean;
+    hasMoreResults: boolean;
+    error: string | null;
+    folderStack: FolderStackEntry[];
+    currentFolder: FolderStackEntry | null;
+  }
+  ```
+- `subscribe(callback)` - Subscribe to state changes (returns unsubscribe function)
+- `navigateToFolder(folder)` - Navigate into folder/playlist
+- `navigateBack()` - Navigate to parent folder (returns boolean)
+- `navigateToBreadcrumb(index)` - Jump to specific breadcrumb
+- `loadRoot()` - Load root library views
+- `loadMore()` - Load next page
+- `clearCache()` - Clear all folder caches
+
+**Folder Stack:**
+Each entry tracks:
+- `id` - Folder/playlist ID
+- `name` - Display name
+- `type` - Entry type (folder, playlist, root)
+- Enables breadcrumb navigation
 
 **Context Wrappers** (`contexts/`):
 
@@ -297,6 +437,42 @@ connectToDemoServer(clearCaches: boolean = true)
 **Protection Logic:**
 
 The `syncDevCredentials()` function checks the `jellyfin_is_demo_mode` flag before syncing development credentials to SecureStore. This prevents `.env.local` credentials from overwriting demo server credentials during development.
+
+### Configuration Initialization Pattern
+
+The app uses `configInitPromise` to prevent race conditions between:
+1. `syncDevCredentials()` writing to SecureStore (async, runs on app load)
+2. Components calling `getConfig()` (sync, reads from cache)
+
+**Solution:**
+```typescript
+let configInitPromise: Promise<void> | null = null;
+
+export function waitForConfig(): Promise<void> {
+  if (configInitPromise) return configInitPromise;
+  return Promise.resolve();
+}
+```
+
+Components that need guaranteed initialized config can await `waitForConfig()`.
+
+### Configuration Migration
+
+**Old Format (v1.x):**
+- Separate keys: `JELLYFIN_SERVER_IP`, `JELLYFIN_SERVER_PORT`, `JELLYFIN_SERVER_PROTOCOL`
+- Three discrete values combined into URL
+
+**New Format (v2.x+):**
+- Single key: `jellyfin_server_url` (full URL string)
+- Simpler validation and usage
+
+**Auto-Migration:**
+On first load, `migrateOldConfigFormat()` in `services/jellyfinApi.ts`:
+1. Checks for old keys in SecureStore
+2. Combines into full URL format
+3. Writes to new `jellyfin_server_url` key
+4. Deletes old keys
+5. One-time operation, no user intervention required
 
 ### Environment Variables
 
@@ -426,6 +602,15 @@ The hook handles:
 - Error recovery with retry
 - Subtitle track switching
 
+### Custom React Hooks
+
+- **`useVideoPlayback()`** - Video playback state machine with auto-retry
+- **`useColorScheme()`** - Platform-specific dark/light mode detection
+- **`useAppStateRefresh()`** - Auto-refresh data when app returns to foreground
+  - Used in LibraryContext to refresh library on app resume
+  - Hooks into `AppState` event listener
+  - Prevents stale data after backgrounding
+
 ### Using Library State
 
 ```typescript
@@ -498,22 +683,34 @@ The search screen (`app/(tabs)/search.tsx`) has two implementations:
 
 ## Testing Strategy
 
-### Unit Tests
+### Test Organization
 
-- Located alongside source files (e.g., `jellyfinApi.test.ts`)
-- Test utilities, services, and hooks in isolation
-- Use Jest with `jest-expo` preset
+**Unit Tests:**
+- `services/__tests__/jellyfinApi.test.ts` - API methods, retry logic, mocking
+- `utils/__tests__/logger.test.ts` - Logging utilities
+- `utils/__tests__/retry.test.ts` - Exponential backoff
+- `hooks/__tests__/useVideoPlayback.test.ts` - Playback state machine
 
-### Threading Tests
+**Integration Tests:**
+- `contexts/__tests__/LibraryContext.test.tsx` - Manager + Context integration
+- `contexts/__tests__/FolderNavigationContext.test.tsx` - Navigation flow
+- `contexts/__tests__/LoadingContext.test.tsx` - Global loading state
 
-- Special tests for concurrent operations (e.g., `player.threading.test.tsx`)
-- Ensure state machine is thread-safe
-- Test cleanup on unmount
+**Threading & Concurrency Tests:**
+- `app/__tests__/player.threading.test.tsx` - Concurrent playback operations
+- `hooks/__tests__/useVideoPlayback.threading.test.ts` - Race condition safety
+- Focus: Cleanup on unmount, state consistency under rapid changes
 
-### Component Tests
+**UI Component Tests:**
+- `app/(tabs)/__tests__/search.test.tsx` - Search screen behavior
+- `app/(tabs)/__tests__/index.test.tsx` - Library screen pagination
 
-- Test contexts (e.g., `LoadingContext.test.tsx`)
-- Focus on behavior, not implementation details
+**Test Patterns:**
+- Use `react-test-renderer` for component testing
+- Mock external dependencies with `jest.mock()`: `expo-secure-store`, `expo-router`
+- Test harness pattern with refs for context testing
+- Test behavior and outcomes, not implementation details
+- Threading tests use `act()` from `react-test-renderer` for concurrency
 
 ### Running Tests
 
@@ -558,6 +755,8 @@ The help screen (`app/(tabs)/help.tsx`) is a single-screen landing page:
 
 ## Additional Resources
 
+- `CLAUDE-components.md` - UI component documentation
+- `CLAUDE-security.md` - Security architecture and audit findings
 - `CLAUDE-development.md` - Development setup guide
 - `CLAUDE-app-performance.md` - Performance optimization notes
 - `CLAUDE-tvos-icons.md` - Apple TV icon guidelines
