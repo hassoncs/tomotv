@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo, useRef, useCallback, useReducer } from "react";
-import { useVideoPlayer, VideoSource } from "expo-video";
+import type { VideoRef, OnLoadData, OnProgressData, OnVideoErrorData, AudioTrack, TextTrack } from "react-native-video";
 import { InteractionManager } from "react-native";
 import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getAudioTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig, getConfig } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
@@ -145,8 +145,24 @@ export interface VideoPlaybackConfig {
 }
 
 export interface VideoPlaybackResult {
-  // Player instance
-  player: ReturnType<typeof useVideoPlayer>;
+  // Player ref for Video component
+  videoRef: React.RefObject<VideoRef | null>;
+
+  // Source URI for Video component
+  sourceUri: string | null;
+
+  // Paused state for Video component
+  paused: boolean;
+
+  // Video component event callbacks
+  videoCallbacks: {
+    onLoad: (data: OnLoadData) => void;
+    onProgress: (data: OnProgressData) => void;
+    onError: (error: OnVideoErrorData) => void;
+    onEnd: () => void;
+    onAudioTracks: (data: { audioTracks: AudioTrack[] }) => void;
+    onTextTracks: (data: { textTracks: TextTrack[] }) => void;
+  };
 
   // State machine state
   state: VideoPlayerState;
@@ -160,6 +176,10 @@ export interface VideoPlaybackResult {
   // UI helpers
   isLoading: boolean;
   showLoadingOverlay: boolean;
+
+  // Playback control
+  play: () => void;
+  pause: () => void;
 
   // Actions
   retry: () => void;
@@ -474,31 +494,279 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   }, [state, videoId, hasTriedTranscoding]);
 
   /**
-   * Step 3: Create video source for player
-   * Keep it stable once created by using state instead of deriving from current state.type
+   * Step 3: Create video ref for Video component
    */
-  const videoSource: VideoSource | null = useMemo(() => {
-    if (!streamUrl) {
-      return null;
-    }
-
-    const source: VideoSource = {
-      uri: streamUrl,
-      contentType: streamUrl.includes(".m3u8") ? "hls" : "auto",
-    };
-
-    logger.debug("Video source created", { service: "useVideoPlayback" });
-    return source;
-  }, [streamUrl]);
+  const videoRef = useRef<VideoRef>(null);
 
   /**
-   * Step 4: Initialize player with video source
+   * Step 4: Playback state management
+   * Store state that we need for control and callbacks
    */
-  const player = useVideoPlayer(videoSource, (player) => {
-    if (!videoSource) return;
-    player.loop = false;
-    logger.debug("Player initialized", { service: "useVideoPlayback" });
-  });
+  const [paused, setPaused] = useState(true); // Start paused, will auto-play on load
+  const currentTimeRef = useRef(0);
+  const durationRef = useRef(0);
+  const isPlayingRef = useRef(false);
+
+  /**
+   * Step 5: Video event callbacks (replacing player.addListener calls)
+   */
+
+  // Callback: Video loaded and ready
+  const onLoad = useCallback((data: OnLoadData) => {
+    if (!isMountedRef.current) return;
+
+    durationRef.current = data.duration;
+
+    logger.debug("Player loaded and ready", {
+      service: "useVideoPlayback",
+      duration: data.duration,
+    });
+
+    // Ensure state update happens on main thread via InteractionManager
+    InteractionManager.runAfterInteractions(() => {
+      if (!isMountedRef.current) return;
+      dispatch({ type: "PLAYER_READY" });
+    });
+
+    // Auto-play on first load
+    if (!autoPlayTriggeredRef.current && isMountedRef.current) {
+      logger.debug("Scheduling auto-play", { service: "useVideoPlayback" });
+
+      // Clear any existing timer
+      if (autoPlayTimerRef.current) {
+        clearTimeout(autoPlayTimerRef.current);
+      }
+
+      // Use InteractionManager to ensure play() is called after interactions complete
+      autoPlayTimerRef.current = setTimeout(() => {
+        if (!isMountedRef.current) {
+          logger.debug("Component unmounted, skipping auto-play", { service: "useVideoPlayback" });
+          return;
+        }
+
+        InteractionManager.runAfterInteractions(() => {
+          if (!isMountedRef.current) return;
+
+          try {
+            logger.debug("Auto-playing video", { service: "useVideoPlayback" });
+            setPaused(false);
+            // Only mark as triggered after successful play
+            autoPlayTriggeredRef.current = true;
+          } catch (error) {
+            logger.error("Error auto-playing", error, { service: "useVideoPlayback" });
+            // Dispatch error on main thread
+            InteractionManager.runAfterInteractions(() => {
+              if (!isMountedRef.current) return;
+              dispatch({
+                type: "PLAYER_ERROR",
+                error: {
+                  message: "Failed to start video playback. The video file may be corrupted or incompatible.",
+                },
+                mode: currentModeRef.current,
+                hasTriedTranscode: hasTriedTranscoding,
+              });
+            });
+          }
+        });
+
+        autoPlayTimerRef.current = null;
+      }, 100);
+    }
+  }, [hasTriedTranscoding]);
+
+  // Callback: Video progress update
+  const onProgress = useCallback((data: OnProgressData) => {
+    if (!isMountedRef.current) return;
+
+    currentTimeRef.current = data.currentTime;
+
+    // Update playing state
+    const nowPlaying = !paused;
+    const wasPlaying = isPlayingRef.current;
+
+    if (nowPlaying !== wasPlaying) {
+      isPlayingRef.current = nowPlaying;
+
+      if (nowPlaying) {
+        // Video started playing
+        if (!hasStablePlaybackRef.current) {
+          InteractionManager.runAfterInteractions(() => {
+            if (!isMountedRef.current) return;
+            dispatch({ type: "PLAYER_PLAYING" });
+          });
+
+          // Start stable playback detection after video starts playing
+          if (stablePlaybackTimerRef.current) {
+            clearTimeout(stablePlaybackTimerRef.current);
+          }
+
+          stablePlaybackTimerRef.current = setTimeout(() => {
+            if (isMountedRef.current && isPlayingRef.current) {
+              logger.debug("Stable playback detected, hiding spinner", { service: "useVideoPlayback" });
+              hasStablePlaybackRef.current = true;
+              InteractionManager.runAfterInteractions(() => {
+                if (!isMountedRef.current) return;
+                setHasStablePlayback(true);
+              });
+              stablePlaybackTimerRef.current = null;
+            }
+          }, 500);
+        }
+      } else {
+        // Video paused or stopped, clear the stable playback timer
+        if (stablePlaybackTimerRef.current && !hasStablePlaybackRef.current) {
+          clearTimeout(stablePlaybackTimerRef.current);
+          stablePlaybackTimerRef.current = null;
+        }
+      }
+    }
+  }, [paused, hasTriedTranscoding]);
+
+  // Callback: Video playback ended
+  const onEnd = useCallback(() => {
+    if (!isMountedRef.current) return;
+
+    logger.info("Video playback ended, triggering callback", { service: "useVideoPlayback" });
+    InteractionManager.runAfterInteractions(() => {
+      if (!isMountedRef.current) return;
+      onPlaybackEndRef.current?.();
+    });
+  }, []);
+
+  // Callback: Video error
+  const onError = useCallback((error: OnVideoErrorData) => {
+    if (!isMountedRef.current) return;
+
+    const currentMode = currentModeRef.current;
+    const willRetryWithTranscode = currentMode === "direct" && !hasTriedTranscoding;
+
+    // Classify error first to determine if it's a 401
+    const errorType = classifyPlaybackError(error.error);
+    // Extract error message from react-native-video error object
+    const originalMessage =
+      error.error?.localizedDescription ||
+      error.error?.message ||
+      error.error?.errorString ||
+      String(error.error || "");
+
+    logger.debug("Error classified", {
+      service: "useVideoPlayback",
+      errorType,
+      willRetryWithTranscode,
+      hasTriedCredentialRefresh,
+    });
+
+    // Check if this is a 401 error in demo mode - try refreshing credentials
+    const is401Error = errorType === PlaybackErrorType.UNAUTHORIZED;
+
+    if (is401Error && !hasTriedCredentialRefresh) {
+      logger.info("Authentication error detected, attempting to refresh demo credentials", {
+        service: "useVideoPlayback",
+        error: originalMessage,
+      });
+
+      // Try to refresh demo credentials and retry playback
+      (async () => {
+        try {
+          const inDemoMode = await isDemoMode();
+          if (inDemoMode) {
+            logger.info("Reconnecting to demo server for fresh credentials", {
+              service: "useVideoPlayback",
+            });
+
+            // Pass false to preserve folder navigation and library state
+            await connectToDemoServer(false);
+            await refreshConfig();
+
+            logger.info("Demo credentials refreshed, retrying playback", {
+              service: "useVideoPlayback",
+            });
+
+            // Mark that we tried credential refresh
+            setHasTriedCredentialRefresh(true);
+
+            // Retry playback by resetting state
+            InteractionManager.runAfterInteractions(() => {
+              if (!isMountedRef.current) return;
+              dispatch({ type: "RETRY" });
+            });
+
+            return;
+          }
+        } catch (error) {
+          logger.error("Failed to refresh demo credentials", error, {
+            service: "useVideoPlayback",
+          });
+        }
+
+        // If not in demo mode or refresh failed, show the error
+        const errorMessage = getPlaybackErrorMessage(errorType, originalMessage);
+        InteractionManager.runAfterInteractions(() => {
+          if (!isMountedRef.current) return;
+          dispatch({
+            type: "PLAYER_ERROR",
+            error: { message: errorMessage },
+            mode: currentMode,
+            hasTriedTranscode: hasTriedTranscoding,
+          });
+        });
+      })();
+
+      return;
+    }
+
+    // Log at INFO level if we'll auto-retry, ERROR level if this is a real failure
+    if (willRetryWithTranscode) {
+      logger.info("Direct play failed, will retry with transcoding", error, { service: "useVideoPlayback" });
+    } else {
+      logger.error("Playback error", error, { service: "useVideoPlayback" });
+    }
+
+    const errorMessage = getPlaybackErrorMessage(errorType, originalMessage);
+
+    // Ensure error dispatch happens on main thread
+    InteractionManager.runAfterInteractions(() => {
+      if (!isMountedRef.current) return;
+      dispatch({
+        type: "PLAYER_ERROR",
+        error: { message: errorMessage },
+        mode: currentMode,
+        hasTriedTranscode: hasTriedTranscoding,
+      });
+    });
+  }, [hasTriedTranscoding, hasTriedCredentialRefresh]);
+
+  // Callback: Audio tracks discovered
+  const onAudioTracks = useCallback((data: { audioTracks: AudioTrack[] }) => {
+    if (!isMountedRef.current) return;
+
+    logger.info("Audio tracks discovered from HLS manifest", {
+      service: "useVideoPlayback",
+      trackCount: data.audioTracks.length,
+      tracks: data.audioTracks.map(t => ({
+        index: t.index,
+        title: t.title,
+        language: t.language,
+        type: t.type,
+      })),
+    });
+  }, []);
+
+  // Callback: Text tracks (subtitles) discovered
+  const onTextTracks = useCallback((data: { textTracks: TextTrack[] }) => {
+    if (!isMountedRef.current) return;
+
+    logger.info("Subtitle tracks discovered from HLS manifest", {
+      service: "useVideoPlayback",
+      trackCount: data.textTracks.length,
+      tracks: data.textTracks.map(t => ({
+        index: t.index,
+        title: t.title,
+        language: t.language,
+        type: t.type,
+      })),
+    });
+  }, []);
 
   /**
    * Setup and cleanup on mount/unmount
@@ -519,16 +787,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         stablePlaybackTimerRef.current = null;
       }
 
-      // Stop playback on unmount - useVideoPlayer handles cleanup automatically
-      if (player) {
-        try {
-          player.pause();
-        } catch (_error) {
-          // Silently ignore - player may already be deallocated by native side
-        }
-      }
+      // Stop playback on unmount
+      setPaused(true);
     };
-  }, [player]);
+  }, []);
 
   /**
    * Reset state when video ID changes
@@ -571,304 +833,6 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     }
   }, [state.type, fetchMetadata]);
 
-  /**
-   * Step 5: Handle player events and auto-play
-   * Note: Attach listeners once when player and videoSource are ready, keep them throughout lifecycle
-   */
-  useEffect(() => {
-    if (!player || !videoSource) return;
-
-    logger.debug("Attaching player event listeners", { service: "useVideoPlayback" });
-
-    const statusSubscription = player.addListener("statusChange", (payload) => {
-      if (!isMountedRef.current) return;
-
-      const now = Date.now();
-      const timeSinceLastChange = now - lastStatusChangeRef.current;
-      lastStatusChangeRef.current = now;
-
-      // Track seeking state - rapid loading/readyToPlay cycles indicate seeking
-      if (payload.status === "loading") {
-        isSeekingRef.current = hasStablePlaybackRef.current;
-      }
-
-      // Only log status changes if not in rapid seeking mode (debounce logs)
-      if (!isSeekingRef.current || timeSinceLastChange > 500) {
-        logger.debug("Player status change", { service: "useVideoPlayback", status: payload.status });
-      }
-
-      if (payload.status === "readyToPlay") {
-        // Once stable playback is achieved, skip state machine transitions during seeking
-        // This prevents excessive dispatches and InteractionManager overhead
-        if (hasStablePlaybackRef.current) {
-          // Clear seeking state - buffer complete
-          isSeekingRef.current = false;
-          return;
-        }
-
-        // Ensure state update happens on main thread via InteractionManager
-        InteractionManager.runAfterInteractions(() => {
-          if (!isMountedRef.current) return;
-          dispatch({ type: "PLAYER_READY" });
-        });
-
-        // Auto-play on first ready
-        if (!autoPlayTriggeredRef.current && isMountedRef.current) {
-          logger.debug("Scheduling auto-play", { service: "useVideoPlayback" });
-
-          // Clear any existing timer
-          if (autoPlayTimerRef.current) {
-            clearTimeout(autoPlayTimerRef.current);
-          }
-
-          // Use InteractionManager to ensure play() is called after interactions complete
-          autoPlayTimerRef.current = setTimeout(() => {
-            if (!isMountedRef.current) {
-              logger.debug("Component unmounted, skipping auto-play", { service: "useVideoPlayback" });
-              return;
-            }
-
-            InteractionManager.runAfterInteractions(() => {
-              if (!isMountedRef.current) return;
-
-              try {
-                logger.debug("Calling play()", { service: "useVideoPlayback" });
-                player.play();
-                // Only mark as triggered after successful play
-                autoPlayTriggeredRef.current = true;
-              } catch (error) {
-                logger.error("Error calling play()", error, { service: "useVideoPlayback" });
-                // Dispatch error on main thread
-                InteractionManager.runAfterInteractions(() => {
-                  if (!isMountedRef.current) return;
-                  dispatch({
-                    type: "PLAYER_ERROR",
-                    error: {
-                      message: "Failed to start video playback. The video file may be corrupted or incompatible.",
-                    },
-                    mode: currentModeRef.current,
-                    hasTriedTranscode: hasTriedTranscoding,
-                  });
-                });
-              }
-            });
-
-            autoPlayTimerRef.current = null;
-          }, 100);
-        }
-      } else if (payload.status === "error") {
-        const currentMode = currentModeRef.current;
-        const willRetryWithTranscode = currentMode === "direct" && !hasTriedTranscoding;
-
-        // Classify error first to determine if it's a 401
-        const errorType = classifyPlaybackError(payload.error);
-        const originalMessage = payload.error?.message || String(payload.error || "");
-
-        logger.debug("Error classified", {
-          service: "useVideoPlayback",
-          errorType,
-          willRetryWithTranscode,
-          hasTriedCredentialRefresh,
-        });
-
-        // Check if this is a 401 error in demo mode - try refreshing credentials
-        const is401Error = errorType === PlaybackErrorType.UNAUTHORIZED;
-
-        if (is401Error && !hasTriedCredentialRefresh) {
-          logger.info("Authentication error detected, attempting to refresh demo credentials", {
-            service: "useVideoPlayback",
-            error: originalMessage,
-          });
-
-          // Try to refresh demo credentials and retry playback
-          (async () => {
-            try {
-              const inDemoMode = await isDemoMode();
-              if (inDemoMode) {
-                logger.info("Reconnecting to demo server for fresh credentials", {
-                  service: "useVideoPlayback",
-                });
-
-                // Pass false to preserve folder navigation and library state
-                await connectToDemoServer(false);
-                await refreshConfig();
-
-                logger.info("Demo credentials refreshed, retrying playback", {
-                  service: "useVideoPlayback",
-                });
-
-                // Mark that we tried credential refresh
-                setHasTriedCredentialRefresh(true);
-
-                // Retry playback by resetting state
-                InteractionManager.runAfterInteractions(() => {
-                  if (!isMountedRef.current) return;
-                  dispatch({ type: "RETRY" });
-                });
-
-                return;
-              }
-            } catch (error) {
-              logger.error("Failed to refresh demo credentials", error, {
-                service: "useVideoPlayback",
-              });
-            }
-
-            // If not in demo mode or refresh failed, show the error
-            const errorMessage = getPlaybackErrorMessage(errorType, originalMessage);
-            InteractionManager.runAfterInteractions(() => {
-              if (!isMountedRef.current) return;
-              dispatch({
-                type: "PLAYER_ERROR",
-                error: { message: errorMessage },
-                mode: currentMode,
-                hasTriedTranscode: hasTriedTranscoding,
-              });
-            });
-          })();
-
-          return;
-        }
-
-        // Log at INFO level if we'll auto-retry, ERROR level if this is a real failure
-        if (willRetryWithTranscode) {
-          logger.info("Direct play failed, will retry with transcoding", payload.error, { service: "useVideoPlayback" });
-        } else {
-          logger.error("Playback error", payload.error, { service: "useVideoPlayback" });
-        }
-
-        const errorMessage = getPlaybackErrorMessage(errorType, originalMessage);
-
-        // Ensure error dispatch happens on main thread
-        InteractionManager.runAfterInteractions(() => {
-          if (!isMountedRef.current) return;
-          dispatch({
-            type: "PLAYER_ERROR",
-            error: { message: errorMessage },
-            mode: currentMode,
-            hasTriedTranscode: hasTriedTranscoding,
-          });
-        });
-      }
-    });
-
-    const playingSubscription = player.addListener("playingChange", (payload) => {
-      if (!isMountedRef.current) return;
-
-      if (payload.isPlaying) {
-        // Once stable playback achieved, skip redundant PLAYER_PLAYING dispatches
-        // This prevents overhead during seeking/buffering cycles
-        if (!hasStablePlaybackRef.current) {
-          // Ensure state update happens on main thread
-          InteractionManager.runAfterInteractions(() => {
-            if (!isMountedRef.current) return;
-            dispatch({ type: "PLAYER_PLAYING" });
-          });
-
-          // Start stable playback detection after video starts playing
-          // Wait 500ms of continuous playback before hiding spinner
-          if (stablePlaybackTimerRef.current) {
-            clearTimeout(stablePlaybackTimerRef.current);
-          }
-
-          stablePlaybackTimerRef.current = setTimeout(() => {
-            if (isMountedRef.current && player.playing) {
-              logger.debug("Stable playback detected, hiding spinner", { service: "useVideoPlayback" });
-              hasStablePlaybackRef.current = true;
-              InteractionManager.runAfterInteractions(() => {
-                if (!isMountedRef.current) return;
-                setHasStablePlayback(true);
-              });
-              stablePlaybackTimerRef.current = null;
-            }
-          }, 500);
-        }
-      } else {
-        // Video paused or stopped, clear the stable playback timer
-        if (stablePlaybackTimerRef.current && !hasStablePlaybackRef.current) {
-          clearTimeout(stablePlaybackTimerRef.current);
-          stablePlaybackTimerRef.current = null;
-        }
-
-        // Check if video ended - when currentTime is near duration and not playing
-        if (player.currentTime > 0 && player.duration > 0) {
-          const timeRemaining = player.duration - player.currentTime;
-          // Consider video ended if less than 1 second remaining
-          if (timeRemaining < 1 && onPlaybackEndRef.current) {
-            logger.info("Video playback ended, triggering callback", { service: "useVideoPlayback" });
-            InteractionManager.runAfterInteractions(() => {
-              if (!isMountedRef.current) return;
-              onPlaybackEndRef.current?.();
-            });
-          }
-        }
-      }
-    });
-
-    // Log available subtitle tracks discovered from HLS manifest
-    const subtitleTracksSubscription = player.addListener("availableSubtitleTracksChange", (payload) => {
-      if (!isMountedRef.current) return;
-
-      logger.info("Subtitle tracks discovered from HLS manifest", {
-        service: "useVideoPlayback",
-        trackCount: payload.availableSubtitleTracks.length,
-        tracks: payload.availableSubtitleTracks.map(t => ({
-          id: t.id,
-          language: t.language,
-          label: t.label,
-        })),
-      });
-
-      // Also log what the player property shows
-      logger.debug("Player subtitle tracks property", {
-        service: "useVideoPlayback",
-        availableSubtitleTracks: player.availableSubtitleTracks,
-      });
-    });
-
-    // Log available audio tracks discovered from HLS manifest
-    const audioTracksSubscription = player.addListener("availableAudioTracksChange", (payload) => {
-      if (!isMountedRef.current) return;
-
-      logger.info("Audio tracks discovered from HLS manifest", {
-        service: "useVideoPlayback",
-        trackCount: payload.availableAudioTracks.length,
-        tracks: payload.availableAudioTracks.map(t => ({
-          id: t.id,
-          language: t.language,
-          label: t.label,
-        })),
-      });
-
-      // Also log what the player property shows
-      logger.debug("Player audio tracks property", {
-        service: "useVideoPlayback",
-        availableAudioTracks: player.availableAudioTracks,
-      });
-    });
-
-    return () => {
-      // Clear timeouts if pending
-      if (autoPlayTimerRef.current) {
-        clearTimeout(autoPlayTimerRef.current);
-        autoPlayTimerRef.current = null;
-      }
-      if (stablePlaybackTimerRef.current) {
-        clearTimeout(stablePlaybackTimerRef.current);
-        stablePlaybackTimerRef.current = null;
-      }
-
-      // Remove subscriptions
-      try {
-        statusSubscription.remove();
-        playingSubscription.remove();
-        subtitleTracksSubscription.remove();
-        audioTracksSubscription.remove();
-      } catch (_error) {
-        // Silently ignore subscription cleanup errors
-      }
-    };
-  }, [player, videoSource, hasTriedTranscoding, videoDetails]); // Keep listeners stable, don't re-attach on hasStablePlayback change
 
   /**
    * Handle retry with transcoding when direct play fails
@@ -889,6 +853,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     setHasTriedTranscoding(true);
     autoPlayTriggeredRef.current = false;
 
+    // Clear streamUrl to unmount Video component during retry
+    // This prevents the old URL from firing additional errors
+    setStreamUrl(null);
+
     // Auto-retry with transcoding
     const retryTimer = setTimeout(() => {
       if (isMountedRef.current) {
@@ -898,6 +866,17 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
     return () => clearTimeout(retryTimer);
   }, [state]);
+
+  /**
+   * Playback control functions
+   */
+  const play = useCallback(() => {
+    setPaused(false);
+  }, []);
+
+  const pause = useCallback(() => {
+    setPaused(true);
+  }, []);
 
   /**
    * Retry playback from the beginning
@@ -935,13 +914,30 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
   const showLoadingOverlay = isLoading;
 
+  /**
+   * Video callbacks object for Video component props
+   */
+  const videoCallbacks = useMemo(() => ({
+    onLoad,
+    onProgress,
+    onError,
+    onEnd,
+    onAudioTracks,
+    onTextTracks,
+  }), [onLoad, onProgress, onError, onEnd, onAudioTracks, onTextTracks]);
+
   return {
-    player,
+    videoRef,
+    sourceUri: streamUrl,
+    paused,
+    videoCallbacks,
     state,
     videoDetails,
     isAudioOnly: isAudioOnlyFile,
     isLoading,
     showLoadingOverlay,
+    play,
+    pause,
     retry,
   };
 }

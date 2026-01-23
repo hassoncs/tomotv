@@ -10,6 +10,10 @@
 
 @interface RCT_EXTERN_MODULE(MultiAudioResourceLoader, NSObject)
 
+// Register the plugin with react-native-video
+RCT_EXTERN_METHOD(registerVideoPlugin:(RCTPromiseResolveBlock)resolve
+                  reject:(RCTPromiseRejectBlock)reject)
+
 // Configure the resource loader with Jellyfin server details and audio track metadata
 RCT_EXTERN_METHOD(configureResourceLoader:(NSString *)baseUrl
                   apiKey:(NSString *)apiKey

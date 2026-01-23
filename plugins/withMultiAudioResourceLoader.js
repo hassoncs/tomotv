@@ -46,6 +46,7 @@ function withMultiAudioResourceLoader(config) {
       // Copy Swift files from native/ios to ios directory
       const filesToCopy = [
         "MultiAudioResourceLoader.swift",
+        "RNVideoPlugin.swift",
         "HLSManifestParser.swift",
         "HLSManifestGenerator.swift",
         "MultiAudioResourceLoader.m",
@@ -80,6 +81,7 @@ function withMultiAudioResourceLoader(config) {
     // Files to add to Xcode project
     const filesToAdd = [
       "MultiAudioResourceLoader.swift",
+      "RNVideoPlugin.swift",
       "HLSManifestParser.swift",
       "HLSManifestGenerator.swift",
       "MultiAudioResourceLoader.m",

@@ -1666,7 +1666,7 @@ export function needsTranscoding(videoItem: JellyfinVideoItem | null): boolean {
 }
 
 /**
- * Subtitle track interface for expo-video
+ * Subtitle track interface for react-native-video
  * These tracks are passed to VideoSource.subtitleTracks
  */
 export interface SubtitleTrack {
@@ -1678,7 +1678,7 @@ export interface SubtitleTrack {
 
 /**
  * Get all subtitle tracks available for a video
- * Returns external subtitle files in VTT format for expo-video
+ * Returns external subtitle files in VTT format for react-native-video
  */
 export function getSubtitleTracks(videoItem: JellyfinVideoItem | null): SubtitleTrack[] {
   if (!videoItem || !videoItem.MediaStreams) {
@@ -1720,8 +1720,8 @@ export function getSubtitleTracks(videoItem: JellyfinVideoItem | null): Subtitle
 }
 
 /**
- * Audio track interface for expo-video
- * Matches expo-video's AudioTrack type (id, language, label)
+ * Audio track interface for react-native-video
+ * Matches react-native-video's AudioTrack type (id, language, label)
  */
 export interface AudioTrack {
   id: string;
@@ -1732,7 +1732,7 @@ export interface AudioTrack {
 /**
  * Get all audio tracks available for a video
  * Returns audio streams from MediaStreams for informational/logging purposes
- * expo-video will auto-discover these from HLS manifest
+ * react-native-video will auto-discover these from HLS manifest
  */
 export function getAudioTracks(videoItem: JellyfinVideoItem | null): AudioTrack[] {
   if (!videoItem || !videoItem.MediaStreams) {

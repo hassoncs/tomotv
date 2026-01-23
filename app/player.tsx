@@ -7,7 +7,7 @@ import { connectToDemoServer } from "@/services/jellyfinApi";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { VideoView } from "expo-video";
+import Video from "react-native-video";
 import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, BackHandler, InteractionManager, LogBox, Platform, StyleSheet, Text, TouchableOpacity, useTVEventHandler, View } from "react-native";
 
@@ -61,13 +61,13 @@ export default function VideoPlayerScreen() {
   }, [currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
-  const { player, state, isAudioOnly, showLoadingOverlay, retry } = useVideoPlayback({
+  const { videoRef, sourceUri, paused, videoCallbacks, state, isAudioOnly, showLoadingOverlay, play, pause, retry } = useVideoPlayback({
     videoId: params.videoId,
     onPlaybackEnd: handlePlaybackEnd,
   });
 
-  // Track playing state for audio UI
-  const [isPlaying, setIsPlaying] = useState(false);
+  // Track playing state for audio UI (use negation of paused state)
+  const isPlaying = !paused;
   const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
   // Callback ref for play/pause button - focuses immediately when mounted on TV
@@ -84,30 +84,26 @@ export default function VideoPlayerScreen() {
 
   // Handle back navigation
   const handleBack = useCallback(() => {
-    if (player) {
-      try {
-        player.pause();
-      } catch (_error) {
-        // Ignore errors - player may already be cleaning up
-      }
+    try {
+      pause();
+    } catch (_error) {
+      // Ignore errors - player may already be cleaning up
     }
     router.back();
-  }, [player, router]);
+  }, [pause, router]);
 
   // Toggle play/pause for audio
   const handlePlayPause = useCallback(() => {
-    if (!player) return;
-
     try {
       if (isPlaying) {
-        player.pause();
+        pause();
       } else {
-        player.play();
+        play();
       }
     } catch (error) {
       logger.error("Error toggling playback", error, { service: "VideoPlayer" });
     }
-  }, [player, isPlaying]);
+  }, [play, pause, isPlaying]);
 
   // Handle Try Demo Server
   const handleTryDemo = useCallback(async () => {
@@ -177,30 +173,15 @@ export default function VideoPlayerScreen() {
 
   // Pause player when entering error state
   useEffect(() => {
-    if (state.type === "ERROR" && player) {
+    if (state.type === "ERROR") {
       try {
-        player.pause();
+        pause();
       } catch (_error) {
         // Ignore errors - player may not be initialized
       }
     }
-  }, [state.type, player]);
+  }, [state.type, pause]);
 
-  // Listen to player state for audio UI
-  useEffect(() => {
-    if (!player || !isAudioOnly) return;
-
-    const subscription = player.addListener("playingChange", (payload) => {
-      // Ensure state update happens on main thread to avoid threading crashes
-      InteractionManager.runAfterInteractions(() => {
-        setIsPlaying(payload.isPlaying);
-      });
-    });
-
-    return () => {
-      subscription.remove();
-    };
-  }, [player, isAudioOnly]);
 
   // Render error state (but not if auto-retry is in progress)
   if (state.type === "ERROR") {
@@ -269,7 +250,20 @@ export default function VideoPlayerScreen() {
   return (
     <View style={styles.container}>
       {/* Video Player with Native Controls */}
-      <VideoView player={player} style={styles.video} contentFit="contain" nativeControls={true} allowsPictureInPicture={Platform.OS === "ios"} />
+      {sourceUri && (
+        <Video
+          key={sourceUri} // Force remount when switching from direct play to transcoding
+          ref={videoRef}
+          source={{ uri: sourceUri }}
+          style={styles.video}
+          resizeMode="contain"
+          controls={true}
+          paused={paused}
+          allowsExternalPlayback={true}
+          pictureInPicture={Platform.OS === "ios"}
+          {...videoCallbacks}
+        />
+      )}
 
       {/* Loading Overlay */}
       {showLoadingOverlay && (

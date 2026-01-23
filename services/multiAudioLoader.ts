@@ -31,11 +31,65 @@ export interface AudioTrackInfo {
   DisplayTitle: string;
 }
 
+// Track if plugin has been registered
+let pluginRegistered = false;
+
+/**
+ * Register the plugin with react-native-video
+ * Should be called once on app initialization
+ */
+export async function registerMultiAudioPlugin(): Promise<void> {
+  if (pluginRegistered) {
+    logger.debug("Plugin already registered, skipping", {
+      service: "MultiAudioLoader",
+    });
+    return;
+  }
+
+  if (Platform.OS !== "ios") {
+    logger.debug("Multi-audio plugin not available on this platform", {
+      service: "MultiAudioLoader",
+      platform: Platform.OS,
+    });
+    return;
+  }
+
+  if (!MultiAudioResourceLoader?.registerVideoPlugin) {
+    logger.warn("Multi-audio native module not available", {
+      service: "MultiAudioLoader",
+    });
+    return;
+  }
+
+  try {
+    logger.info("Calling registerVideoPlugin on native module", {
+      service: "MultiAudioLoader",
+      hasMethod: !!MultiAudioResourceLoader.registerVideoPlugin,
+    });
+    await MultiAudioResourceLoader.registerVideoPlugin();
+    pluginRegistered = true;
+    logger.info("Multi-audio plugin registered successfully", {
+      service: "MultiAudioLoader",
+    });
+  } catch (error) {
+    logger.error("Failed to register multi-audio plugin", error, {
+      service: "MultiAudioLoader",
+    });
+  }
+}
+
 /**
  * Check if multi-audio native module is available
  * Only available on iOS/tvOS
  */
 export function isMultiAudioAvailable(): boolean {
+  // TEMPORARILY DISABLED: Debugging plugin registration issue
+  logger.debug("Multi-audio temporarily disabled for testing", {
+    service: "MultiAudioLoader",
+  });
+  return false;
+
+  /* Original code - will re-enable after fixing plugin registration
   if (Platform.OS !== "ios") {
     logger.debug("Multi-audio not available: not iOS platform", {
       service: "MultiAudioLoader",
@@ -44,15 +98,17 @@ export function isMultiAudioAvailable(): boolean {
     return false;
   }
 
-  const available = MultiAudioResourceLoader !== null && MultiAudioResourceLoader !== undefined;
+  const available = MultiAudioResourceLoader !== null && MultiAudioResourceLoader !== undefined && pluginRegistered;
 
   logger.info("Multi-audio module availability check", {
     service: "MultiAudioLoader",
     available,
+    pluginRegistered,
     module: MultiAudioResourceLoader,
   });
 
   return available;
+  */
 }
 
 /**

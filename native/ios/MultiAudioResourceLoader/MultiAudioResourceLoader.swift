@@ -8,9 +8,20 @@
 
 import Foundation
 import React
+import AVFoundation
+import react_native_video
 
-@objc(MultiAudioResourceLoader)
-class MultiAudioResourceLoader: NSObject {
+/// Main singleton class that implements AVAssetResourceLoaderDelegate
+/// to serve combined HLS manifests for multi-audio track switching
+class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate {
+
+    // MARK: - Singleton
+
+    static let shared = MultiAudioResourceLoaderDelegate()
+
+    private override init() {
+        super.init()
+    }
 
     // MARK: - Properties
 
@@ -21,72 +32,64 @@ class MultiAudioResourceLoader: NSObject {
 
     private let session = URLSession.shared
     private let queue = DispatchQueue(label: "com.tomotv.multiaudio", qos: .userInitiated)
-    private let fileManager = FileManager.default
 
-    // MARK: - React Native Bridge Methods
+    // MARK: - Configuration
 
-    @objc
-    func configureResourceLoader(
-        _ baseUrl: String,
-        apiKey key: String,
-        itemId id: String,
-        audioTracks tracks: [[String: Any]],
-        resolve: @escaping RCTPromiseResolveBlock,
-        reject: @escaping RCTPromiseRejectBlock
-    ) {
-        queue.async {
-            self.jellyfinBaseUrl = baseUrl
-            self.apiKey = key
-            self.itemId = id
-            self.audioTrackInfo = tracks
+    /// Configure the resource loader with Jellyfin connection details
+    func configure(baseUrl: String, apiKey: String, itemId: String, audioTracks: [[String: Any]]) {
+        self.jellyfinBaseUrl = baseUrl
+        self.apiKey = apiKey
+        self.itemId = itemId
+        self.audioTrackInfo = audioTracks
 
-            DispatchQueue.main.async {
-                resolve(true)
-            }
-        }
+        NSLog("[MultiAudioResourceLoader] Configured for item: \(itemId) with \(audioTracks.count) audio tracks")
     }
 
-    @objc
-    func generateCustomUrl(
-        _ itemId: String,
-        resolve: @escaping RCTPromiseResolveBlock,
-        reject: @escaping RCTPromiseRejectBlock
-    ) {
+    // MARK: - AVAssetResourceLoaderDelegate
+
+    func resourceLoader(_ resourceLoader: AVAssetResourceLoader, shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest) -> Bool {
+        NSLog("[MultiAudioResourceLoader] Resource requested: \(loadingRequest.request.url?.absoluteString ?? "unknown")")
+
+        // Only handle our custom protocol
+        guard let url = loadingRequest.request.url,
+              url.scheme == "jellyfin-multi" else {
+            NSLog("[MultiAudioResourceLoader] Not our protocol, rejecting")
+            return false
+        }
+
+        // Handle request on background queue
         queue.async {
             do {
-                NSLog("[MultiAudioResourceLoader] Generating combined manifest for item: \(itemId)")
-
-                // 1. Fetch all Jellyfin manifests (one per audio track)
+                // Fetch and combine manifests
                 let manifests = try self.fetchAllManifests()
-
-                NSLog("[MultiAudioResourceLoader] Fetched \(manifests.count) manifests")
-
-                // 2. Generate combined multivariant manifest
                 let combinedManifest = try self.generateMultivariantManifest(from: manifests)
 
                 NSLog("[MultiAudioResourceLoader] Generated combined manifest (\(combinedManifest.count) bytes)")
 
-                // 3. Write to temporary file
-                let fileUrl = try self.writeManifestToTempFile(combinedManifest, itemId: itemId)
-
-                NSLog("[MultiAudioResourceLoader] Wrote manifest to: \(fileUrl.path)")
-
-                DispatchQueue.main.async {
-                    resolve(fileUrl.absoluteString)
+                // Provide manifest data to AVPlayer
+                if let dataRequest = loadingRequest.dataRequest {
+                    dataRequest.respond(with: combinedManifest)
                 }
+
+                // Set content type
+                if let contentInfoRequest = loadingRequest.contentInformationRequest {
+                    contentInfoRequest.contentType = "application/vnd.apple.mpegurl" // HLS MIME type
+                    contentInfoRequest.contentLength = Int64(combinedManifest.count)
+                    contentInfoRequest.isByteRangeAccessSupported = false
+                }
+
+                // Mark request as finished
+                loadingRequest.finishLoading()
+
+                NSLog("[MultiAudioResourceLoader] Request completed successfully")
 
             } catch {
-                NSLog("[MultiAudioResourceLoader] Error: \(error.localizedDescription)")
-                DispatchQueue.main.async {
-                    reject("MANIFEST_ERROR", "Failed to generate manifest: \(error.localizedDescription)", error)
-                }
+                NSLog("[MultiAudioResourceLoader] Error serving manifest: \(error.localizedDescription)")
+                loadingRequest.finishLoading(with: error)
             }
         }
-    }
 
-    @objc
-    static func requiresMainQueueSetup() -> Bool {
-        return false
+        return true // We'll handle this request
     }
 
     // MARK: - Private Methods
@@ -197,21 +200,82 @@ class MultiAudioResourceLoader: NSObject {
 
         return data
     }
+}
 
-    private func writeManifestToTempFile(_ data: Data, itemId: String) throws -> URL {
-        // Get temp directory
-        let tempDir = fileManager.temporaryDirectory
+// MARK: - React Native Bridge
 
-        // Create unique filename
-        let fileName = "multi-audio-\(itemId).m3u8"
-        let fileUrl = tempDir.appendingPathComponent(fileName)
+/// React Native bridge module that exposes MultiAudioResourceLoaderDelegate to JavaScript
+@objc(MultiAudioResourceLoader)
+class MultiAudioResourceLoader: NSObject {
 
-        // Remove old file if exists
-        try? fileManager.removeItem(at: fileUrl)
+    private static var pluginRegistered = false
 
-        // Write manifest to file
-        try data.write(to: fileUrl, options: .atomic)
+    // Store plugin instance to keep it alive
+    private static var pluginInstance: MultiAudioVideoPlugin?
 
-        return fileUrl
+    @objc
+    func registerVideoPlugin(
+        _ resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        // Only register once
+        guard !MultiAudioResourceLoader.pluginRegistered else {
+            NSLog("[MultiAudioResourceLoader] Plugin already registered")
+            resolve(true)
+            return
+        }
+
+        NSLog("[MultiAudioResourceLoader] Registering video plugin...")
+
+        // Create plugin instance and keep it alive
+        let plugin = MultiAudioVideoPlugin()
+        MultiAudioResourceLoader.pluginInstance = plugin
+
+        // Register plugin with react-native-video's manager
+        DispatchQueue.main.async {
+            ReactNativeVideoManager.shared.registerPlugin(plugin: plugin)
+            NSLog("[MultiAudioResourceLoader] ✅ Plugin registered with ReactNativeVideoManager")
+            MultiAudioResourceLoader.pluginRegistered = true
+            resolve(true)
+        }
+    }
+
+    @objc
+    func configureResourceLoader(
+        _ baseUrl: String,
+        apiKey key: String,
+        itemId id: String,
+        audioTracks tracks: [[String: Any]],
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        DispatchQueue.global().async {
+            MultiAudioResourceLoaderDelegate.shared.configure(
+                baseUrl: baseUrl,
+                apiKey: key,
+                itemId: id,
+                audioTracks: tracks
+            )
+
+            DispatchQueue.main.async {
+                resolve(true)
+            }
+        }
+    }
+
+    @objc
+    func generateCustomUrl(
+        _ itemId: String,
+        resolve: @escaping RCTPromiseResolveBlock,
+        reject: @escaping RCTPromiseRejectBlock
+    ) {
+        // Return custom protocol URL (not file:// anymore)
+        let customUrl = "jellyfin-multi://server/Videos/\(itemId)/master.m3u8"
+        resolve(customUrl)
+    }
+
+    @objc
+    static func requiresMainQueueSetup() -> Bool {
+        return false
     }
 }
