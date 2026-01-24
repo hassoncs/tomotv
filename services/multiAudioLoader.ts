@@ -149,16 +149,33 @@ export function getAudioTracks(videoItem: JellyfinVideoItem): AudioTrackInfo[] {
     (stream: JellyfinMediaStream) => stream.Type === "Audio"
   );
 
-  return audioStreams.map((stream: JellyfinMediaStream) => ({
-    Index: stream.Index ?? 0,
-    Language: stream.Language || "und",
-    Codec: stream.Codec || "unknown",
-    Channels: stream.Channels || 2,
-    DisplayTitle:
-      stream.DisplayTitle ||
-      `${stream.Language || "Unknown"} (${stream.Codec || "Unknown"})`,
-    IsDefault: stream.IsDefault || false,
-  }));
+  logger.info("Audio track detection", {
+    service: "MultiAudioLoader",
+    totalTracks: audioStreams.length,
+  });
+
+  // Just pass through what Jellyfin gives us - no manipulation
+  return audioStreams.map((stream: JellyfinMediaStream) => {
+    const trackInfo = {
+      Index: stream.Index ?? 0,
+      Language: stream.Language || "und",
+      Codec: stream.Codec || "unknown",
+      Channels: stream.Channels || 2,
+      DisplayTitle:
+        stream.DisplayTitle ||
+        `${stream.Language || "Unknown"} (${stream.Codec || "Unknown"})`,
+      IsDefault: stream.IsDefault ?? false,  // Use Jellyfin's value directly
+    };
+
+    logger.info("Audio track from Jellyfin", {
+      service: "MultiAudioLoader",
+      index: trackInfo.Index,
+      language: trackInfo.Language,
+      isDefault: trackInfo.IsDefault,
+    });
+
+    return trackInfo;
+  });
 }
 
 /**
