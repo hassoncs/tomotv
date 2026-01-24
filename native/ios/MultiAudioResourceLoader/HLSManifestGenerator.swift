@@ -44,11 +44,27 @@ class HLSManifestGenerator {
         let parser = HLSManifestParser()
         let parsedManifests = try manifests.map { try parser.parse($0) }
 
+        // Extract subtitles from first manifest (they're the same across all audio variants)
+        let subtitles = parsedManifests.first?.subtitleTracks ?? []
+
         // Build combined manifest
+        // NOTE: We create multiple stream variants instead of separate audio renditions
+        // because Jellyfin doesn't provide audio-only HLS streams (always muxed video+audio)
         var combined = "#EXTM3U\n"
         combined += "#EXT-X-VERSION:3\n\n"
 
-        // Add audio tracks as separate media groups
+        // Add subtitle renditions (shared across all stream variants)
+        for subtitle in subtitles {
+            let absoluteUri = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: subtitle.uri)
+            combined += "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"subs\",NAME=\"\(subtitle.name)\",LANGUAGE=\"\(subtitle.language)\",URI=\"\(absoluteUri)\"\n"
+        }
+
+        if !subtitles.isEmpty {
+            combined += "\n"
+        }
+
+        // Add each audio track as a separate stream variant (not as audio rendition)
+        // This works around Jellyfin's limitation of not providing audio-only streams
         for (index, trackInfo) in audioTrackInfo.enumerated() {
             let language = trackInfo["Language"] as? String ?? "und"
             let displayTitle = trackInfo["DisplayTitle"] as? String ?? "Audio \(index + 1)"
@@ -64,53 +80,88 @@ class HLSManifestGenerator {
                 name = "\(language.uppercased()) (\(codec.uppercased()))"
             }
 
-            let isDefault = index == 0
-
-            // Use the audio URI from the parsed manifest if available
-            // Otherwise construct from base URL
-            let audioUrl: String
-            if let audioUri = parsedManifests[safe: index]?.audioUri {
-                audioUrl = audioUri
-            } else if let videoUri = parsedManifests[safe: index]?.videoUri {
-                audioUrl = videoUri
+            // Use the video URI from the parsed manifest for this audio track
+            // IMPORTANT: Prepend baseUrl to make relative URLs absolute
+            let streamUrl: String
+            if let videoUri = parsedManifests[safe: index]?.videoUri {
+                streamUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: videoUri)
             } else {
-                audioUrl = "\(baseUrl)?audioStreamIndex=\(index)"
+                // Fallback: construct URL with audioStreamIndex parameter
+                // Remove any existing audioStreamIndex from baseUrl first
+                var cleanBase = baseUrl
+                if let range = cleanBase.range(of: "&audioStreamIndex=") {
+                    if let endRange = cleanBase[range.upperBound...].firstIndex(of: "&") {
+                        cleanBase = String(cleanBase[..<range.lowerBound]) + String(cleanBase[endRange...])
+                    } else {
+                        cleanBase = String(cleanBase[..<range.lowerBound])
+                    }
+                }
+                streamUrl = "\(cleanBase)&audioStreamIndex=\(index)"
             }
 
-            combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(language)\""
+            // Add stream variant (remove invalid NAME attribute)
+            let baseBandwidth = parsedManifests[safe: index]?.bandwidth ?? 5000000
+            let bandwidth = baseBandwidth + (index * 1000)
 
-            if isDefault {
-                combined += ",DEFAULT=YES,AUTOSELECT=YES"
-            } else {
-                combined += ",AUTOSELECT=YES"
-            }
+            combined += "#EXT-X-STREAM-INF:BANDWIDTH=\(bandwidth)"
 
-            combined += ",URI=\"\(audioUrl)\"\n"
-        }
-
-        combined += "\n"
-
-        // Add video stream (from first manifest)
-        if let firstManifest = parsedManifests.first {
-            combined += "#EXT-X-STREAM-INF:"
-            combined += "BANDWIDTH=\(firstManifest.bandwidth ?? 5000000)"
-
-            if let resolution = firstManifest.resolution {
+            if let resolution = parsedManifests[safe: index]?.resolution {
                 combined += ",RESOLUTION=\(resolution)"
             }
 
-            combined += ",AUDIO=\"audio\"\n"
-
-            // Use video URI from parsed manifest
-            if let videoUri = firstManifest.videoUri {
-                combined += "\(videoUri)\n"
-            } else {
-                // Fallback to base URL
-                combined += "\(baseUrl)\n"
+            // Reference subtitle group if we have subtitles
+            if !subtitles.isEmpty {
+                combined += ",SUBTITLES=\"subs\""
             }
+
+            combined += "\n\(streamUrl)\n"
         }
 
         return combined
+    }
+
+    /// Convert relative URL to absolute URL by replacing the last path component
+    /// - Parameters:
+    ///   - baseUrl: Base URL (e.g., "http://server:8096/Videos/123/master.m3u8?api_key=...")
+    ///   - relativeUrl: Relative URL (e.g., "main.m3u8?api_key=...")
+    /// - Returns: Absolute URL
+    private func makeAbsoluteUrl(baseUrl: String, relativeUrl: String) -> String {
+        // If already absolute (starts with http/https), return as-is
+        if relativeUrl.lowercased().hasPrefix("http://") || relativeUrl.lowercased().hasPrefix("https://") {
+            return relativeUrl
+        }
+
+        // Parse the base URL to extract components
+        guard let baseURL = URL(string: baseUrl) else {
+            // Fallback: simple concatenation
+            return baseUrl.hasSuffix("/") ? baseUrl + relativeUrl : baseUrl + "/" + relativeUrl
+        }
+
+        // Remove query string and fragment from base URL to get just the path
+        guard var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false) else {
+            return baseUrl.hasSuffix("/") ? baseUrl + relativeUrl : baseUrl + "/" + relativeUrl
+        }
+
+        // Remove the last path component (e.g., "master.m3u8") and append the relative URL
+        var pathComponents = components.path.split(separator: "/").map(String.init)
+        if !pathComponents.isEmpty {
+            pathComponents.removeLast() // Remove "master.m3u8"
+        }
+
+        // Append the relative URL's path component
+        let relativePath = relativeUrl.split(separator: "?").first.map(String.init) ?? relativeUrl
+        pathComponents.append(relativePath)
+
+        // Reconstruct the path
+        components.path = "/" + pathComponents.joined(separator: "/")
+
+        // Preserve query parameters from the relative URL if present
+        if let queryStart = relativeUrl.firstIndex(of: "?") {
+            let relativeQuery = String(relativeUrl[relativeUrl.index(after: queryStart)...])
+            components.query = relativeQuery
+        }
+
+        return components.url?.absoluteString ?? baseUrl
     }
 
     /// Format channel count to human-readable string

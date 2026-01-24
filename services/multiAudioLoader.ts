@@ -7,11 +7,13 @@
  * How it works:
  * 1. Detects videos with multiple audio tracks
  * 2. Configures native Swift resource loader with track metadata
- * 3. Generates custom protocol URL (jellyfin-multi://)
- * 4. Native module intercepts URL and generates multivariant HLS manifest
- * 5. AVPlayer discovers all audio tracks and enables seamless switching
+ * 3. Generates custom protocol URL (jellyfin-multi://...)
+ * 4. react-native-video plugin (patched) attaches resource loader to intercept requests
+ * 5. Native module generates multivariant HLS manifest on-the-fly
+ * 6. AVPlayer discovers all audio tracks and enables seamless switching
  *
  * Created: January 23, 2026
+ * Updated: January 24, 2026 - Added patch-package for react-native-video custom protocol support
  */
 
 import { NativeModules, Platform } from "react-native";
@@ -36,45 +38,54 @@ let pluginRegistered = false;
 
 /**
  * Register the plugin with react-native-video
- * Should be called once on app initialization
+ * Required for custom URL interception (http://jellyfin-multi.internal/...)
  */
 export async function registerMultiAudioPlugin(): Promise<void> {
-  if (pluginRegistered) {
-    logger.debug("Plugin already registered, skipping", {
-      service: "MultiAudioLoader",
-    });
-    return;
-  }
-
+  // Only register on iOS/tvOS
   if (Platform.OS !== "ios") {
-    logger.debug("Multi-audio plugin not available on this platform", {
+    logger.debug("Skipping plugin registration: not iOS platform", {
       service: "MultiAudioLoader",
       platform: Platform.OS,
     });
     return;
   }
 
-  if (!MultiAudioResourceLoader?.registerVideoPlugin) {
+  // Check if native module exists
+  if (!MultiAudioResourceLoader || typeof MultiAudioResourceLoader.registerVideoPlugin !== "function") {
     logger.warn("Multi-audio native module not available", {
+      service: "MultiAudioLoader",
+      hasModule: !!MultiAudioResourceLoader,
+    });
+    return;
+  }
+
+  // Only register once
+  if (pluginRegistered) {
+    logger.debug("Plugin already registered", {
       service: "MultiAudioLoader",
     });
     return;
   }
 
   try {
-    logger.info("Calling registerVideoPlugin on native module", {
+    logger.info("Registering multi-audio video plugin", {
       service: "MultiAudioLoader",
-      hasMethod: !!MultiAudioResourceLoader.registerVideoPlugin,
     });
+
+    // Register plugin with react-native-video
     await MultiAudioResourceLoader.registerVideoPlugin();
+
     pluginRegistered = true;
+
     logger.info("Multi-audio plugin registered successfully", {
       service: "MultiAudioLoader",
     });
   } catch (error) {
-    logger.error("Failed to register multi-audio plugin", error, {
+    logger.error("Failed to register multi-audio plugin", {
       service: "MultiAudioLoader",
+      error,
     });
+    throw error;
   }
 }
 
@@ -83,13 +94,7 @@ export async function registerMultiAudioPlugin(): Promise<void> {
  * Only available on iOS/tvOS
  */
 export function isMultiAudioAvailable(): boolean {
-  // TEMPORARILY DISABLED: Debugging plugin registration issue
-  logger.debug("Multi-audio temporarily disabled for testing", {
-    service: "MultiAudioLoader",
-  });
-  return false;
-
-  /* Original code - will re-enable after fixing plugin registration
+  // Check platform - multi-audio only available on iOS/tvOS
   if (Platform.OS !== "ios") {
     logger.debug("Multi-audio not available: not iOS platform", {
       service: "MultiAudioLoader",
@@ -98,17 +103,17 @@ export function isMultiAudioAvailable(): boolean {
     return false;
   }
 
+  // Verify native module exists and plugin is registered
   const available = MultiAudioResourceLoader !== null && MultiAudioResourceLoader !== undefined && pluginRegistered;
 
   logger.info("Multi-audio module availability check", {
     service: "MultiAudioLoader",
     available,
     pluginRegistered,
-    module: MultiAudioResourceLoader,
+    hasModule: !!MultiAudioResourceLoader,
   });
 
   return available;
-  */
 }
 
 /**

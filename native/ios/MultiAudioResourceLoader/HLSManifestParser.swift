@@ -8,6 +8,13 @@
 
 import Foundation
 
+/// Represents a subtitle track from HLS manifest
+struct SubtitleTrack {
+    var name: String
+    var language: String
+    var uri: String
+}
+
 /// Represents a parsed HLS manifest with extracted metadata
 struct HLSManifest {
     var version: Int = 3
@@ -18,6 +25,7 @@ struct HLSManifest {
     var audioGroupId: String?
     var audioLanguage: String?
     var audioName: String?
+    var subtitleTracks: [SubtitleTrack] = []
 }
 
 /// Parses HLS m3u8 manifests from Jellyfin
@@ -45,6 +53,20 @@ class HLSManifestParser {
                 manifest.audioLanguage = extractValue(from: trimmedLine, key: "LANGUAGE")
                 manifest.audioName = extractValue(from: trimmedLine, key: "NAME")
                 manifest.audioUri = extractValue(from: trimmedLine, key: "URI")
+            }
+            // Parse subtitle media tags
+            else if trimmedLine.hasPrefix("#EXT-X-MEDIA:TYPE=SUBTITLES") {
+                let name = extractValue(from: trimmedLine, key: "NAME")
+                let language = extractValue(from: trimmedLine, key: "LANGUAGE")
+                let uri = extractValue(from: trimmedLine, key: "URI")
+
+                if !uri.isEmpty {
+                    manifest.subtitleTracks.append(SubtitleTrack(
+                        name: name,
+                        language: language,
+                        uri: uri
+                    ))
+                }
             }
             // Parse stream info
             else if trimmedLine.hasPrefix("#EXT-X-STREAM-INF:") {

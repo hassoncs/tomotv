@@ -18,7 +18,7 @@ class MultiAudioVideoPlugin: RNVAVPlayerPlugin {
     override public func overridePlayerAsset(source: VideoSource, asset: AVAsset) async -> OverridePlayerAssetResult? {
         NSLog("[MultiAudioVideoPlugin] overridePlayerAsset called")
 
-        // Check if this is a multi-audio video with custom protocol
+        // Check if this is a multi-audio video with custom URL
         guard let urlAsset = asset as? AVURLAsset else {
             NSLog("[MultiAudioVideoPlugin] Asset is not AVURLAsset")
             return nil
@@ -27,6 +27,7 @@ class MultiAudioVideoPlugin: RNVAVPlayerPlugin {
         let url = urlAsset.url.absoluteString
         NSLog("[MultiAudioVideoPlugin] Checking URL: \(url)")
 
+        // Check for our custom protocol (jellyfin-multi://)
         guard url.starts(with: "jellyfin-multi://") else {
             NSLog("[MultiAudioVideoPlugin] Not our custom protocol, passing through")
             return nil

@@ -254,7 +254,10 @@ export default function VideoPlayerScreen() {
         <Video
           key={sourceUri} // Force remount when switching from direct play to transcoding
           ref={videoRef}
-          source={{ uri: sourceUri }}
+          source={{
+            uri: sourceUri,
+            // jellyfin-multi:// is treated as network by patched react-native-video
+          }}
           style={styles.video}
           resizeMode="contain"
           controls={true}

@@ -15,7 +15,6 @@
       "Bash(cat:*)",
       "Bash(npm run lint)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run:*)",
       "Bash(npx tsc:*)",
       "Bash(npx @sentry/wizard:*)",
       "Bash(node:*)",

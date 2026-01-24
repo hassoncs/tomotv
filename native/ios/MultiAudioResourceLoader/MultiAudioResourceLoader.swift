@@ -50,7 +50,7 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
     func resourceLoader(_ resourceLoader: AVAssetResourceLoader, shouldWaitForLoadingOfRequestedResource loadingRequest: AVAssetResourceLoadingRequest) -> Bool {
         NSLog("[MultiAudioResourceLoader] Resource requested: \(loadingRequest.request.url?.absoluteString ?? "unknown")")
 
-        // Only handle our custom protocol
+        // Only handle our custom protocol (jellyfin-multi://)
         guard let url = loadingRequest.request.url,
               url.scheme == "jellyfin-multi" else {
             NSLog("[MultiAudioResourceLoader] Not our protocol, rejecting")
@@ -62,7 +62,16 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
             do {
                 // Fetch and combine manifests
                 let manifests = try self.fetchAllManifests()
-                let combinedManifest = try self.generateMultivariantManifest(from: manifests)
+                let combinedManifestString = try self.generateMultivariantManifest(from: manifests)
+
+                // Convert string to data
+                guard let combinedManifest = combinedManifestString.data(using: .utf8) else {
+                    throw NSError(
+                        domain: "MultiAudioResourceLoader",
+                        code: 7,
+                        userInfo: [NSLocalizedDescriptionKey: "Failed to encode manifest to UTF-8"]
+                    )
+                }
 
                 NSLog("[MultiAudioResourceLoader] Generated combined manifest (\(combinedManifest.count) bytes)")
 
@@ -94,7 +103,7 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
 
     // MARK: - Private Methods
 
-    private func fetchAllManifests() throws -> [String] {
+    func fetchAllManifests() throws -> [String] {
         var manifests: [String] = []
 
         for (index, _) in audioTrackInfo.enumerated() {
@@ -181,7 +190,7 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
         return manifest
     }
 
-    private func generateMultivariantManifest(from manifests: [String]) throws -> Data {
+    func generateMultivariantManifest(from manifests: [String]) throws -> String {
         let generator = HLSManifestGenerator()
 
         let combinedManifestString = try generator.combine(
@@ -190,15 +199,7 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
             baseUrl: jellyfinBaseUrl
         )
 
-        guard let data = combinedManifestString.data(using: .utf8) else {
-            throw NSError(
-                domain: "MultiAudioResourceLoader",
-                code: 7,
-                userInfo: [NSLocalizedDescriptionKey: "Failed to encode manifest to UTF-8"]
-            )
-        }
-
-        return data
+        return combinedManifestString
     }
 }
 
@@ -269,9 +270,18 @@ class MultiAudioResourceLoader: NSObject {
         resolve: @escaping RCTPromiseResolveBlock,
         reject: @escaping RCTPromiseRejectBlock
     ) {
-        // Return custom protocol URL (not file:// anymore)
+        NSLog("[MultiAudioResourceLoader] generateCustomUrl called for item: \(itemId)")
+
+        // Return custom protocol URL immediately
+        // The react-native-video patch recognizes this as a network URL
+        // The resource loader will fetch manifests lazily when AVPlayer requests them
         let customUrl = "jellyfin-multi://server/Videos/\(itemId)/master.m3u8"
-        resolve(customUrl)
+
+        NSLog("[MultiAudioResourceLoader] ✅ Generated custom URL: \(customUrl)")
+
+        DispatchQueue.main.async {
+            resolve(customUrl)
+        }
     }
 
     @objc
