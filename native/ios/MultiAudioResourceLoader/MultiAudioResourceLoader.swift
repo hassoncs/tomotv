@@ -108,10 +108,16 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
     func fetchAllManifests() throws -> [String] {
         var manifests: [String] = []
 
-        for (index, _) in audioTrackInfo.enumerated() {
-            let manifestUrl = buildManifestUrl(audioStreamIndex: index)
+        for (arrayIndex, trackInfo) in audioTrackInfo.enumerated() {
+            // Get actual Jellyfin stream index from track metadata
+            guard let streamIndex = trackInfo["Index"] as? Int else {
+                NSLog("[MultiAudioResourceLoader] ⚠️ Missing Index for track \(arrayIndex + 1), skipping")
+                continue
+            }
 
-            NSLog("[MultiAudioResourceLoader] Fetching manifest \(index + 1)/\(audioTrackInfo.count)")
+            let manifestUrl = buildManifestUrl(audioStreamIndex: streamIndex)
+
+            NSLog("[MultiAudioResourceLoader] Fetching manifest for stream \(streamIndex) (\(arrayIndex + 1)/\(audioTrackInfo.count))")
 
             // Fetch manifest synchronously (we're already on background queue)
             let manifest = try fetchManifest(from: manifestUrl)
@@ -122,14 +128,21 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
     }
 
     private func buildManifestUrl(audioStreamIndex: Int) -> String {
-        // Parse base URL and add audioStreamIndex parameter
+        // Parse base URL
         guard var components = URLComponents(string: jellyfinBaseUrl) else {
             return jellyfinBaseUrl
         }
 
-        // Append audioStreamIndex to existing query items
         var queryItems = components.queryItems ?? []
+
+        // Add audioStreamIndex to select which audio track to encode
         queryItems.append(URLQueryItem(name: "audioStreamIndex", value: "\(audioStreamIndex)"))
+
+        // Add UNIQUE playSessionId to force separate transcode session
+        // This is critical: Jellyfin reuses transcode sessions without unique IDs,
+        // resulting in all audio tracks playing the same audio
+        let sessionId = "multi-audio-\(itemId)-track-\(audioStreamIndex)"
+        queryItems.append(URLQueryItem(name: "playSessionId", value: sessionId))
 
         components.queryItems = queryItems
 

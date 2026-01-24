@@ -79,15 +79,24 @@ class HLSManifestGenerator {
 
             let isDefault = index == 0
 
-            // Use the audio URI from the parsed manifest if available
-            // Otherwise construct from base URL
+            // Get actual Jellyfin stream index from track metadata
+            guard let streamIndex = trackInfo["Index"] as? Int else {
+                NSLog("[HLSGenerator] ⚠️ Missing Index for track \(index + 1), skipping")
+                continue
+            }
+
+            // Build audio URL - Jellyfin manifests already contain audioStreamIndex
             let audioUrl: String
             if let audioUri = parsedManifests[safe: index]?.audioUri {
                 audioUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: audioUri)
+                NSLog("[HLSGenerator] 🎵 Track \(index + 1) audio URL: \(audioUrl)")
             } else if let videoUri = parsedManifests[safe: index]?.videoUri {
                 audioUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: videoUri)
+                NSLog("[HLSGenerator] 🎵 Track \(index + 1) audio URL (from video): \(audioUrl)")
             } else {
-                audioUrl = "\(baseUrl)?audioStreamIndex=\(index)"
+                // Fallback: append audioStreamIndex if manifest didn't provide URI
+                audioUrl = appendQueryParameter(url: baseUrl, key: "audioStreamIndex", value: "\(streamIndex)")
+                NSLog("[HLSGenerator] 🎵 Track \(index + 1) audio URL (fallback): \(audioUrl)")
             }
 
             combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(language)\""
@@ -168,13 +177,45 @@ class HLSManifestGenerator {
         // Reconstruct the path
         components.path = "/" + pathComponents.joined(separator: "/")
 
-        // Preserve query parameters from the relative URL if present
+        // Merge query parameters from both base URL and relative URL
+        var mergedQueryItems = components.queryItems ?? []
+
+        // Add query parameters from relative URL if present
         if let queryStart = relativeUrl.firstIndex(of: "?") {
             let relativeQuery = String(relativeUrl[relativeUrl.index(after: queryStart)...])
-            components.query = relativeQuery
+            if let relativeComponents = URLComponents(string: "http://dummy?" + relativeQuery) {
+                let relativeItems = relativeComponents.queryItems ?? []
+                // Append relative params (they override base params with same name)
+                for item in relativeItems {
+                    mergedQueryItems.removeAll { $0.name == item.name }
+                    mergedQueryItems.append(item)
+                }
+            }
         }
 
+        components.queryItems = mergedQueryItems.isEmpty ? nil : mergedQueryItems
+
         return components.url?.absoluteString ?? baseUrl
+    }
+
+    /// Append query parameter to URL
+    /// - Parameters:
+    ///   - url: Base URL (may or may not have existing query parameters)
+    ///   - key: Query parameter key
+    ///   - value: Query parameter value
+    /// - Returns: URL with appended query parameter
+    private func appendQueryParameter(url: String, key: String, value: String) -> String {
+        guard var components = URLComponents(string: url) else {
+            // Fallback: simple concatenation
+            return url.contains("?") ? "\(url)&\(key)=\(value)" : "\(url)?\(key)=\(value)"
+        }
+
+        // Add query parameter
+        var queryItems = components.queryItems ?? []
+        queryItems.append(URLQueryItem(name: key, value: value))
+        components.queryItems = queryItems
+
+        return components.url?.absoluteString ?? url
     }
 
     /// Format channel count to human-readable string

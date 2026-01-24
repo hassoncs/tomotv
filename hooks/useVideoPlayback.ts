@@ -467,11 +467,17 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
               baseUrl,
               cachedConfig.apiKey
             );
+
+            // SET REF: We're using multi-audio mode
+            isUsingMultiAudioRef.current = true;
           } else {
             // Regular transcoding
             // Pass selected audio track index if available
             const audioStreamIndex = selectedAudioTrackIndexRef.current ?? undefined;
             url = await getTranscodingStreamUrl(videoId, details, audioStreamIndex);
+
+            // CLEAR REF: Not using multi-audio
+            isUsingMultiAudioRef.current = false;
 
             if (hasSelectedAudioTrack) {
               logger.info("🎯 Using single-track Jellyfin URL after restart", {
@@ -483,6 +489,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         } else {
           // Direct play
           url = getVideoStreamUrl(videoId);
+
+          // CLEAR REF: Direct play doesn't use multi-audio
+          isUsingMultiAudioRef.current = false;
         }
 
         // Check if this response is stale (videoId changed while fetching)
@@ -577,6 +586,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
 
   // Position to seek to after video restart (for audio track switching)
   const seekToPositionAfterLoadRef = useRef<number | null>(null);
+
+  // Track if currently using multi-audio mode
+  const isUsingMultiAudioRef = useRef<boolean>(false);
 
   // Track last logged state for deduplication
   const lastLoggedAudioTracksRef = useRef<string>("");
@@ -869,14 +881,13 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       const newIndex = selectedTrack.index;
       const previousIndex = selectedAudioTrackIndexRef.current;
 
-      // Check if we're using multi-audio custom protocol (seamless switching)
-      const isUsingMultiAudio = streamUrl?.includes('jellyfin-multi://') ?? false;
-
       // Only trigger restart if:
       // 1. We have a previous index (not first load)
       // 2. Index actually changed
       // 3. Video has achieved stable playback (prevents auto-selection from triggering restart)
       // 4. NOT using multi-audio mode (multi-audio supports seamless switching)
+      const isUsingMultiAudio = isUsingMultiAudioRef.current;
+
       if (previousIndex !== null && previousIndex !== newIndex && hasStablePlaybackRef.current && !isUsingMultiAudio) {
         // Map react-native-video track index to Jellyfin stream index
         const jellyfinStreamIndex = audioTrackMappingRef.current[newIndex];
@@ -998,6 +1009,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     seekToPositionAfterLoadRef.current = null;
     selectedAudioTrackIndexRef.current = null;
     audioTrackMappingRef.current = [];
+    isUsingMultiAudioRef.current = false;
   }, [videoId]);
 
   /**
