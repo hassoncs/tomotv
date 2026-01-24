@@ -48,8 +48,6 @@ class HLSManifestGenerator {
         let subtitles = parsedManifests.first?.subtitleTracks ?? []
 
         // Build combined manifest
-        // NOTE: We create multiple stream variants instead of separate audio renditions
-        // because Jellyfin doesn't provide audio-only HLS streams (always muxed video+audio)
         var combined = "#EXTM3U\n"
         combined += "#EXT-X-VERSION:3\n\n"
 
@@ -63,8 +61,7 @@ class HLSManifestGenerator {
             combined += "\n"
         }
 
-        // Add each audio track as a separate stream variant (not as audio rendition)
-        // This works around Jellyfin's limitation of not providing audio-only streams
+        // Add audio tracks as separate media groups
         for (index, trackInfo) in audioTrackInfo.enumerated() {
             let language = trackInfo["Language"] as? String ?? "und"
             let displayTitle = trackInfo["DisplayTitle"] as? String ?? "Audio \(index + 1)"
@@ -80,41 +77,57 @@ class HLSManifestGenerator {
                 name = "\(language.uppercased()) (\(codec.uppercased()))"
             }
 
-            // Use the video URI from the parsed manifest for this audio track
-            // IMPORTANT: Prepend baseUrl to make relative URLs absolute
-            let streamUrl: String
-            if let videoUri = parsedManifests[safe: index]?.videoUri {
-                streamUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: videoUri)
+            let isDefault = index == 0
+
+            // Use the audio URI from the parsed manifest if available
+            // Otherwise construct from base URL
+            let audioUrl: String
+            if let audioUri = parsedManifests[safe: index]?.audioUri {
+                audioUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: audioUri)
+            } else if let videoUri = parsedManifests[safe: index]?.videoUri {
+                audioUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: videoUri)
             } else {
-                // Fallback: construct URL with audioStreamIndex parameter
-                // Remove any existing audioStreamIndex from baseUrl first
-                var cleanBase = baseUrl
-                if let range = cleanBase.range(of: "&audioStreamIndex=") {
-                    if let endRange = cleanBase[range.upperBound...].firstIndex(of: "&") {
-                        cleanBase = String(cleanBase[..<range.lowerBound]) + String(cleanBase[endRange...])
-                    } else {
-                        cleanBase = String(cleanBase[..<range.lowerBound])
-                    }
-                }
-                streamUrl = "\(cleanBase)&audioStreamIndex=\(index)"
+                audioUrl = "\(baseUrl)?audioStreamIndex=\(index)"
             }
 
-            // Add stream variant (remove invalid NAME attribute)
-            let baseBandwidth = parsedManifests[safe: index]?.bandwidth ?? 5000000
-            let bandwidth = baseBandwidth + (index * 1000)
+            combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(language)\""
 
-            combined += "#EXT-X-STREAM-INF:BANDWIDTH=\(bandwidth)"
+            if isDefault {
+                combined += ",DEFAULT=YES,AUTOSELECT=YES"
+            } else {
+                combined += ",AUTOSELECT=YES"
+            }
 
-            if let resolution = parsedManifests[safe: index]?.resolution {
+            combined += ",URI=\"\(audioUrl)\"\n"
+        }
+
+        combined += "\n"
+
+        // Add video stream (from first manifest)
+        if let firstManifest = parsedManifests.first {
+            combined += "#EXT-X-STREAM-INF:"
+            combined += "BANDWIDTH=\(firstManifest.bandwidth ?? 5000000)"
+
+            if let resolution = firstManifest.resolution {
                 combined += ",RESOLUTION=\(resolution)"
             }
+
+            combined += ",AUDIO=\"audio\""
 
             // Reference subtitle group if we have subtitles
             if !subtitles.isEmpty {
                 combined += ",SUBTITLES=\"subs\""
             }
 
-            combined += "\n\(streamUrl)\n"
+            combined += "\n"
+
+            // Use video URI from parsed manifest
+            if let videoUri = firstManifest.videoUri {
+                combined += "\(makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: videoUri))\n"
+            } else {
+                // Fallback to base URL
+                combined += "\(baseUrl)\n"
+            }
         }
 
         return combined
