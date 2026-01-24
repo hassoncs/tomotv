@@ -21,16 +21,3 @@ export const DESIGN = {
   /** Fully circular elements */
   BORDER_RADIUS_ROUND: 999,
 } as const;
-
-// Color palette (matches CLAUDE.md design system)
-export const COLORS = {
-  BACKGROUND: '#1C1C1E',
-  CARD: '#2C2C2E',
-  CARD_FOCUSED: '#3A3A3C',
-  PRIMARY: '#FFC312',
-  SUCCESS: '#34C759',
-  ERROR: '#FF3B30',
-  TEXT_PRIMARY: '#FFFFFF',
-  TEXT_SECONDARY: '#8E8E93',
-  TEXT_TERTIARY: '#636366',
-} as const;

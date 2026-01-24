@@ -1734,55 +1734,6 @@ export function getSubtitleTracks(videoItem: JellyfinVideoItem | null): Subtitle
 }
 
 /**
- * Audio track interface for react-native-video
- * Matches react-native-video's AudioTrack type (id, language, label)
- */
-export interface AudioTrack {
-  id: string;
-  language: string;
-  label: string;
-}
-
-/**
- * Get all audio tracks available for a video
- * Returns audio streams from MediaStreams for informational/logging purposes
- * react-native-video will auto-discover these from HLS manifest
- */
-export function getAudioTracks(videoItem: JellyfinVideoItem | null): AudioTrack[] {
-  if (!videoItem || !videoItem.MediaStreams) {
-    return [];
-  }
-
-  const audioStreams = videoItem.MediaStreams.filter(
-    (stream) => stream.Type === "Audio" && stream.Index !== undefined
-  );
-
-  if (audioStreams.length === 0) {
-    return [];
-  }
-
-  const tracks: AudioTrack[] = [];
-
-  for (const stream of audioStreams) {
-    const track: AudioTrack = {
-      id: String(stream.Index),
-      language: stream.Language || "und",
-      label: stream.DisplayTitle || stream.Language || `Audio ${stream.Index}`,
-    };
-    tracks.push(track);
-
-    logger.debug("Found audio track", {
-      service: "AudioTracks",
-      label: track.label,
-      language: track.language,
-      codec: stream.Codec,
-    });
-  }
-
-  return tracks;
-}
-
-/**
  * Get subtitle URL for a specific stream index
  * Returns empty string if config not yet loaded
  * @param itemId - The video item ID
