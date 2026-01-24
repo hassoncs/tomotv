@@ -31,6 +31,7 @@ export interface AudioTrackInfo {
   Codec: string;
   Channels: number;
   DisplayTitle: string;
+  IsDefault?: boolean;
 }
 
 // Track if plugin has been registered
@@ -156,6 +157,7 @@ export function getAudioTracks(videoItem: JellyfinVideoItem): AudioTrackInfo[] {
     DisplayTitle:
       stream.DisplayTitle ||
       `${stream.Language || "Unknown"} (${stream.Codec || "Unknown"})`,
+    IsDefault: stream.IsDefault || false,
   }));
 }
 

@@ -79,7 +79,9 @@ class HLSManifestGenerator {
                 name = "\(language.uppercased()) (\(codec.uppercased()))"
             }
 
-            let isDefault = index == 0
+            // Use Jellyfin's IsDefault flag to determine default track
+            // This respects the user's server-side preference instead of just using index 0
+            let isDefault = trackInfo["IsDefault"] as? Bool ?? false
 
             // Get actual Jellyfin stream index from track metadata
             guard let streamIndex = trackInfo["Index"] as? Int else {
@@ -106,9 +108,14 @@ class HLSManifestGenerator {
             combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(language)\""
 
             if isDefault {
+                // Explicitly mark this as the default track
+                // AUTOSELECT=YES allows the player to select it automatically
                 combined += ",DEFAULT=YES,AUTOSELECT=YES"
+                NSLog("[HLSGenerator] 🔊 Track \(index + 1) marked as DEFAULT (Jellyfin preference)")
             } else {
-                combined += ",AUTOSELECT=YES"
+                // Non-default tracks: AUTOSELECT=NO prevents language-based auto-selection
+                // This ensures the Jellyfin default is always respected
+                combined += ",DEFAULT=NO,AUTOSELECT=NO"
             }
 
             combined += ",URI=\"\(audioUrl)\"\n"
@@ -116,12 +123,22 @@ class HLSManifestGenerator {
 
         combined += "\n"
 
-        // Add video stream (from first manifest)
-        if let firstManifest = parsedManifests.first {
-            combined += "#EXT-X-STREAM-INF:"
-            combined += "BANDWIDTH=\(firstManifest.bandwidth ?? 5000000)"
+        // Add video stream using the DEFAULT audio track's transcode session
+        // This ensures video segments have the correct default audio baked in
+        var defaultTrackIndex = 0  // Fallback to first track
+        for (index, trackInfo) in audioTrackInfo.enumerated() {
+            if let isDefault = trackInfo["IsDefault"] as? Bool, isDefault {
+                defaultTrackIndex = index
+                NSLog("[HLSGenerator] 📹 Using video stream from default track \(index + 1)")
+                break
+            }
+        }
 
-            if let resolution = firstManifest.resolution {
+        if let defaultManifest = parsedManifests[safe: defaultTrackIndex] {
+            combined += "#EXT-X-STREAM-INF:"
+            combined += "BANDWIDTH=\(defaultManifest.bandwidth ?? 5000000)"
+
+            if let resolution = defaultManifest.resolution {
                 combined += ",RESOLUTION=\(resolution)"
             }
 
@@ -134,13 +151,13 @@ class HLSManifestGenerator {
 
             combined += "\n"
 
-            // Use video URI from parsed manifest with first fetch URL as base
-            let firstFetchUrl = fetchUrls.first ?? ""
-            if let videoUri = firstManifest.videoUri {
-                combined += "\(makeAbsoluteUrl(baseUrl: firstFetchUrl, relativeUrl: videoUri))\n"
+            // Use video URI from default track's manifest and fetch URL
+            let defaultFetchUrl = fetchUrls[safe: defaultTrackIndex] ?? fetchUrls.first ?? ""
+            if let videoUri = defaultManifest.videoUri {
+                combined += "\(makeAbsoluteUrl(baseUrl: defaultFetchUrl, relativeUrl: videoUri))\n"
             } else {
-                // Fallback to first fetch URL
-                combined += "\(firstFetchUrl)\n"
+                // Fallback to default track's fetch URL
+                combined += "\(defaultFetchUrl)\n"
             }
         }
 
