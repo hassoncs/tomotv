@@ -386,6 +386,42 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   }, [videoId, hasTriedTranscoding]);
 
   /**
+   * Handle audio track switch by restarting video with new audioStreamIndex
+   */
+  const handleAudioTrackSwitch = useCallback((newTrackIndex: number) => {
+    if (!videoId || !videoDetails) {
+      logger.error("❌ Cannot switch audio track: missing video info", {
+        service: "useVideoPlayback",
+      });
+      return;
+    }
+
+    // Save current playback position for auto-seek after restart
+    const currentPosition = currentTimeRef.current;
+    seekToPositionAfterLoadRef.current = currentPosition;
+
+    logger.info("🔄 Starting audio track switch via restart", {
+      service: "useVideoPlayback",
+      jellyfinStreamIndex: newTrackIndex,
+      savedPosition: currentPosition,
+    });
+
+    // Pause current playback
+    setPaused(true);
+
+    // Reset playing state refs so onProgress will detect playback start after restart
+    isPlayingRef.current = false;
+    hasStablePlaybackRef.current = false;
+    setHasStablePlayback(false);
+
+    // Force restart by transitioning through states
+    dispatch({ type: "RETRY_WITH_TRANSCODE" });
+
+    // Store selected audio track for URL generation
+    selectedAudioTrackIndexRef.current = newTrackIndex;
+  }, [videoId, videoDetails]);
+
+  /**
    * Store streamUrl in state to keep it stable across state transitions
    */
   const [streamUrl, setStreamUrl] = useState<string | null>(null);
@@ -405,12 +441,16 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         let url: string;
 
         if (mode === "transcode") {
+          // Check if we have a specific audio track selected (from user switching)
+          const hasSelectedAudioTrack = selectedAudioTrackIndexRef.current !== null;
+
           // Check if we should use multi-audio custom protocol
-          const useMultiAudio = isMultiAudioAvailable() && shouldUseMultiAudio(details);
+          // Skip multi-audio if user has explicitly selected a track (we need to restart with AudioStreamIndex)
+          const useMultiAudio = !hasSelectedAudioTrack && isMultiAudioAvailable() && shouldUseMultiAudio(details);
 
           if (useMultiAudio) {
             // Use multi-audio loader for seamless track switching
-            logger.info("Using multi-audio custom protocol", {
+            logger.info("🎵 Using multi-audio custom protocol (seamless switching enabled)", {
               service: "useVideoPlayback",
               audioTrackCount: getAudioTracks(details).length,
             });
@@ -432,6 +472,13 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
             // Pass selected audio track index if available
             const audioStreamIndex = selectedAudioTrackIndexRef.current ?? undefined;
             url = await getTranscodingStreamUrl(videoId, details, audioStreamIndex);
+
+            if (hasSelectedAudioTrack) {
+              logger.info("🎯 Using single-track Jellyfin URL after restart", {
+                service: "useVideoPlayback",
+                audioStreamIndex,
+              });
+            }
           }
         } else {
           // Direct play
@@ -462,6 +509,19 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         if (mode === "transcode" && details) {
           const subtitles = getSubtitleTracks(details);
           const audioTracks = getAudioTracks(details);
+
+          // Build mapping from react-native-video track index to Jellyfin stream index
+          // This is needed because react-native-video uses sequential indices (0, 1, 2...)
+          // but Jellyfin uses actual stream indices (1, 8, etc.)
+          if (details.MediaStreams && audioTracks.length > 0) {
+            const audioStreams = details.MediaStreams.filter(s => s.Type === "Audio" && s.Index !== undefined);
+            audioTrackMappingRef.current = audioStreams.map(stream => stream.Index!);
+            logger.debug("Built audio track mapping", {
+              service: "useVideoPlayback",
+              mapping: audioTrackMappingRef.current,
+              tracks: audioStreams.map(s => `${s.Language || "und"} (stream ${s.Index})`).join(", "),
+            });
+          }
 
           if (subtitles.length > 0 || audioTracks.length > 0) {
             logger.debug("Available tracks in HLS stream", {
@@ -512,6 +572,16 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   // Audio track state (for tracking selected track)
   const selectedAudioTrackIndexRef = useRef<number | null>(null);
 
+  // Store mapping from react-native-video track index to Jellyfin stream index
+  const audioTrackMappingRef = useRef<number[]>([]);
+
+  // Position to seek to after video restart (for audio track switching)
+  const seekToPositionAfterLoadRef = useRef<number | null>(null);
+
+  // Track last logged state for deduplication
+  const lastLoggedAudioTracksRef = useRef<string>("");
+  const lastLoggedTextTracksRef = useRef<string>("");
+
   /**
    * Step 5: Video event callbacks (replacing player.addListener calls)
    */
@@ -526,6 +596,33 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       service: "useVideoPlayback",
       duration: data.duration,
     });
+
+    // Auto-seek to saved position if this is a restart (audio track switch)
+    const seekPosition = seekToPositionAfterLoadRef.current;
+    if (seekPosition !== null && seekPosition > 0) {
+      logger.info("⏩ Auto-seeking to saved position after audio track switch", {
+        service: "useVideoPlayback",
+        position: seekPosition,
+      });
+
+      // Small delay to ensure player is ready for seek
+      setTimeout(() => {
+        videoRef.current?.seek(seekPosition);
+        seekToPositionAfterLoadRef.current = null; // Clear after use
+
+        // ✅ FIX: Resume playback after seek
+        setPaused(false);
+
+        // ✅ FIX: Reset audio track ref to re-enable multi-audio mode
+        // This allows the user to switch tracks again after the restart
+        selectedAudioTrackIndexRef.current = null;
+
+        logger.info("✅ Audio track switch complete - resumed playback", {
+          service: "useVideoPlayback",
+          position: seekPosition,
+        });
+      }, 100);
+    }
 
     // Ensure state update happens on main thread via InteractionManager
     InteractionManager.runAfterInteractions(() => {
@@ -745,38 +842,105 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const onAudioTracks = useCallback((data: { audioTracks: AudioTrack[] }) => {
     if (!isMountedRef.current) return;
 
-    logger.info("Audio tracks discovered from HLS manifest", {
-      service: "useVideoPlayback",
-      trackCount: data.audioTracks.length,
-      tracks: data.audioTracks.map(t => ({
-        index: t.index,
-        title: t.title,
-        language: t.language,
-        selected: t.selected,  // Log which track is selected
-      })),
+    // Deduplicate logs - only log when data actually changes
+    const trackSignature = JSON.stringify({
+      count: data.audioTracks.length,
+      selected: data.audioTracks.find(t => t.selected)?.index ?? -1,
     });
 
-    // Track selection changes (but don't trigger restart - not needed for multi-audio)
+    if (trackSignature !== lastLoggedAudioTracksRef.current) {
+      lastLoggedAudioTracksRef.current = trackSignature;
+      logger.debug("🎵 Audio tracks", {
+        service: "useVideoPlayback",
+        count: data.audioTracks.length,
+        selected: data.audioTracks.find(t => t.selected)?.index,
+      });
+    }
+
+    // Skip change detection if we're in single-track mode after restart
+    // This prevents infinite restart loop when Jellyfin returns a manifest with only the selected track
+    if (data.audioTracks.length === 1 && selectedAudioTrackIndexRef.current !== null) {
+      return;
+    }
+
+    // Detect audio track change
     const selectedTrack = data.audioTracks.find(t => t.selected);
     if (selectedTrack) {
-      selectedAudioTrackIndexRef.current = selectedTrack.index;
+      const newIndex = selectedTrack.index;
+      const previousIndex = selectedAudioTrackIndexRef.current;
+
+      // Check if we're using multi-audio custom protocol (seamless switching)
+      const isUsingMultiAudio = streamUrl?.includes('jellyfin-multi://') ?? false;
+
+      // Only trigger restart if:
+      // 1. We have a previous index (not first load)
+      // 2. Index actually changed
+      // 3. Video has achieved stable playback (prevents auto-selection from triggering restart)
+      // 4. NOT using multi-audio mode (multi-audio supports seamless switching)
+      if (previousIndex !== null && previousIndex !== newIndex && hasStablePlaybackRef.current && !isUsingMultiAudio) {
+        // Map react-native-video track index to Jellyfin stream index
+        const jellyfinStreamIndex = audioTrackMappingRef.current[newIndex];
+
+        if (jellyfinStreamIndex !== undefined) {
+          logger.info("🔄 Audio track changed by user - triggering restart", {
+            service: "useVideoPlayback",
+            previousIndex,
+            newIndex,
+            jellyfinStreamIndex,
+            newLanguage: selectedTrack.language,
+            newTitle: selectedTrack.title,
+          });
+
+          // Trigger audio track switch with restart (using Jellyfin stream index)
+          handleAudioTrackSwitch(jellyfinStreamIndex);
+
+          // CRITICAL: Return early to prevent updating selectedAudioTrackIndexRef
+          // The ref now holds the Jellyfin stream index and must not be overwritten
+          return;
+        } else {
+          logger.warn("⚠️ Could not map audio track index to Jellyfin stream index", {
+            service: "useVideoPlayback",
+            trackIndex: newIndex,
+            mappingSize: audioTrackMappingRef.current.length,
+          });
+        }
+      } else if (isUsingMultiAudio && previousIndex !== null && previousIndex !== newIndex) {
+        // In multi-audio mode, track switch is seamless - just log it
+        logger.info("🎵 Audio track switched seamlessly (no restart needed)", {
+          service: "useVideoPlayback",
+          previousIndex,
+          newIndex,
+          newLanguage: selectedTrack.language,
+          newTitle: selectedTrack.title,
+        });
+      }
+
+      // Only update the ref if we're in multi-audio mode (not during restart)
+      // During restart, selectedAudioTrackIndexRef holds the Jellyfin stream index
+      if (selectedAudioTrackIndexRef.current === null || data.audioTracks.length > 1) {
+        selectedAudioTrackIndexRef.current = newIndex;
+        logger.debug("🔹 Updated audio track ref", {
+          service: "useVideoPlayback",
+          newIndex,
+          isMultiAudio: data.audioTracks.length > 1,
+        });
+      }
     }
-  }, []);
+  }, [handleAudioTrackSwitch]);
 
   // Callback: Text tracks (subtitles) discovered
   const onTextTracks = useCallback((data: { textTracks: TextTrack[] }) => {
     if (!isMountedRef.current) return;
 
-    logger.info("Subtitle tracks discovered from HLS manifest", {
-      service: "useVideoPlayback",
-      trackCount: data.textTracks.length,
-      tracks: data.textTracks.map(t => ({
-        index: t.index,
-        title: t.title,
-        language: t.language,
-        type: t.type,
-      })),
-    });
+    // Deduplicate logs
+    const trackSignature = `${data.textTracks.length}`;
+    if (trackSignature !== lastLoggedTextTracksRef.current) {
+      lastLoggedTextTracksRef.current = trackSignature;
+      logger.debug("📝 Subtitles", {
+        service: "useVideoPlayback",
+        count: data.textTracks.length,
+      });
+    }
   }, []);
 
   /**
@@ -831,6 +995,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     isSeekingRef.current = false;
     lastStatusChangeRef.current = 0;
     currentModeRef.current = "direct";
+    seekToPositionAfterLoadRef.current = null;
+    selectedAudioTrackIndexRef.current = null;
+    audioTrackMappingRef.current = [];
   }, [videoId]);
 
   /**

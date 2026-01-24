@@ -182,7 +182,6 @@ export default function VideoPlayerScreen() {
     }
   }, [state.type, pause]);
 
-
   // Render error state (but not if auto-retry is in progress)
   if (state.type === "ERROR") {
     // If we can retry with transcoding, show loading overlay instead of error
