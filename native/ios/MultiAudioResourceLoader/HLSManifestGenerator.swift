@@ -89,6 +89,9 @@ class HLSManifestGenerator {
                 continue
             }
 
+            // Log each track's IsDefault value for debugging
+            NSLog("[HLSGenerator] Track \(index + 1): Index=\(streamIndex), IsDefault=\(isDefault), Language=\"\(language)\"")
+
             // Build audio URL using the fetch URL for this specific track
             // This preserves the unique audioStreamIndex and playSessionId parameters
             let trackFetchUrl = fetchUrls[safe: index] ?? ""
@@ -125,13 +128,13 @@ class HLSManifestGenerator {
 
         // Add video stream using the DEFAULT audio track's transcode session
         // This ensures video segments have the correct default audio baked in
-        var defaultTrackIndex = 0  // Fallback to first track
-        for (index, trackInfo) in audioTrackInfo.enumerated() {
-            if let isDefault = trackInfo["IsDefault"] as? Bool, isDefault {
-                defaultTrackIndex = index
-                NSLog("[HLSGenerator] 📹 Using video stream from default track \(index + 1)")
-                break
-            }
+        // TypeScript sorts audioTrackInfo so IsDefault=true track is ALWAYS at index 0
+        let defaultTrackIndex = 0
+        NSLog("[HLSGenerator] 📹 Using video stream from track at index 0 (language-preferred default)")
+
+        // Log the selected default track's URL
+        if let selectedUrl = fetchUrls[safe: defaultTrackIndex] {
+            NSLog("[HLSGenerator] Selected video stream URL: \(selectedUrl)")
         }
 
         if let defaultManifest = parsedManifests[safe: defaultTrackIndex] {
