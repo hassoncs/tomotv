@@ -79,16 +79,9 @@ class HLSManifestGenerator {
 
             let isDefault = index == 0
 
-            // Use the audio URI from the parsed manifest if available
-            // Otherwise construct from base URL
-            let audioUrl: String
-            if let audioUri = parsedManifests[safe: index]?.audioUri {
-                audioUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: audioUri)
-            } else if let videoUri = parsedManifests[safe: index]?.videoUri {
-                audioUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: videoUri)
-            } else {
-                audioUrl = "\(baseUrl)?audioStreamIndex=\(index)"
-            }
+            // Use custom protocol URL for audio renditions
+            // This ensures requests go through our resource loader
+            let audioUrl = "jellyfin-multi://server/audio/\(index)/main.m3u8"
 
             combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(language)\""
 

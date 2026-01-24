@@ -42,7 +42,10 @@
       "WebFetch(domain:api.jellyfin.org)",
       "WebFetch(domain:jmshrv.com)",
       "Bash(npm info:*)",
-      "WebFetch(domain:docs.thewidlarzgroup.com)"
+      "WebFetch(domain:docs.thewidlarzgroup.com)",
+      "WebFetch(domain:datatracker.ietf.org)",
+      "WebFetch(domain:www.wowza.com)",
+      "WebFetch(domain:bitmovin.com)"
     ],
     "deny": [],
     "ask": []

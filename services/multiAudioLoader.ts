@@ -235,6 +235,9 @@ export async function prepareMultiAudioPlayback(
  * @returns true if video has multiple audio tracks and needs transcoding
  */
 export function shouldUseMultiAudio(videoItem: JellyfinVideoItem): boolean {
+  // Re-enabled to get all audio tracks into HLS manifest
+  // The native module generates manifests with all audio tracks
+  // Audio switching will use restart+auto-seek approach (handled in useVideoPlayback)
   if (!isMultiAudioAvailable()) {
     logger.debug("Multi-audio not available, skipping", {
       service: "MultiAudioLoader",

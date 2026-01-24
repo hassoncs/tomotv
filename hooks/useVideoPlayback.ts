@@ -429,7 +429,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
             );
           } else {
             // Regular transcoding
-            url = await getTranscodingStreamUrl(videoId, details);
+            // Pass selected audio track index if available
+            const audioStreamIndex = selectedAudioTrackIndexRef.current ?? undefined;
+            url = await getTranscodingStreamUrl(videoId, details, audioStreamIndex);
           }
         } else {
           // Direct play
@@ -506,6 +508,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const currentTimeRef = useRef(0);
   const durationRef = useRef(0);
   const isPlayingRef = useRef(false);
+
+  // Audio track state (for tracking selected track)
+  const selectedAudioTrackIndexRef = useRef<number | null>(null);
 
   /**
    * Step 5: Video event callbacks (replacing player.addListener calls)
@@ -736,7 +741,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     });
   }, [hasTriedTranscoding, hasTriedCredentialRefresh]);
 
-  // Callback: Audio tracks discovered
+  // Callback: Audio tracks discovered from HLS manifest
   const onAudioTracks = useCallback((data: { audioTracks: AudioTrack[] }) => {
     if (!isMountedRef.current) return;
 
@@ -747,9 +752,15 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         index: t.index,
         title: t.title,
         language: t.language,
-        type: t.type,
+        selected: t.selected,  // Log which track is selected
       })),
     });
+
+    // Track selection changes (but don't trigger restart - not needed for multi-audio)
+    const selectedTrack = data.audioTracks.find(t => t.selected);
+    if (selectedTrack) {
+      selectedAudioTrackIndexRef.current = selectedTrack.index;
+    }
   }, []);
 
   // Callback: Text tracks (subtitles) discovered

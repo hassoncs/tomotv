@@ -60,37 +60,87 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
         // Handle request on background queue
         queue.async {
             do {
-                // Fetch and combine manifests
-                let manifests = try self.fetchAllManifests()
-                let combinedManifestString = try self.generateMultivariantManifest(from: manifests)
+                // Check if this is an audio rendition request (e.g., jellyfin-multi://server/audio/1/main.m3u8)
+                let pathComponents = url.pathComponents
+                if pathComponents.count >= 3 && pathComponents[1] == "audio" {
+                    // Extract audio index
+                    guard let audioIndexStr = pathComponents[2],
+                          let audioIndex = Int(audioIndexStr),
+                          audioIndex >= 0 && audioIndex < self.audioTrackInfo.count else {
+                        throw NSError(
+                            domain: "MultiAudioResourceLoader",
+                            code: 8,
+                            userInfo: [NSLocalizedDescriptionKey: "Invalid audio index in URL"]
+                        )
+                    }
 
-                // Convert string to data
-                guard let combinedManifest = combinedManifestString.data(using: .utf8) else {
-                    throw NSError(
-                        domain: "MultiAudioResourceLoader",
-                        code: 7,
-                        userInfo: [NSLocalizedDescriptionKey: "Failed to encode manifest to UTF-8"]
-                    )
+                    NSLog("[MultiAudioResourceLoader] Audio rendition request for track \(audioIndex)")
+
+                    // Fetch the specific manifest for this audio track
+                    let manifestUrl = self.buildManifestUrl(audioStreamIndex: audioIndex)
+                    let audioManifest = try self.fetchManifest(from: manifestUrl)
+
+                    // Convert to data
+                    guard let manifestData = audioManifest.data(using: .utf8) else {
+                        throw NSError(
+                            domain: "MultiAudioResourceLoader",
+                            code: 9,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to encode audio manifest to UTF-8"]
+                        )
+                    }
+
+                    NSLog("[MultiAudioResourceLoader] Serving audio manifest (\(manifestData.count) bytes)")
+
+                    // Provide manifest data to AVPlayer
+                    if let dataRequest = loadingRequest.dataRequest {
+                        dataRequest.respond(with: manifestData)
+                    }
+
+                    // Set content type
+                    if let contentInfoRequest = loadingRequest.contentInformationRequest {
+                        contentInfoRequest.contentType = "application/vnd.apple.mpegurl"
+                        contentInfoRequest.contentLength = Int64(manifestData.count)
+                        contentInfoRequest.isByteRangeAccessSupported = false
+                    }
+
+                    loadingRequest.finishLoading()
+                    NSLog("[MultiAudioResourceLoader] Audio rendition request completed")
+
+                } else {
+                    // Master manifest request - combine all manifests
+                    NSLog("[MultiAudioResourceLoader] Master manifest request")
+
+                    let manifests = try self.fetchAllManifests()
+                    let combinedManifestString = try self.generateMultivariantManifest(from: manifests)
+
+                    // Convert string to data
+                    guard let combinedManifest = combinedManifestString.data(using: .utf8) else {
+                        throw NSError(
+                            domain: "MultiAudioResourceLoader",
+                            code: 7,
+                            userInfo: [NSLocalizedDescriptionKey: "Failed to encode manifest to UTF-8"]
+                        )
+                    }
+
+                    NSLog("[MultiAudioResourceLoader] Generated combined manifest (\(combinedManifest.count) bytes)")
+
+                    // Provide manifest data to AVPlayer
+                    if let dataRequest = loadingRequest.dataRequest {
+                        dataRequest.respond(with: combinedManifest)
+                    }
+
+                    // Set content type
+                    if let contentInfoRequest = loadingRequest.contentInformationRequest {
+                        contentInfoRequest.contentType = "application/vnd.apple.mpegurl" // HLS MIME type
+                        contentInfoRequest.contentLength = Int64(combinedManifest.count)
+                        contentInfoRequest.isByteRangeAccessSupported = false
+                    }
+
+                    // Mark request as finished
+                    loadingRequest.finishLoading()
+
+                    NSLog("[MultiAudioResourceLoader] Request completed successfully")
                 }
-
-                NSLog("[MultiAudioResourceLoader] Generated combined manifest (\(combinedManifest.count) bytes)")
-
-                // Provide manifest data to AVPlayer
-                if let dataRequest = loadingRequest.dataRequest {
-                    dataRequest.respond(with: combinedManifest)
-                }
-
-                // Set content type
-                if let contentInfoRequest = loadingRequest.contentInformationRequest {
-                    contentInfoRequest.contentType = "application/vnd.apple.mpegurl" // HLS MIME type
-                    contentInfoRequest.contentLength = Int64(combinedManifest.count)
-                    contentInfoRequest.isByteRangeAccessSupported = false
-                }
-
-                // Mark request as finished
-                loadingRequest.finishLoading()
-
-                NSLog("[MultiAudioResourceLoader] Request completed successfully")
 
             } catch {
                 NSLog("[MultiAudioResourceLoader] Error serving manifest: \(error.localizedDescription)")

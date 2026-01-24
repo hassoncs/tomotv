@@ -1310,7 +1310,11 @@ export function getVideoStreamUrl(itemId: string): string {
  * @param itemId - The video item ID
  * @param videoItem - Optional video item with MediaStreams for subtitle detection
  */
-export async function getTranscodingStreamUrl(itemId: string, videoItem?: JellyfinVideoItem | null): Promise<string> {
+export async function getTranscodingStreamUrl(
+  itemId: string,
+  videoItem?: JellyfinVideoItem | null,
+  audioStreamIndex?: number
+): Promise<string> {
   if (!cachedConfig.server || !cachedConfig.apiKey) {
     logger.warn("getTranscodingStreamUrl called before config loaded", { service: "JellyfinAPI" });
     throw new Error("Configuration not loaded. Please wait for app to initialize.");
@@ -1397,6 +1401,16 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
         languages: audioStreams.map(s => s.Language || "und").join(", "),
       });
     }
+  }
+
+  // If specific audio track requested, only serve that track
+  if (audioStreamIndex !== undefined) {
+    url += `&AudioStreamIndex=${audioStreamIndex}`;
+    logger.info("Transcoding with specific audio track", {
+      service: "JellyfinAPI",
+      itemId,
+      audioStreamIndex,
+    });
   }
 
   logger.debug("Generated transcoding stream URL", {
