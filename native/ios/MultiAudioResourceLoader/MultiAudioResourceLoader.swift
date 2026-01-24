@@ -63,8 +63,8 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
                 // Master manifest request - combine all manifests
                 NSLog("[MultiAudioResourceLoader] Master manifest request")
 
-                let manifests = try self.fetchAllManifests()
-                let combinedManifestString = try self.generateMultivariantManifest(from: manifests)
+                let (manifests, manifestUrls) = try self.fetchAllManifests()
+                let combinedManifestString = try self.generateMultivariantManifest(from: manifests, fetchUrls: manifestUrls)
 
                 // Convert string to data
                 guard let combinedManifest = combinedManifestString.data(using: .utf8) else {
@@ -105,8 +105,9 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
 
     // MARK: - Private Methods
 
-    func fetchAllManifests() throws -> [String] {
+    func fetchAllManifests() throws -> ([String], [String]) {
         var manifests: [String] = []
+        var manifestUrls: [String] = []
 
         for (arrayIndex, trackInfo) in audioTrackInfo.enumerated() {
             // Get actual Jellyfin stream index from track metadata
@@ -118,13 +119,15 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
             let manifestUrl = buildManifestUrl(audioStreamIndex: streamIndex)
 
             NSLog("[MultiAudioResourceLoader] Fetching manifest for stream \(streamIndex) (\(arrayIndex + 1)/\(audioTrackInfo.count))")
+            NSLog("[MultiAudioResourceLoader] Manifest URL: \(manifestUrl)")
 
             // Fetch manifest synchronously (we're already on background queue)
             let manifest = try fetchManifest(from: manifestUrl)
             manifests.append(manifest)
+            manifestUrls.append(manifestUrl)
         }
 
-        return manifests
+        return (manifests, manifestUrls)
     }
 
     private func buildManifestUrl(audioStreamIndex: Int) -> String {
@@ -205,13 +208,13 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
         return manifest
     }
 
-    func generateMultivariantManifest(from manifests: [String]) throws -> String {
+    func generateMultivariantManifest(from manifests: [String], fetchUrls: [String]) throws -> String {
         let generator = HLSManifestGenerator()
 
         let combinedManifestString = try generator.combine(
             manifests: manifests,
             audioTrackInfo: audioTrackInfo,
-            baseUrl: jellyfinBaseUrl
+            fetchUrls: fetchUrls
         )
 
         return combinedManifestString

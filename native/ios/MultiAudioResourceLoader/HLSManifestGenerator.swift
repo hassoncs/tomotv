@@ -15,13 +15,13 @@ class HLSManifestGenerator {
     /// - Parameters:
     ///   - manifests: Array of HLS manifest strings (one per audio track)
     ///   - audioTrackInfo: Audio track metadata from Jellyfin
-    ///   - baseUrl: Base Jellyfin URL for generating stream URLs
+    ///   - fetchUrls: Array of URLs used to fetch each manifest (includes unique audioStreamIndex and playSessionId)
     /// - Returns: Combined HLS manifest string
     /// - Throws: Error if manifests are empty or malformed
     func combine(
         manifests: [String],
         audioTrackInfo: [[String: Any]],
-        baseUrl: String
+        fetchUrls: [String]
     ) throws -> String {
 
         guard !manifests.isEmpty else {
@@ -52,8 +52,10 @@ class HLSManifestGenerator {
         combined += "#EXT-X-VERSION:3\n\n"
 
         // Add subtitle renditions (shared across all stream variants)
+        // Use first fetch URL as base for subtitles (they're the same across all audio variants)
+        let subtitleBaseUrl = fetchUrls.first ?? ""
         for subtitle in subtitles {
-            let absoluteUri = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: subtitle.uri)
+            let absoluteUri = makeAbsoluteUrl(baseUrl: subtitleBaseUrl, relativeUrl: subtitle.uri)
             combined += "#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID=\"subs\",NAME=\"\(subtitle.name)\",LANGUAGE=\"\(subtitle.language)\",URI=\"\(absoluteUri)\"\n"
         }
 
@@ -85,17 +87,19 @@ class HLSManifestGenerator {
                 continue
             }
 
-            // Build audio URL - Jellyfin manifests already contain audioStreamIndex
+            // Build audio URL using the fetch URL for this specific track
+            // This preserves the unique audioStreamIndex and playSessionId parameters
+            let trackFetchUrl = fetchUrls[safe: index] ?? ""
             let audioUrl: String
             if let audioUri = parsedManifests[safe: index]?.audioUri {
-                audioUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: audioUri)
+                audioUrl = makeAbsoluteUrl(baseUrl: trackFetchUrl, relativeUrl: audioUri)
                 NSLog("[HLSGenerator] 🎵 Track \(index + 1) audio URL: \(audioUrl)")
             } else if let videoUri = parsedManifests[safe: index]?.videoUri {
-                audioUrl = makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: videoUri)
+                audioUrl = makeAbsoluteUrl(baseUrl: trackFetchUrl, relativeUrl: videoUri)
                 NSLog("[HLSGenerator] 🎵 Track \(index + 1) audio URL (from video): \(audioUrl)")
             } else {
-                // Fallback: append audioStreamIndex if manifest didn't provide URI
-                audioUrl = appendQueryParameter(url: baseUrl, key: "audioStreamIndex", value: "\(streamIndex)")
+                // Fallback: use fetch URL directly (already has audioStreamIndex and playSessionId)
+                audioUrl = trackFetchUrl
                 NSLog("[HLSGenerator] 🎵 Track \(index + 1) audio URL (fallback): \(audioUrl)")
             }
 
@@ -130,12 +134,13 @@ class HLSManifestGenerator {
 
             combined += "\n"
 
-            // Use video URI from parsed manifest
+            // Use video URI from parsed manifest with first fetch URL as base
+            let firstFetchUrl = fetchUrls.first ?? ""
             if let videoUri = firstManifest.videoUri {
-                combined += "\(makeAbsoluteUrl(baseUrl: baseUrl, relativeUrl: videoUri))\n"
+                combined += "\(makeAbsoluteUrl(baseUrl: firstFetchUrl, relativeUrl: videoUri))\n"
             } else {
-                // Fallback to base URL
-                combined += "\(baseUrl)\n"
+                // Fallback to first fetch URL
+                combined += "\(firstFetchUrl)\n"
             }
         }
 
