@@ -37,9 +37,22 @@ const DEFAULT_QUALITY = 0; // 480p
 
 // Standardized timeout constants
 const API_TIMEOUTS = {
+  SHORT: 5000, // 5s - For very quick operations
   QUICK: 10000, // 10s - For simple queries, listing items
   NORMAL: 15000, // 15s - For fetches with moderate data
   EXTENDED: 30000, // 30s - For large data fetches (library items)
+} as const;
+
+// Transcoding quality constants
+const TRANSCODING = {
+  AUDIO_BITRATE: 192000, // 192kbps AAC
+  VIDEO_LEVEL: 41, // H.264 level 4.1
+  MAX_AUDIO_CHANNELS: 2, // Stereo output
+} as const;
+
+// Jellyfin time constants
+const JELLYFIN_TIME = {
+  TICKS_PER_SECOND: 10000000, // Jellyfin uses 100-nanosecond intervals (ticks)
 } as const;
 
 // Cached config for synchronous URL functions
@@ -401,7 +414,7 @@ export async function connectToDemoServer(clearCaches: boolean = true): Promise<
         async () => {
           const url = `${demoServerUrl}/Users/${userId}/Views`;
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.SHORT);
 
           try {
             const response = await fetch(url, {
@@ -631,20 +644,20 @@ export async function fetchLibraryName(): Promise<string> {
             return "LIBRARY";
           }
 
-          const data = await response.json();
+          const data = (await response.json()) as JellyfinFolderResponse;
 
           // Debug: log the response
           logger.debug("Jellyfin Views response", {
             service: "JellyfinAPI",
             itemsCount: data.Items?.length || 0,
-            items: data.Items?.map((item: any) => ({
+            items: data.Items?.map((item) => ({
               name: item.Name,
               collectionType: item.CollectionType,
             })),
           });
 
           // Find first Movie or mixed collection, or just any library with content
-          let library = data.Items?.find((item: any) => item.CollectionType === "movies" || item.CollectionType === "mixed");
+          let library = data.Items?.find((item) => item.CollectionType === "movies" || item.CollectionType === "mixed");
 
           // If no movie/mixed library, just use the first one
           if (!library && data.Items && data.Items.length > 0) {
@@ -1335,11 +1348,11 @@ export async function getTranscodingStreamUrl(
     `&VideoCodec=h264` +
     `&AudioCodec=aac` +
     `&VideoBitrate=${quality.bitrate}` +
-    `&AudioBitrate=192000` + // 192kbps AAC for quality
+    `&AudioBitrate=${TRANSCODING.AUDIO_BITRATE}` + // 192kbps AAC for quality
     `&MaxWidth=${quality.width}` +
     `&MaxHeight=${quality.height}` +
-    `&VideoLevel=41` + // H.264 level 4.1 (was 30)
-    `&TranscodingMaxAudioChannels=2` + // Stereo output
+    `&VideoLevel=${TRANSCODING.VIDEO_LEVEL}` + // H.264 level 4.1 (was 30)
+    `&TranscodingMaxAudioChannels=${TRANSCODING.MAX_AUDIO_CHANNELS}` + // Stereo output
     `&SegmentContainer=ts` +
     `&MinSegments=1` +
     `&SegmentLength=10` + // 10 second segments (was 8)
@@ -1456,7 +1469,7 @@ export function hasPoster(item: JellyfinVideoItem): boolean {
  * @returns Formatted string like "1h 23m" or "45m"
  */
 export function formatDuration(ticks: number): string {
-  const totalSeconds = ticks / 10000000;
+  const totalSeconds = ticks / JELLYFIN_TIME.TICKS_PER_SECOND;
   const totalMinutes = Math.floor(totalSeconds / 60);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

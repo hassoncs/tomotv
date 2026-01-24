@@ -129,13 +129,17 @@ export type VideoPlayerState =
   | { type: "PLAYING"; mode: PlaybackMode }
   | { type: "ERROR"; error: string; canRetryWithTranscode: boolean };
 
+export interface PlaybackError {
+  message: string;
+}
+
 export type VideoPlayerAction =
   | { type: "FETCH_METADATA" }
   | { type: "METADATA_FETCHED"; details: JellyfinVideoItem; mode: PlaybackMode; hasSubtitles: boolean }
   | { type: "STREAM_CREATED"; streamUrl: string }
   | { type: "PLAYER_READY" }
   | { type: "PLAYER_PLAYING" }
-  | { type: "PLAYER_ERROR"; error: any; mode: PlaybackMode; hasTriedTranscode: boolean }
+  | { type: "PLAYER_ERROR"; error: PlaybackError; mode: PlaybackMode; hasTriedTranscode: boolean }
   | { type: "RETRY" }
   | { type: "RETRY_WITH_TRANSCODE" };
 
@@ -759,7 +763,6 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     // Extract error message from react-native-video error object
     const originalMessage =
       error.error?.localizedDescription ||
-      error.error?.message ||
       error.error?.errorString ||
       String(error.error || "");
 
