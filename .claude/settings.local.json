@@ -45,7 +45,8 @@
       "WebFetch(domain:docs.thewidlarzgroup.com)",
       "WebFetch(domain:datatracker.ietf.org)",
       "WebFetch(domain:www.wowza.com)",
-      "WebFetch(domain:bitmovin.com)"
+      "WebFetch(domain:bitmovin.com)",
+      "Bash(xcodebuild -list:*)"
     ],
     "deny": [],
     "ask": []

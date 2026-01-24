@@ -1,10 +1,10 @@
 import { useEffect, useState, useMemo, useRef, useCallback, useReducer } from "react";
 import type { VideoRef, OnLoadData, OnProgressData, OnVideoErrorData, AudioTrack, TextTrack } from "react-native-video";
 import { InteractionManager } from "react-native";
-import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getAudioTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig, getConfig } from "@/services/jellyfinApi";
+import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig, getConfig } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
-import { prepareMultiAudioPlayback, shouldUseMultiAudio, isMultiAudioAvailable } from "@/services/multiAudioLoader";
+import { prepareMultiAudioPlayback, shouldUseMultiAudio, isMultiAudioAvailable, getAudioTracks } from "@/services/multiAudioLoader";
 
 /**
  * Error types for video playback classification
@@ -522,13 +522,13 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
           // Build mapping from react-native-video track index to Jellyfin stream index
           // This is needed because react-native-video uses sequential indices (0, 1, 2...)
           // but Jellyfin uses actual stream indices (1, 8, etc.)
+          // CRITICAL: Use the SAME sorted array that was sent to Swift via prepareMultiAudioPlayback()
           if (details.MediaStreams && audioTracks.length > 0) {
-            const audioStreams = details.MediaStreams.filter(s => s.Type === "Audio" && s.Index !== undefined);
-            audioTrackMappingRef.current = audioStreams.map(stream => stream.Index!);
+            audioTrackMappingRef.current = audioTracks.map(track => track.Index);
             logger.debug("Built audio track mapping", {
               service: "useVideoPlayback",
               mapping: audioTrackMappingRef.current,
-              tracks: audioStreams.map(s => `${s.Language || "und"} (stream ${s.Index})`).join(", "),
+              tracks: audioTracks.map(t => `${t.Language || "und"} (stream ${t.Index})`).join(", "),
             });
           }
 
@@ -538,7 +538,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
               subtitleCount: subtitles.length,
               audioTrackCount: audioTracks.length,
               subtitleLanguages: subtitles.map(s => s.language).join(", "),
-              audioLanguages: audioTracks.map(a => a.language).join(", "),
+              audioLanguages: audioTracks.map(a => a.Language).join(", "),
             });
           }
         }

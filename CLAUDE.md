@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-**Last Updated:** January 22, 2026
+**Last Updated:** January 24, 2026
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -41,6 +41,32 @@ npm run prebuild:tv    # Prebuild with Apple TV support (EXPO_TV=1)
 ```
 
 > Builds are produced locally via `expo run:*`; there is no remote deploy script.
+
+### Native Code Development
+
+**CRITICAL: Always edit files in `native/` folder, NOT `ios/` or `android/` folders!**
+
+The `native/` folder contains the source files for native Swift/Kotlin modules:
+
+```
+native/
+└── ios/
+    └── MultiAudioResourceLoader/
+        ├── HLSManifestGenerator.swift     # ← Edit this
+        ├── HLSManifestParser.swift
+        ├── MultiAudioResourceLoader.swift
+        └── RNVideoPlugin.swift
+```
+
+**Why:**
+- `npm run prebuild:tv` **deletes and regenerates** the `ios/` and `android/` folders
+- Native source files are copied from `native/ios/` → `ios/` during prebuild
+- Any edits to `ios/` directly will be **lost** on next prebuild
+
+**Workflow:**
+1. Edit files in `native/ios/MultiAudioResourceLoader/`
+2. Run `npm run prebuild:tv` to copy changes to `ios/`
+3. Run `npm run ios` to rebuild and test
 
 ### Development Setup
 

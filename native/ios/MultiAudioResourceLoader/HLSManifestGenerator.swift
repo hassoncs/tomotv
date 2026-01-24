@@ -154,9 +154,27 @@ class HLSManifestGenerator {
             // Use video URI from default track's manifest and fetch URL
             let defaultFetchUrl = fetchUrls[safe: defaultTrackIndex] ?? fetchUrls.first ?? ""
             if let videoUri = defaultManifest.videoUri {
-                combined += "\(makeAbsoluteUrl(baseUrl: defaultFetchUrl, relativeUrl: videoUri))\n"
+                // Extract ONLY the path from videoUri (e.g., "main.m3u8")
+                // Don't merge query params - preserve fetchUrl's audioStreamIndex
+                let videoPath = videoUri.components(separatedBy: "?").first ?? videoUri
+
+                if var components = URLComponents(string: defaultFetchUrl) {
+                    // Replace last path component with video path
+                    var pathParts = components.path.components(separatedBy: "/")
+                    if !pathParts.isEmpty {
+                        pathParts[pathParts.count - 1] = videoPath
+                        components.path = pathParts.joined(separator: "/")
+                    }
+                    let videoUrl = components.url?.absoluteString ?? defaultFetchUrl
+                    NSLog("[HLSGenerator] 📹 Video stream URL: \(videoUrl)")
+                    combined += "\(videoUrl)\n"
+                } else {
+                    NSLog("[HLSGenerator] 📹 Video stream URL (fallback): \(defaultFetchUrl)")
+                    combined += "\(defaultFetchUrl)\n"
+                }
             } else {
                 // Fallback to default track's fetch URL
+                NSLog("[HLSGenerator] 📹 Video stream URL (no videoUri): \(defaultFetchUrl)")
                 combined += "\(defaultFetchUrl)\n"
             }
         }

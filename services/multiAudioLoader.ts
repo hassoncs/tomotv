@@ -118,6 +118,49 @@ export function isMultiAudioAvailable(): boolean {
 }
 
 /**
+ * Find preferred audio track based on language priority (like VLC/Jellyfin web)
+ * Priority: English > non-UND > first track
+ */
+function findPreferredAudioTrack(tracks: AudioTrackInfo[]): AudioTrackInfo | null {
+  if (tracks.length === 0) return null;
+  if (tracks.length === 1) return tracks[0];
+
+  // Priority 1: English track (eng, en, en-US, etc.)
+  const englishTrack = tracks.find(t =>
+    t.Language.toLowerCase().startsWith("en")
+  );
+  if (englishTrack) {
+    logger.info("Preferred audio track: English", {
+      service: "MultiAudioLoader",
+      index: englishTrack.Index,
+      language: englishTrack.Language,
+    });
+    return englishTrack;
+  }
+
+  // Priority 2: Any non-UND track
+  const nonUndTrack = tracks.find(t =>
+    t.Language.toLowerCase() !== "und"
+  );
+  if (nonUndTrack) {
+    logger.info("Preferred audio track: non-UND", {
+      service: "MultiAudioLoader",
+      index: nonUndTrack.Index,
+      language: nonUndTrack.Language,
+    });
+    return nonUndTrack;
+  }
+
+  // Priority 3: First track (fallback)
+  logger.info("Preferred audio track: fallback to first", {
+    service: "MultiAudioLoader",
+    index: tracks[0].Index,
+    language: tracks[0].Language,
+  });
+  return tracks[0];
+}
+
+/**
  * Extract audio track information from video metadata
  */
 export function getAudioTracks(videoItem: JellyfinVideoItem): AudioTrackInfo[] {
@@ -154,8 +197,8 @@ export function getAudioTracks(videoItem: JellyfinVideoItem): AudioTrackInfo[] {
     totalTracks: audioStreams.length,
   });
 
-  // Just pass through what Jellyfin gives us - no manipulation
-  return audioStreams.map((stream: JellyfinMediaStream) => {
+  // Map audio streams to track info
+  const tracks = audioStreams.map((stream: JellyfinMediaStream) => {
     const trackInfo = {
       Index: stream.Index ?? 0,
       Language: stream.Language || "und",
@@ -164,7 +207,7 @@ export function getAudioTracks(videoItem: JellyfinVideoItem): AudioTrackInfo[] {
       DisplayTitle:
         stream.DisplayTitle ||
         `${stream.Language || "Unknown"} (${stream.Codec || "Unknown"})`,
-      IsDefault: stream.IsDefault ?? false,  // Use Jellyfin's value directly
+      IsDefault: stream.IsDefault ?? false,
     };
 
     logger.info("Audio track from Jellyfin", {
@@ -175,6 +218,34 @@ export function getAudioTracks(videoItem: JellyfinVideoItem): AudioTrackInfo[] {
     });
 
     return trackInfo;
+  });
+
+  // Override IsDefault flag with language preference (like VLC/Jellyfin web)
+  // This matches user expectations: English > non-UND > Jellyfin preference
+  if (tracks.length > 1) {
+    const preferredTrack = findPreferredAudioTrack(tracks);
+
+    if (preferredTrack) {
+      // Clear all IsDefault flags
+      tracks.forEach(t => t.IsDefault = false);
+
+      // Set preferred track as default
+      preferredTrack.IsDefault = true;
+
+      logger.info("Overriding IsDefault with language preference", {
+        service: "MultiAudioLoader",
+        originalDefault: audioStreams.find(s => s.IsDefault)?.Language || "none",
+        newDefault: preferredTrack.Language,
+        preferredIndex: preferredTrack.Index,
+      });
+    }
+  }
+
+  // Sort by IsDefault flag (now reflects language preference)
+  return tracks.sort((a, b) => {
+    if (a.IsDefault && !b.IsDefault) return -1;
+    if (!a.IsDefault && b.IsDefault) return 1;
+    return 0;
   });
 }
 
