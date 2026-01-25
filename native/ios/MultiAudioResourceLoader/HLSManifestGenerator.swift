@@ -69,19 +69,37 @@ class HLSManifestGenerator {
             let displayTitle = trackInfo["DisplayTitle"] as? String ?? "Audio \(index + 1)"
             let codec = trackInfo["Codec"] as? String
             let channels = trackInfo["Channels"] as? Int
-
-            // Format display name with codec and channel info
-            var name = displayTitle
-            if let codec = codec, let channels = channels {
-                let channelStr = formatChannels(channels)
-                name = "\(language.uppercased()) (\(codec.uppercased()) \(channelStr))"
-            } else if let codec = codec {
-                name = "\(language.uppercased()) (\(codec.uppercased()))"
-            }
-
-            // Use Jellyfin's IsDefault flag to determine default track
-            // This respects the user's server-side preference instead of just using index 0
             let isDefault = trackInfo["IsDefault"] as? Bool ?? false
+
+            // Use Jellyfin's DisplayTitle (already includes codec, channels, and "Default" suffix)
+            // Only use custom format as fallback if DisplayTitle is missing or "Unknown"
+            var name = displayTitle
+            if displayTitle.hasPrefix("Audio ") || displayTitle == "Audio \(index + 1)" ||
+               displayTitle.hasPrefix("Unknown") {
+                // Fallback: DisplayTitle is missing/invalid, generate from metadata
+                if let codec = codec, let channels = channels {
+                    let channelStr = formatChannels(channels)
+                    if isDefault {
+                        // Default track: "AAC - Stereo - Default"
+                        name = "\(codec.uppercased()) - \(channelStr) - Default"
+                    } else if language != "und" && !language.isEmpty {
+                        // Non-default with known language: "ENGLISH - AAC - Stereo"
+                        name = "\(language.uppercased()) - \(codec.uppercased()) - \(channelStr)"
+                    } else {
+                        // Non-default without language: "AAC - Stereo"
+                        name = "\(codec.uppercased()) - \(channelStr)"
+                    }
+                } else if let codec = codec {
+                    // Only codec available
+                    if isDefault {
+                        name = "\(codec.uppercased()) - Default"
+                    } else if language != "und" && !language.isEmpty {
+                        name = "\(language.uppercased()) - \(codec.uppercased())"
+                    } else {
+                        name = codec.uppercased()
+                    }
+                }
+            }
 
             // Get actual Jellyfin stream index from track metadata
             guard let streamIndex = trackInfo["Index"] as? Int else {
@@ -108,7 +126,10 @@ class HLSManifestGenerator {
                 NSLog("[HLSGenerator] 🎵 Track \(index + 1) audio URL (fallback): \(audioUrl)")
             }
 
-            combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(language)\""
+            // Build audio media tag
+            // Use "en" for undefined language - iOS shows "Unknown language" for "und"
+            let languageCode = (language == "und" || language.isEmpty) ? "en" : language
+            combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(languageCode)\""
 
             if isDefault {
                 // Explicitly mark this as the default track
