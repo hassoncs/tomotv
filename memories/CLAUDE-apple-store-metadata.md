@@ -1,6 +1,6 @@
 # App Store Metadata for TomoTV
 
-**Last Updated:** January 21, 2026
+**Last Updated:** January 24, 2026
 
 ## Quick Reference
 **Category:** Deployment
@@ -84,6 +84,22 @@ Keywords Strategy:
 ---
 
 ## What's New (4,000 characters max)
+
+### Version 1.2.0
+**Multi-Audio & Subtitle Support**
+
+**New Features:**
+• Seamless multi-audio track switching - Change audio tracks during playback without video restart (ONLY Jellyfin client with this feature!)
+• Advanced subtitle support - Both external (.srt) and embedded subtitle tracks with native tvOS subtitle picker
+• Fixed audio track display bug - Track names now show correctly on Apple TV instead of "Unknown language"
+
+**Technical Improvements:**
+• Enhanced test coverage (51.1% overall, 270 tests passing)
+• Improved type safety and code quality
+• Removed dead code for better performance
+• RFC 8216 compliant HLS manifest generation
+
+---
 
 ### Version 1.1.1
 **Stability & Polish**
@@ -375,8 +391,8 @@ Notes:
 
 ## Build Number & Version Notes
 
-**Version:** 1.1.0 (matches app.json)
-**Build Number:** 6 (increment with each submission)
+**Version:** 1.2.0 (matches app.json)
+**Build Number:** 1 (auto-increments on Xcode Archive)
 
 **Version Naming Convention Going Forward:**
 - 1.0.x - Bug fixes, minor tweaks
