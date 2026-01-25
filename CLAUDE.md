@@ -1,12 +1,300 @@
 # CLAUDE.md
 
-**Last Updated:** January 22, 2026
+**Last Updated:** January 24, 2026
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
 **TomoTV** is a cross-platform video streaming application that connects to a Jellyfin media server. Built with React Native TVOS and Expo, it supports iOS, Android, Apple TV, and web platforms. The app intelligently handles video codecs, automatically transcoding unsupported formats while direct-playing compatible ones.
+
+## WORKFLOW & DECISION-MAKING RULES
+
+⚠️ **CRITICAL:** Follow these rules ALWAYS to prevent wasted time and going in circles.
+
+### Communication Format
+
+**Visual Padding:**
+- Add 10 blank lines BEFORE my response text
+- Add 10 blank lines AFTER my response text
+- Provides visual breathing room in terminal output
+
+### First Message Protocol
+
+**When you give me a new task, I will ALWAYS:**
+
+1. **Understand the task**
+   - Restate it in my own words
+   - Identify affected files/systems
+   - Ask clarifying questions if ambiguous
+
+2. **Check prerequisites**
+   - Do I need to read files first?
+   - Is this a codebase exploration task? (use Task tool)
+   - Are there related CLAUDE-*.md files to load?
+
+3. **Present my approach**
+   - "Should I: [1, 2, 3]?"
+   - Platform context if relevant (iOS/tvOS native)
+   - List files I'll read/change
+   - **ALWAYS ask for confirmation** (don't assume)
+
+4. **Wait for confirmation, then execute**
+
+### Plan Presentation Template
+
+**When presenting implementation plans:**
+
+**Format:**
+- Maximum 2 paragraphs of explanation
+- Use bulleted lists for steps
+- Use checkboxes for action items
+- NO code snippets (unless absolutely critical to understanding)
+- NO diffs or large code blocks
+
+**Example Good Plan:**
+
+```
+I'll implement the video thumbnail caching system using expo-file-system.
+
+**Approach:**
+- Create `ThumbnailCache` service in `services/` folder
+- Add 3 methods: get(), set(), clear()
+- Hook into `VideoGridItem` to check cache before fetching
+- Add cache expiration (7 days TTL)
+
+**Files to modify:**
+- [ ] Create `services/thumbnailCache.ts`
+- [ ] Update `components/VideoGridItem.tsx` (add cache check)
+- [ ] Update `services/jellyfinApi.ts` (cache integration)
+
+Should I proceed with this approach?
+```
+
+**Example Bad Plan:**
+- ❌ Showing full function implementations
+- ❌ Showing before/after diffs
+- ❌ Multi-page code snippets
+- ❌ "Here's the code I'll add: [50 lines]"
+
+### Efficiency First
+
+**Before starting ANY task:**
+
+1. **Read files first** - Use Read tool to understand current implementation
+2. **Use Task tool for exploration** - Don't grep/glob manually for codebase questions
+3. **Batch tool calls** - Multiple independent reads/searches in single message
+4. **Ask once, implement once** - Get full requirements before coding
+
+**When NOT to ask:**
+- Obvious bugs with clear fixes
+- User gave explicit, detailed instructions
+- Single-file changes with no architectural impact
+
+### Tool Selection Matrix
+
+| Scenario | Tool | Why |
+|----------|------|-----|
+| "Where is X implemented?" | Task (Explore) | **ALWAYS use this - be aggressive** |
+| "Read this specific file" | Read | Direct, no overhead |
+| "Find all uses of function Y" | Grep | Exact matches, fast |
+| "Understand how feature Z works" | Task (Explore) | **ALWAYS use this - be aggressive** |
+| "How does the codebase work?" | Task (Explore) | **ALWAYS use this - be aggressive** |
+| Need to edit multiple files | Edit (parallel) | Batch edits in one message |
+
+**Exploration Policy:**
+- **BE AGGRESSIVE** with Task (Explore) tool for codebase questions
+- Don't ask permission - just use it
+- Only use manual Grep/Glob when you need exact file paths
+- Task tool is faster and more comprehensive
+
+### Platform Context
+
+- **Primary Platform:** iOS/tvOS (React Native TVOS, Swift, AVPlayer, HLS)
+- **State platform upfront** in every technical discussion
+- **Remember:** Native behavior ≠ web behavior
+- AVPlayer is the native video player (not web player)
+- HLS manifest rules follow Apple's implementation (not generic HLS)
+- Swift modules require rebuild via `npm run prebuild:tv`
+
+### Research-First Protocol
+
+1. ✅ **Read official documentation** (Apple HLS Authoring Spec, RFC 8216, library docs)
+2. ✅ **Inspect actual source code files** before proposing changes
+3. ✅ **Search for real-world examples** and known issues
+4. ❌ **NEVER propose solutions based on assumptions alone**
+
+**Example:**
+- Before modifying HLS manifest generation, read Apple's HLS Authoring Specification
+- Before changing Swift code, inspect the current implementation in `native/ios/`
+- Before assuming iOS behavior, verify with official Apple documentation
+
+### Decision Confirmation Protocol
+
+- **ASK before committing** to technical approaches
+- **Present options with evidence:** spec quotes, code snippets, research findings
+- **User confirms direction** → THEN implement
+- Don't iterate blindly on failed approaches
+
+**Decision Thresholds (Ask vs Proceed):**
+
+**MUST ASK:**
+- Changes affecting >3 files
+- Breaking changes to public APIs
+- New dependencies (npm packages)
+- Platform-specific behavior uncertainty
+- Multiple valid approaches with tradeoffs
+
+**CAN PROCEED:**
+- Single-file bug fixes
+- Adding tests for existing code
+- Refactoring with identical behavior
+- Documentation updates
+- Obvious type errors
+
+### Anti-Loop Protection
+
+- **Track failed approaches** internally (mental checklist)
+- **NEVER retry the same solution twice** without new evidence
+- **After 2-3 failed attempts:** STOP, ask user for guidance
+- **If context seems lost:** read relevant CLAUDE.md sections to regain context
+
+**Red Flags:**
+- "Let me try X again" (if X already failed)
+- "Maybe if we adjust Y slightly" (without understanding why Y failed)
+- Proposing solutions without reading specs/code
+
+### Context Recovery Protocol
+
+**If I seem to have lost context (repeating questions, forgetting decisions):**
+
+1. **STOP immediately**
+2. **Ask:** "What was our last confirmed decision?"
+3. **Re-read relevant CLAUDE-*.md files**
+4. **Summarize understanding** before proceeding
+
+**Signs of lost context:**
+- Asking about already-discussed topics
+- Proposing solutions we already rejected
+- Forgetting platform constraints (iOS/tvOS)
+- Repeating the same questions
+
+### Code Inspection Requirements
+
+- **Read implementation files BEFORE editing**
+- **Understand current behavior first** (trace execution paths)
+- **Test assumptions with actual code**, not theories
+- Trace execution through multiple files if needed (e.g., TypeScript → Swift → AVPlayer)
+
+**Full File Reading Policy:**
+- **ALWAYS read FULL files** - never sample sections
+- If file is too large for single read:
+  - Split into minimum readable chunks (use offset/limit parameters)
+  - Read ALL chunks sequentially to see complete file
+- NO partial file reads unless you've read the full file first
+- Be aware of ENTIRE file contents before proposing changes
+
+**Workflow:**
+1. Identify files involved in the feature
+2. Read actual implementation code (FULL files)
+3. Understand data flow and state management
+4. Propose changes based on code reality
+
+### Code Quality Standards
+
+**Always:**
+- Type safety (no `any` types without explicit justification)
+- Error handling (try-catch around async operations)
+- Cleanup (useEffect cleanup, unsubscribe functions)
+- Comments only where logic isn't self-evident
+
+**Never:**
+- Over-engineering (don't add features not requested)
+- Premature abstraction (3 uses before extracting helper)
+- Backwards compatibility hacks (delete unused code completely)
+- Scale animations on grid items (performance rule)
+
+### Task Completion Checklist
+
+**Before marking task complete:**
+- [ ] Code works (tested or high confidence)
+- [ ] No console errors/warnings introduced
+- [ ] Types compile (no TypeScript errors)
+- [ ] Follows existing patterns (read similar code first)
+- [ ] User's EXACT request satisfied (not what I think they need)
+
+**Don't add unless requested:**
+- Tests (unless fixing a bug)
+- Comments (unless logic is complex)
+- Extra features (scope creep)
+
+### Memory Bank Usage
+
+**I automatically load these files when you mention:**
+
+**Implementation Details:**
+- "API" / "jellyfinApi" / "functions" → `memories/CLAUDE-api-reference.md`
+- "state" / "manager" / "context" → `memories/CLAUDE-state-management.md`
+- "audio tracks" / "multi-audio" → `memories/CLAUDE-multi-audio.md`
+- "config" / "credentials" / "SecureStore" → `memories/CLAUDE-configuration.md`
+- "pattern" / "how do I" / "example" → `memories/CLAUDE-patterns.md`
+- "external" / "expo-tvos-search" / "dependencies" → `memories/CLAUDE-external-dependencies.md`
+- "lessons" / "bug" / "debugging" → `memories/CLAUDE-lessons-learned.md`
+
+**Testing & Components:**
+- "testing" / "tests" / "coverage" / "jest" → `memories/CLAUDE-testing.md`
+- "components" / "UI" / "design system" → `memories/CLAUDE-components.md`
+
+**Security & Performance:**
+- "security" / "audit" / "vulnerability" → `memories/CLAUDE-security.md`
+- "performance" / "optimization" / "slow" → `memories/CLAUDE-app-performance.md`
+
+**Development & Deployment:**
+- "setup" / "install" / "development" → `memories/CLAUDE-development.md`
+- "icons" / "tvOS icons" / "top shelf" → `memories/CLAUDE-tvos-icons.md`
+- "App Store" / "metadata" / "screenshots" → `memories/CLAUDE-apple-store-metadata.md`
+- "submission" / "checklist" / "release" → `memories/CLAUDE-apple-store-checklist.md`
+
+**Other:**
+- "image" / "vision" / "screenshot analysis" → `memories/CLAUDE-image-analysis.md`
+- "Jellyfin API" / "server API" → Official API docs at https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json
+
+**You DON'T need to tell me to read these files.**
+
+### Category-Based Loading
+
+**When you need all files in a category:**
+
+**Implementation (8 files):**
+- "implementation files" / "all implementation docs" → Load: api-reference, state-management, multi-audio, configuration, patterns, external-dependencies, lessons-learned, components
+
+**Testing (1 file):**
+- "testing files" / "test documentation" → Load: testing
+
+**Security (1 file):**
+- "security files" / "security docs" → Load: security
+
+**Performance (1 file):**
+- "performance files" / "performance docs" → Load: app-performance
+
+**Deployment (4 files):**
+- "deployment files" / "deployment docs" / "App Store docs" → Load: development, tvos-icons, apple-store-metadata, apple-store-checklist
+
+**Complete Context:**
+- "all memory files" / "complete documentation" → Load all 16 memory bank files
+
+### Lessons Learned
+
+See `memories/CLAUDE-lessons-learned.md` for detailed case studies of bugs and issues encountered during development.
+
+**Auto-Append Policy:**
+- After resolving a significant bug/issue, I will **automatically append** a new lesson to `memories/CLAUDE-lessons-learned.md`
+- Uses the template format in that file
+- Captures: problem, root cause, solution, what went wrong, what worked
+- No need to ask permission - just document it
+
+**Most Recent:**
+- **Audio Track Label Bug (January 2026):** iOS prioritizes LANGUAGE over NAME in HLS manifests. Solution: Omit LANGUAGE for "und" tracks.
 
 ## Development Commands
 
@@ -42,6 +330,32 @@ npm run prebuild:tv    # Prebuild with Apple TV support (EXPO_TV=1)
 
 > Builds are produced locally via `expo run:*`; there is no remote deploy script.
 
+### Native Code Development
+
+**CRITICAL: Always edit files in `native/` folder, NOT `ios/` or `android/` folders!**
+
+The `native/` folder contains the source files for native Swift/Kotlin modules:
+
+```
+native/
+└── ios/
+    └── MultiAudioResourceLoader/
+        ├── HLSManifestGenerator.swift     # ← Edit this
+        ├── HLSManifestParser.swift
+        ├── MultiAudioResourceLoader.swift
+        └── RNVideoPlugin.swift
+```
+
+**Why:**
+- `npm run prebuild:tv` **deletes and regenerates** the `ios/` and `android/` folders
+- Native source files are copied from `native/ios/` → `ios/` during prebuild
+- Any edits to `ios/` directly will be **lost** on next prebuild
+
+**Workflow:**
+1. Edit files in `native/ios/MultiAudioResourceLoader/`
+2. Run `npm run prebuild:tv` to copy changes to `ios/`
+3. Run `npm run ios` to rebuild and test
+
 ### Development Setup
 
 1. Copy `.env.example` to `.env.local`
@@ -57,57 +371,9 @@ npm run prebuild:tv    # Prebuild with Apple TV support (EXPO_TV=1)
 - **React Native Reanimated** 4.1.0 - GPU-accelerated animations
 - **TypeScript** 5.9.2 - Full type safety
 - **Jest** 29.7.0 - Testing framework
-- **expo-tvos-search** - Native tvOS search UI (see External Repositories below)
+- **expo-tvos-search** 1.3.1 - Native tvOS search UI (separate repo)
 
-### External Repositories
-
-#### expo-tvos-search
-
-The native tvOS search functionality is maintained in a **separate repository**:
-
-- **GitHub:** [github.com/keiver/expo-tvos-search](https://github.com/keiver/expo-tvos-search)
-- **npm:** `expo-tvos-search@^1.3.1`
-- **Package reference:** `"expo-tvos-search": "^1.3.1"` (npm registry)
-- **Demo app:** Local clone at `~/@keiver/expo-tvos-search-demo`
-
-This package provides a native SwiftUI search interface for tvOS using the `.searchable` modifier.
-
-**Features:**
-- Native tvOS keyboard integration
-- Grid display with poster images (configurable columns)
-- Marquee text scrolling for long titles
-- Focus management with SwiftUI focus engine
-- Comprehensive input validation (500-char limit, URL scheme checking)
-- Customizable card dimensions (default 280×420, 2:3 aspect ratio)
-- Image content modes: fill, fit, contain
-- Error and validation warning events
-
-**Current Integration:**
-- Version: 1.3.1 (npm registry)
-- Last updated: January 21, 2026
-- Status: Stable, production-ready
-- No local modifications needed
-
-**Usage in TomoTV:**
-```typescript
-import { TvosSearchView, isNativeSearchAvailable } from 'expo-tvos-search';
-
-if (isNativeSearchAvailable()) {
-  // Use native search on tvOS
-} else {
-  // Fallback to React Native TextInput
-}
-```
-
-**Modifying Search UI:**
-To contribute to the search package:
-1. Clone: `git clone https://github.com/keiver/expo-tvos-search.git`
-2. Make changes to `ios/ExpoTvosSearchView.swift`
-3. Submit PR to repository
-4. After merge, update TomoTV: `npm install expo-tvos-search@latest`
-5. Rebuild: `npm run prebuild:tv && npm run ios`
-
-**Note:** The package at `~/@keiver/expo-tvos-search` is for reference only. TomoTV uses the npm registry version, not a local file dependency.
+**External Dependencies:** See `memories/CLAUDE-external-dependencies.md` for details on `expo-tvos-search` and other external packages.
 
 ### Folder Structure
 
@@ -148,11 +414,12 @@ IDLE → FETCHING_METADATA → CREATING_STREAM → INITIALIZING_PLAYER → READY
 ```
 
 Key features:
-
 - Codec detection (H.264, HEVC supported natively; others transcode)
 - Automatic retry with transcoding on failure
 - Subtitle track management (burned-in or separate)
 - Thread-safe with proper cleanup
+
+**Details:** See `memories/CLAUDE-patterns.md` for state flow diagram and implementation details.
 
 ### Error Classification System
 
@@ -173,93 +440,11 @@ Key features:
 - Maximum 1 auto-retry per video session
 - Prevents infinite retry loops
 
-**Error Pattern Matching:**
-Errors are classified by matching against known patterns:
-- Metadata: "fetch", "metadata", "details"
-- Stream URL: "stream URL", "generate", "transcod"
-- Playback: Native player errors, codec issues
-- Network: "timeout", "network", "connection"
+#### 3. Jellyfin API Integration
 
-**User-Facing Messages:**
-All errors show user-friendly messages without technical details or credentials.
+Single service for all Jellyfin communication with retry logic, timeouts, and configuration caching.
 
-#### 3. Jellyfin API Integration (`services/jellyfinApi.ts`)
-
-Single service for all Jellyfin communication with:
-
-- Retry logic with exponential backoff (3 attempts max)
-- Request timeouts (10-30 seconds)
-- Configuration caching for synchronous URL generation
-- Development fallback to `.env.local` credentials
-- Quality preset system with adaptive bitrates
-
-**Video Quality Presets:**
-
-| Preset | Resolution | Bitrate | Use Case |
-|--------|-----------|---------|----------|
-| 480p | 854×480 | 1.5 Mbps | Slow connections, data saving |
-| 540p | 960×540 | 2.5 Mbps | Balanced quality |
-| 720p | 1280×720 | 4 Mbps | HD quality, good bandwidth |
-| 1080p | 1920×1080 | 8 Mbps | Full HD, fast connections |
-
-**Note:** Bitrates are optimized for quality (increased from original 1/1.5/3/5 Mbps values).
-
-### API Functions Reference
-
-#### Configuration Management
-
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `refreshConfig()` | Reload from SecureStore (async) | `Promise<void>` |
-| `waitForConfig()` | Wait for initialization | `Promise<void>` |
-| `isConfigReady()` | Check if config initialized | `boolean` |
-
-#### Server Connection
-
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `connectToDemoServer(clearCaches?)` | Connect to Jellyfin demo server | `Promise<void>` |
-| `disconnectFromDemo()` | Disconnect and clear credentials | `Promise<void>` |
-| `isDemoMode()` | Check if using demo server | `boolean` |
-| `syncDevCredentials()` | Sync .env.local to SecureStore | `Promise<void>` |
-
-#### Library & Content
-
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `fetchLibraryVideos(startIndex, limit)` | Get paginated videos | `Promise<{items, total}>` |
-| `fetchFolderContents(folderId, startIndex, limit)` | Get folder items | `Promise<{items, total}>` |
-| `fetchPlaylistContents(playlistId, startIndex, limit)` | Get playlist items | `Promise<{items, total}>` |
-| `fetchVideoDetails(videoId)` | Get video metadata | `Promise<VideoMetadata>` |
-| `fetchUserViews()` | Get root library views | `Promise<JellyfinItem[]>` |
-
-#### Search
-
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `searchVideos(query, startIndex, limit)` | Search with year filtering | `Promise<{items, total}>` |
-
-#### Streaming & URLs
-
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `getVideoStreamUrl(itemId)` | Direct download URL | `string` |
-| `getTranscodingStreamUrl(itemId, videoItem?)` | HLS transcode URL (async) | `Promise<string>` |
-| `getPosterUrl(itemId, maxHeight?)` | Poster image URL | `string` |
-| `getFolderThumbnailUrl(itemId, maxHeight?)` | Folder/collection thumbnail | `string` |
-| `getSubtitleUrl(itemId, streamIndex, format?)` | Subtitle stream URL | `string` |
-
-#### Utilities
-
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `isCodecSupported(codec)` | Check native codec support | `boolean` |
-| `needsTranscoding(videoItem)` | Determine if transcode needed | `boolean` |
-| `isFolder(item)` | Check if item is navigable | `boolean` |
-| `isAudioOnly(videoItem)` | Detect audio-only media | `boolean` |
-| `hasPoster(item)` | Check if item has poster | `boolean` |
-| `formatDuration(ticks)` | Ticks to human-readable | `string` |
-| `getSubtitleTracks(videoItem)` | Get subtitle metadata | `SubtitleTrack[]` |
+**Details:** See `memories/CLAUDE-api-reference.md` for complete function reference.
 
 #### 4. Codec & Streaming Strategy
 
@@ -267,12 +452,11 @@ Single service for all Jellyfin communication with:
 - **Transcoding:** All other codecs (MPEG-4, VP8, VP9, AV1, VC-1, MPEG-2, DivX, Xvid)
 - **HLS Master.m3u8:** Primary transcoding endpoint with adaptive bitrate
 - **Direct Download:** Fallback for direct-compatible files
-- **Subtitle Handling:** External subtitles burned into video during transcoding
+- **Subtitle Handling:** Both external (.srt) and embedded subtitle tracks included in HLS manifest as toggleable WebVTT streams via SubtitleMethod=Hls
 
 #### 5. Performance Optimizations
 
 **VideoGridItem Component:**
-
 - `React.memo` with custom comparison function
 - Lazy metadata computation (only when focused)
 - No scale animations (instant focus feedback via border only)
@@ -281,7 +465,6 @@ Single service for all Jellyfin communication with:
 - BlurView only rendered when focused
 
 **FlatList Optimization:**
-
 - Configurable columns (5 for TV, 3 for phone)
 - Custom `getItemLayout` for predictable heights
 - `windowSize` optimization
@@ -289,84 +472,13 @@ Single service for all Jellyfin communication with:
 - `updateCellsBatchingPeriod` for batch updates
 
 **Animation Strategy:**
-
 All scale animations were removed from grid items (VideoGridItem, FolderGridItem, BackGridItem) for performance. Focus feedback is now instant via border color change only. This eliminates jumpiness during folder navigation and app startup.
 
 #### 6. State Management
 
-The app uses a **Singleton Manager + Context wrapper** pattern for global state:
+The app uses a **Singleton Manager + Context wrapper** pattern for global state.
 
-**Singleton Managers** (`services/`):
-
-##### LibraryManager
-
-**Public API:**
-- `getInstance()` - Get singleton instance
-- `getState()` - Get current state snapshot
-  ```typescript
-  {
-    videos: JellyfinItem[];
-    isLoading: boolean;
-    isLoadingMore: boolean;
-    hasMoreResults: boolean;
-    error: string | null;
-    libraryName: string;
-  }
-  ```
-- `subscribe(callback)` - Subscribe to state changes (returns unsubscribe function)
-- `refreshLibrary()` - Force refresh from API
-- `loadMore()` - Load next page
-- `clearCache()` - Clear cached videos and state
-
-**Cache Strategy:**
-- 5-minute TTL on library data
-- Automatic refresh on cache expiration
-- Clears on credential changes
-
-##### FolderNavigationManager
-
-**Public API:**
-- `getInstance()` - Get singleton instance
-- `getState()` - Get navigation state snapshot
-  ```typescript
-  {
-    items: JellyfinItem[];
-    isLoading: boolean;
-    isLoadingMore: boolean;
-    hasMoreResults: boolean;
-    error: string | null;
-    folderStack: FolderStackEntry[];
-    currentFolder: FolderStackEntry | null;
-  }
-  ```
-- `subscribe(callback)` - Subscribe to state changes (returns unsubscribe function)
-- `navigateToFolder(folder)` - Navigate into folder/playlist
-- `navigateBack()` - Navigate to parent folder (returns boolean)
-- `navigateToBreadcrumb(index)` - Jump to specific breadcrumb
-- `loadRoot()` - Load root library views
-- `loadMore()` - Load next page
-- `clearCache()` - Clear all folder caches
-
-**Folder Stack:**
-Each entry tracks:
-- `id` - Folder/playlist ID
-- `name` - Display name
-- `type` - Entry type (folder, playlist, root)
-- Enables breadcrumb navigation
-
-**Context Wrappers** (`contexts/`):
-
-- `LibraryContext` - React wrapper for `LibraryManager`, provides `useLibrary()` hook
-- `FolderNavigationContext` - React wrapper for `FolderNavigationManager`, provides `useFolderNavigation()` hook
-- `LoadingContext` - Global loading state (modal spinner)
-
-**Other State:**
-
-- **SecureStore:** Persistent storage for credentials (iCloud Keychain/Android Keystore)
-- **Component State:** React hooks (`useState`, `useReducer`) for local state
-- **Configuration:** Three-tier fallback (user settings → dev credentials → defaults)
-
-The manager pattern allows state to persist across component remounts and provides pub/sub updates to React.
+**Details:** See `memories/CLAUDE-state-management.md` for architecture diagram and complete API reference.
 
 #### 7. Error Handling
 
@@ -383,303 +495,34 @@ The manager pattern allows state to persist across component remounts and provid
 - **Web:** React Native Web with responsive design
 - **TV-Specific:** Focus management with `isTVSelectable`, directional navigation
 
-## Important Implementation Details
+#### 9. Multi-Audio Track Switching
 
-### Development vs Production Configuration
+**Key Feature:** Seamless multi-audio track switching during transcoding using a custom Swift native module with multivariant HLS manifest generation.
 
-The app uses a smart fallback system:
+**Details:** See `memories/CLAUDE-multi-audio.md` for technical implementation and Swift module architecture.
 
-**Development (with `.env.local`):**
+## Configuration Management
 
-1. Checks SecureStore for user-configured settings
-2. Falls back to `.env.local` credentials if empty
-3. `syncDevCredentials()` runs on app load to populate SecureStore
+The app uses a smart fallback system for credentials and settings.
 
-**Production (App Store builds):**
+**Details:** See `memories/CLAUDE-configuration.md` for:
+- Development vs production configuration
+- Demo mode implementation
+- SecureStore keys reference
+- Configuration migration
+- Environment variables
+- Security considerations
+- Settings screen patterns
 
-1. `.env.local` is NOT included (git-ignored)
-2. Users must configure via Settings screen
-3. Credentials stored securely in native secure storage
+## Common Development Patterns
 
-**Demo Mode (Testing without setup):**
-
-1. One-tap connection to Jellyfin's official demo server (`https://demo.jellyfin.org/stable`)
-2. Credentials fetched dynamically via API (demo server resets hourly)
-3. Stores demo credentials in SecureStore with `IS_DEMO_MODE` flag
-4. Users can disconnect from demo and configure their own server anytime
-5. Perfect for App Store reviewers or first-time users
-
-**Demo Server Advanced Features:**
-
-The `connectToDemoServer()` function supports cache management:
-
-```typescript
-connectToDemoServer(clearCaches: boolean = true)
-```
-
-**Parameters:**
-- `clearCaches` (default: `true`): Controls cache behavior
-  - `true`: Full cache clear (use when initially connecting to demo server)
-  - `false`: Preserve UI state (use when refreshing expired credentials mid-session, e.g., during video playback)
-
-**SecureStore Keys:**
-
-| Key | Purpose | Type |
-|-----|---------|------|
-| `jellyfin_server_url` | Jellyfin server URL | string |
-| `jellyfin_api_key` | API authentication token | string (hex) |
-| `jellyfin_user_id` | User GUID | string (hex) |
-| `app_video_quality` | Transcoding quality preset (0-3) | string (number) |
-| `jellyfin_is_demo_mode` | Demo server connection flag | "true" \| null |
-
-**Note:** All keys are stored in iCloud Keychain (iOS) / Android Keystore automatically.
-
-**Protection Logic:**
-
-The `syncDevCredentials()` function checks the `jellyfin_is_demo_mode` flag before syncing development credentials to SecureStore. This prevents `.env.local` credentials from overwriting demo server credentials during development.
-
-### Configuration Initialization Pattern
-
-The app uses `configInitPromise` to prevent race conditions between:
-1. `syncDevCredentials()` writing to SecureStore (async, runs on app load)
-2. Components calling `getConfig()` (sync, reads from cache)
-
-**Solution:**
-```typescript
-let configInitPromise: Promise<void> | null = null;
-
-export function waitForConfig(): Promise<void> {
-  if (configInitPromise) return configInitPromise;
-  return Promise.resolve();
-}
-```
-
-Components that need guaranteed initialized config can await `waitForConfig()`.
-
-### Configuration Migration
-
-**Old Format (v1.x):**
-- Separate keys: `JELLYFIN_SERVER_IP`, `JELLYFIN_SERVER_PORT`, `JELLYFIN_SERVER_PROTOCOL`
-- Three discrete values combined into URL
-
-**New Format (v2.x+):**
-- Single key: `jellyfin_server_url` (full URL string)
-- Simpler validation and usage
-
-**Auto-Migration:**
-On first load, `migrateOldConfigFormat()` in `services/jellyfinApi.ts`:
-1. Checks for old keys in SecureStore
-2. Combines into full URL format
-3. Writes to new `jellyfin_server_url` key
-4. Deletes old keys
-5. One-time operation, no user intervention required
-
-### Environment Variables
-
-All environment variables must use `EXPO_PUBLIC_` prefix:
-
-```bash
-EXPO_PUBLIC_DEV_JELLYFIN_SERVER=http://localhost:8096
-EXPO_PUBLIC_DEV_JELLYFIN_API_KEY=your_api_key
-EXPO_PUBLIC_DEV_JELLYFIN_USER_ID=your_user_id
-```
-
-### Security Considerations
-
-- Never commit `.env.local` (already in `.gitignore`)
-- No hardcoded credentials in source code
-- ATS (App Transport Security) allows HTTP for local networks only (HTTPS required for internet servers)
-- Credentials stored in iCloud Keychain (iOS) / Android Keystore
-
-**API Key in URLs (Jellyfin Limitation):**
-
-The API key must be included in query parameters for certain URLs consumed by native components:
-
-- **Image URLs:** Poster/thumbnail URLs passed to `<Image>` components
-- **Video URLs:** Stream URLs passed to `expo-video` player
-- **Download URLs:** Direct file download URLs
-
-This is a Jellyfin API requirement - these native components cannot add custom headers to requests. The API key will appear in:
-
-- Server access logs
-- Browser history (web platform)
-- Network capture tools during debugging
-
-**Mitigations:**
-
-- Use HTTPS for remote servers (encrypts URLs in transit)
-- API keys have limited scope (Jellyfin API access only, not system-level)
-- Users can regenerate API keys from Jellyfin dashboard if compromised
-- For maximum security, use a dedicated API key for this app with minimal permissions
-
-### Testing Production Behavior
-
-To test the app without dev credentials:
-
-```bash
-mv .env.local .env.local.backup
-npm start
-# App will require manual configuration via Settings screen
-mv .env.local.backup .env.local
-```
-
-### Network Configuration
-
-- **iOS/tvOS:** `NSAppTransportSecurity` allows local HTTP connections
-- **iOS/tvOS:** `NSLocalNetworkUsageDescription` for Bonjour discovery
-
-### Apple TV Specific
-
-- Uses `react-native-tvos` fork instead of standard React Native
-- Configured with `@react-native-tvos/config-tv` plugin
-- Larger UI elements (150px vs 100px posters)
-- Native tab support with `NativeTabs`
-- Menu button handling for navigation
-
-### tvOS App Icons & Top Shelf Images
-
-See `CLAUDE-tvos-icons.md` for detailed tvOS icon setup, folder structure, naming requirements, and common validation errors.
-
-### Settings Screen Implementation
-
-The Settings screen (`app/(tabs)/settings.tsx`) uses specialized patterns for credential management and UI state synchronization.
-
-**Auto-Reload Pattern:**
-
-The settings screen uses `useFocusEffect` instead of `useEffect` to reload credentials whenever the screen comes into focus:
-
-```typescript
-useFocusEffect(
-  useCallback(() => {
-    loadSettings();
-  }, [])
-);
-```
-
-This ensures:
-- Demo server credentials are visible after connecting from error screens
-- Settings always reflect current SecureStore state
-- Multi-screen workflows work seamlessly
-
-**Form State Management:**
-
-Uses refs (`currentServerUrl.current`) alongside state to maintain sync between input fields and validation logic without causing unnecessary re-renders.
-
-**Demo Mode UI:**
-
-Demo server connection is NOT available from Settings screen (removed in commit 740d791). Demo mode is only accessible via:
-- "Try Demo Server" button on Library error screen
-- Programmatic `connectToDemoServer()` calls
-
-## Common Patterns
-
-### Adding a New Screen
-
-1. Create file in `app/` folder (e.g., `app/profile.tsx`)
-2. Export default component
-3. Route is auto-generated (`/profile`)
-4. Use `router.push('/profile')` to navigate
-
-### Adding a New API Method
-
-1. Add function to `services/jellyfinApi.ts`
-2. Use `retryWithBackoff()` for network calls
-3. Log errors with `utils/logger.ts`
-4. Cache configuration with `getConfig()`
-
-### Video Playback Implementation
-
-Use the `useVideoPlayback` hook:
-
-```typescript
-const { state, videoRef, currentSubtitleTrack, availableSubtitleTracks, error, playVideo, retryPlayback, changeSubtitleTrack } = useVideoPlayback();
-```
-
-The hook handles:
-
-- Codec detection and transcoding decisions
-- Stream URL generation
-- Error recovery with retry
-- Subtitle track switching
-
-### Custom React Hooks
-
-- **`useVideoPlayback()`** - Video playback state machine with auto-retry
-- **`useColorScheme()`** - Platform-specific dark/light mode detection
-- **`useAppStateRefresh()`** - Auto-refresh data when app returns to foreground
-  - Used in LibraryContext to refresh library on app resume
-  - Hooks into `AppState` event listener
-  - Prevents stale data after backgrounding
-
-### Using Library State
-
-```typescript
-import { useLibrary } from "@/contexts/LibraryContext";
-
-const { videos, isLoading, hasMoreResults, loadMore, refreshLibrary } = useLibrary();
-```
-
-### Using Folder Navigation
-
-```typescript
-import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
-
-const { items, folderStack, navigateToFolder, navigateBack, loadMore, isLoading } = useFolderNavigation();
-```
-
-Features:
-
-- Breadcrumb sidebar (rotated text on left edge)
-- Back item at grid start for parent navigation
-- Per-folder caching with 5-minute TTL
-- Pagination support via `loadMore()`
-- Auto-navigates into first library on root load
-- **Playlist support:** Playlists use a different API endpoint (`/Playlists/{id}/Items`) and are automatically detected via the `type` field in `FolderStackEntry`
-
-### Showing Global Loading
-
-```typescript
-import { useLoading } from "@/contexts/LoadingContext";
-
-const { showGlobalLoader, hideGlobalLoader } = useLoading();
-
-showGlobalLoader();
-// ... async operation
-hideGlobalLoader();
-```
-
-### Logging
-
-```typescript
-import { logger } from "@/utils/logger";
-
-logger.info("Operation started", { videoId: "123" });
-logger.error("Operation failed", { error: err });
-```
-
-### Search Implementation
-
-The search screen (`app/(tabs)/search.tsx`) has two implementations:
-
-**Native tvOS Search** (when `isNativeSearchAvailable()` returns true):
-
-- Uses `expo-tvos-search` package (external repo - see External Repositories section)
-- Native SwiftUI `.searchable` modifier for keyboard integration
-- Fixed 280x420 card grid with poster images
-- To modify UI: edit `~/@keiver/expo-tvos-search/ios/ExpoTvosSearchView.swift`
-
-**React Native Fallback** (iOS/Android):
-
-- Debounced text input (300ms delay)
-- Same grid layout as library view using `VideoGridItem` component
-
-**Search API** (`services/jellyfinApi.ts`):
-
-- `searchVideos()` searches across all libraries (Movies, Shows, Music)
-- Supports year filtering: "action 2023", "90s", "2019-2023"
-- Automatically expands Series results to playable Episodes
-- Returns only playable items (Movie, Video, Episode, Audio)
-- Path/folder names are searchable via Jellyfin's SearchTerm
+**Details:** See `memories/CLAUDE-patterns.md` for:
+- Adding new screens
+- Adding new API methods
+- Video playback implementation
+- Custom React hooks usage
+- Logging patterns
+- Search implementation
 
 ## Testing Strategy
 
@@ -746,28 +589,59 @@ The help screen (`app/(tabs)/help.tsx`) is a single-screen landing page:
 - Jellyfin acknowledgment footer
 - No scrolling required (TV-optimized)
 
+### Network Configuration
+
+- **iOS/tvOS:** `NSAppTransportSecurity` allows local HTTP connections
+- **iOS/tvOS:** `NSLocalNetworkUsageDescription` for Bonjour discovery
+
+### Apple TV Specific
+
+- Uses `react-native-tvos` fork instead of standard React Native
+- Configured with `@react-native-tvos/config-tv` plugin
+- Larger UI elements (150px vs 100px posters)
+- Native tab support with `NativeTabs`
+- Menu button handling for navigation
+
+### tvOS App Icons & Top Shelf Images
+
+See `memories/CLAUDE-tvos-icons.md` for detailed tvOS icon setup, folder structure, naming requirements, and common validation errors.
+
 ## Known Issues & Limitations
 
 1. **Codec Support:** Only H.264 and HEVC are direct-played; all others require transcoding
-2. **Subtitle Burning:** External subtitles are burned into video during transcoding (cannot be toggled)
-3. **Network:** HTTP connections limited to local networks; public Jellyfin servers must use HTTPS
-4. **Jellyfin Only:** Only works with Jellyfin servers (not Plex, Emby, etc.)
+2. **Network:** HTTP connections limited to local networks; public Jellyfin servers must use HTTPS
+3. **Jellyfin Only:** Only works with Jellyfin servers (not Plex, Emby, etc.)
 
 ## Additional Resources
 
-- `CLAUDE-components.md` - UI component documentation
-- `CLAUDE-security.md` - Security architecture and audit findings
-- `CLAUDE-development.md` - Development setup guide
-- `CLAUDE-app-performance.md` - Performance optimization notes
-- `CLAUDE-tvos-icons.md` - Apple TV icon guidelines
-- `CLAUDE-apple-store-metadata.md` - App Store copy and metadata
-- `CLAUDE-apple-store-checklist.md` - Submission checklist
-- `CLAUDE-image-analysis.md` - Image analysis skill
+### Implementation Details
+- `memories/CLAUDE-api-reference.md` - Complete API function reference
+- `memories/CLAUDE-state-management.md` - State management architecture
+- `memories/CLAUDE-multi-audio.md` - Multi-audio track switching feature
+- `memories/CLAUDE-configuration.md` - Configuration and credential management
+- `memories/CLAUDE-patterns.md` - Common development patterns
+- `memories/CLAUDE-external-dependencies.md` - External packages and repositories
+- `memories/CLAUDE-lessons-learned.md` - Bug case studies and debugging lessons
+
+### Component & Testing Documentation
+- `memories/CLAUDE-components.md` - UI component documentation
+- `memories/CLAUDE-testing.md` - Testing strategy and coverage analysis
+
+### Security & Performance
+- `memories/CLAUDE-security.md` - Security architecture and audit findings
+- `memories/CLAUDE-app-performance.md` - Performance optimization notes
+
+### Apple Store & Development
+- `memories/CLAUDE-tvos-icons.md` - Apple TV icon guidelines
+- `memories/CLAUDE-apple-store-metadata.md` - App Store copy and metadata
+- `memories/CLAUDE-apple-store-checklist.md` - Submission checklist
+- `memories/CLAUDE-development.md` - Development setup guide
+
+### Other Resources
+- `memories/CLAUDE-image-analysis.md` - Image analysis skill
 - `.env.example` - Environment variable template
 
 ## RULES
 
 1. Unless intentionally, DO NOT run commands on the `node_modules` directory
-
-- Stop searching node_modules unless required to inspect current lib implementation
-
+   - Stop searching node_modules unless required to inspect current lib implementation

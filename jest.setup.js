@@ -20,11 +20,13 @@ jest.mock('expo-secure-store', () => ({
   deleteItemAsync: jest.fn()
 }));
 
-// Mock expo-video
-jest.mock('expo-video', () => ({
-  useVideoPlayer: jest.fn(),
-  VideoView: 'VideoView'
-}));
+// Mock react-native-video
+jest.mock('react-native-video', () => {
+  const React = require('react');
+  return React.forwardRef((props, ref) => {
+    return null; // Mock Video component
+  });
+});
 
 // Mock expo-router to prevent loading app structure
 jest.mock('expo-router', () => ({

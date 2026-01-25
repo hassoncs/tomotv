@@ -15,7 +15,6 @@
       "Bash(cat:*)",
       "Bash(npm run lint)",
       "Bash(npm run typecheck:*)",
-      "Bash(npm run:*)",
       "Bash(npx tsc:*)",
       "Bash(npx @sentry/wizard:*)",
       "Bash(node:*)",
@@ -38,7 +37,19 @@
       "Bash(ls:*)",
       "Bash(curl:*)",
       "Bash(python3:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "WebFetch(domain:jellyfin.org)",
+      "WebFetch(domain:api.jellyfin.org)",
+      "WebFetch(domain:jmshrv.com)",
+      "Bash(npm info:*)",
+      "WebFetch(domain:docs.thewidlarzgroup.com)",
+      "WebFetch(domain:datatracker.ietf.org)",
+      "WebFetch(domain:www.wowza.com)",
+      "WebFetch(domain:bitmovin.com)",
+      "Bash(xcodebuild -list:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(chmod:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []

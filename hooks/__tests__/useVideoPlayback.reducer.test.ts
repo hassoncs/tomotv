@@ -130,7 +130,7 @@ describe("error classification", () => {
     });
 
     it("should handle plain objects with message property", () => {
-      // This is the critical case - expo-video returns errors as plain objects
+      // This is the critical case - react-native-video returns errors as plain objects
       expect(
         classifyPlaybackError({
           message: "Failed to load the player item: The operation couldn't be completed. (NSURLErrorDomain error -1013.)",

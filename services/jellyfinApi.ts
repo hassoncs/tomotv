@@ -1,4 +1,4 @@
-import { JellyfinFolderResponse, JellyfinItem, JellyfinVideoItem, JellyfinVideosResponse } from "@/types/jellyfin";
+import { JellyfinFolderResponse, JellyfinItem, JellyfinMediaStream, JellyfinVideoItem, JellyfinVideosResponse } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { retryWithBackoff } from "@/utils/retry";
 import * as SecureStore from "expo-secure-store";
@@ -37,9 +37,22 @@ const DEFAULT_QUALITY = 0; // 480p
 
 // Standardized timeout constants
 const API_TIMEOUTS = {
+  SHORT: 5000, // 5s - For very quick operations
   QUICK: 10000, // 10s - For simple queries, listing items
   NORMAL: 15000, // 15s - For fetches with moderate data
   EXTENDED: 30000, // 30s - For large data fetches (library items)
+} as const;
+
+// Transcoding quality constants
+const TRANSCODING = {
+  AUDIO_BITRATE: 192000, // 192kbps AAC
+  VIDEO_LEVEL: 41, // H.264 level 4.1
+  MAX_AUDIO_CHANNELS: 2, // Stereo output
+} as const;
+
+// Jellyfin time constants
+const JELLYFIN_TIME = {
+  TICKS_PER_SECOND: 10000000, // Jellyfin uses 100-nanosecond intervals (ticks)
 } as const;
 
 // Cached config for synchronous URL functions
@@ -130,7 +143,7 @@ export async function waitForConfig(): Promise<void> {
  * Falls back to .env.local development credentials if user hasn't configured settings
  * Also updates the cache for synchronous functions
  */
-async function getConfig(): Promise<{
+export async function getConfig(): Promise<{
   server: string;
   apiKey: string;
   userId: string;
@@ -401,7 +414,7 @@ export async function connectToDemoServer(clearCaches: boolean = true): Promise<
         async () => {
           const url = `${demoServerUrl}/Users/${userId}/Views`;
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 5000);
+          const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.SHORT);
 
           try {
             const response = await fetch(url, {
@@ -631,20 +644,20 @@ export async function fetchLibraryName(): Promise<string> {
             return "LIBRARY";
           }
 
-          const data = await response.json();
+          const data = (await response.json()) as JellyfinFolderResponse;
 
           // Debug: log the response
           logger.debug("Jellyfin Views response", {
             service: "JellyfinAPI",
             itemsCount: data.Items?.length || 0,
-            items: data.Items?.map((item: any) => ({
+            items: data.Items?.map((item) => ({
               name: item.Name,
               collectionType: item.CollectionType,
             })),
           });
 
           // Find first Movie or mixed collection, or just any library with content
-          let library = data.Items?.find((item: any) => item.CollectionType === "movies" || item.CollectionType === "mixed");
+          let library = data.Items?.find((item) => item.CollectionType === "movies" || item.CollectionType === "mixed");
 
           // If no movie/mixed library, just use the first one
           if (!library && data.Items && data.Items.length > 0) {
@@ -1298,7 +1311,8 @@ export function getVideoStreamUrl(itemId: string): string {
  * Get HLS transcoding URL with configurable quality
  *
  * Uses master.m3u8 HLS endpoint with full H.264/AAC transcode.
- * Subtitles are burned into video frames using SubtitleMethod=Encode.
+ * Subtitles are included as togglable WebVTT tracks using SubtitleMethod=Hls.
+ * All subtitle tracks (external .srt and embedded streams) are available via native controls.
  * Quality settings are loaded from user preferences.
  *
  * Optimized for Apple TV with:
@@ -1310,7 +1324,11 @@ export function getVideoStreamUrl(itemId: string): string {
  * @param itemId - The video item ID
  * @param videoItem - Optional video item with MediaStreams for subtitle detection
  */
-export async function getTranscodingStreamUrl(itemId: string, videoItem?: JellyfinVideoItem | null): Promise<string> {
+export async function getTranscodingStreamUrl(
+  itemId: string,
+  videoItem?: JellyfinVideoItem | null,
+  audioStreamIndex?: number
+): Promise<string> {
   if (!cachedConfig.server || !cachedConfig.apiKey) {
     logger.warn("getTranscodingStreamUrl called before config loaded", { service: "JellyfinAPI" });
     throw new Error("Configuration not loaded. Please wait for app to initialize.");
@@ -1331,11 +1349,11 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
     `&VideoCodec=h264` +
     `&AudioCodec=aac` +
     `&VideoBitrate=${quality.bitrate}` +
-    `&AudioBitrate=192000` + // 192kbps (better for AAC)
+    `&AudioBitrate=${TRANSCODING.AUDIO_BITRATE}` + // 192kbps AAC for quality
     `&MaxWidth=${quality.width}` +
     `&MaxHeight=${quality.height}` +
-    `&VideoLevel=41` + // H.264 level 4.1 (was 30)
-    `&TranscodingMaxAudioChannels=2` +
+    `&VideoLevel=${TRANSCODING.VIDEO_LEVEL}` + // H.264 level 4.1 (was 30)
+    `&TranscodingMaxAudioChannels=${TRANSCODING.MAX_AUDIO_CHANNELS}` + // Stereo output
     `&SegmentContainer=ts` +
     `&MinSegments=1` +
     `&SegmentLength=10` + // 10 second segments (was 8)
@@ -1345,19 +1363,30 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
     `&AllowVideoStreamCopy=false` + // Ensure predictable behavior
     `&RequireAvc=true`; // Force H.264/AVC output
 
-  // Check for external subtitles and burn them in
+  // Check for subtitles (both external and embedded) and include them as HLS tracks
   if (videoItem && videoItem.MediaStreams) {
-    const subtitleStreams = videoItem.MediaStreams.filter((stream) => stream.Type === "Subtitle" && stream.IsExternal && stream.Index !== undefined);
+    // Include ALL subtitle tracks (external .srt files AND embedded subtitles)
+    // Previously only included IsExternal=true, which missed embedded subtitle streams
+    const subtitleStreams = videoItem.MediaStreams.filter(
+      (stream) => stream.Type === "Subtitle" && stream.Index !== undefined
+    );
 
     if (subtitleStreams.length > 0) {
-      const firstSubIndex = subtitleStreams[0].Index;
-      url += `&SubtitleStreamIndex=${firstSubIndex}`;
-      url += `&SubtitleMethod=Encode`; // Burn subtitles into video frames
-      logger.info("Transcoding with subtitle burn-in", {
+      // Use SubtitleMethod=Hls to include all subtitles as separate WebVTT streams
+      // DO NOT set SubtitleStreamIndex - this includes ALL subtitle tracks
+      url += `&SubtitleMethod=Hls`;
+
+      const externalCount = subtitleStreams.filter(s => s.IsExternal).length;
+      const embeddedCount = subtitleStreams.length - externalCount;
+
+      logger.info("Transcoding with HLS subtitle tracks", {
         service: "JellyfinAPI",
         itemId,
         mediaSourceId,
-        streamIndex: firstSubIndex,
+        subtitleCount: subtitleStreams.length,
+        externalSubtitles: externalCount,
+        embeddedSubtitles: embeddedCount,
+        languages: subtitleStreams.map(s => s.Language || "und").join(", "),
         quality: quality.label,
         bitrate: `${quality.bitrate / 1000000}Mbps`,
         server: cachedConfig.server,
@@ -1372,6 +1401,30 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
         server: cachedConfig.server,
       });
     }
+
+    // Include ALL audio tracks in HLS manifest
+    const audioStreams = videoItem.MediaStreams.filter(
+      (stream) => stream.Type === "Audio" && stream.Index !== undefined
+    );
+
+    if (audioStreams.length > 1) {
+      logger.info("Multiple audio tracks available", {
+        service: "JellyfinAPI",
+        itemId,
+        audioTrackCount: audioStreams.length,
+        languages: audioStreams.map(s => s.Language || "und").join(", "),
+      });
+    }
+  }
+
+  // If specific audio track requested, only serve that track
+  if (audioStreamIndex !== undefined) {
+    url += `&AudioStreamIndex=${audioStreamIndex}`;
+    logger.info("Transcoding with specific audio track", {
+      service: "JellyfinAPI",
+      itemId,
+      audioStreamIndex,
+    });
   }
 
   logger.debug("Generated transcoding stream URL", {
@@ -1379,6 +1432,13 @@ export async function getTranscodingStreamUrl(itemId: string, videoItem?: Jellyf
     server: cachedConfig.server,
     itemId,
     urlPreview: url.substring(0, 150) + "...",
+  });
+
+  // Log full URL for debugging (helps inspect HLS manifest for multi-audio/subtitle tracks)
+  logger.info("Full HLS transcoding URL generated", {
+    service: "JellyfinAPI",
+    itemId,
+    fullUrl: url,
   });
 
   return url;
@@ -1410,7 +1470,7 @@ export function hasPoster(item: JellyfinVideoItem): boolean {
  * @returns Formatted string like "1h 23m" or "45m"
  */
 export function formatDuration(ticks: number): string {
-  const totalSeconds = ticks / 10000000;
+  const totalSeconds = ticks / JELLYFIN_TIME.TICKS_PER_SECOND;
   const totalMinutes = Math.floor(totalSeconds / 60);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
@@ -1432,7 +1492,8 @@ export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoIt
     // Wrap the fetch operation with retry logic
     return await retryWithBackoff(
       async () => {
-        const url = `${config.server}/Users/${config.userId}/Items/${itemId}?Fields=Path,MediaStreams,Overview,MediaSources`;
+        // Use GetPlaybackInfo endpoint for reliable MediaStreams data
+        const url = `${config.server}/Items/${itemId}/PlaybackInfo?UserId=${config.userId}`;
 
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.NORMAL);
@@ -1453,17 +1514,60 @@ export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoIt
             throw new Error(`Failed to fetch video details: ${response.status} ${response.statusText}`);
           }
 
-          const data: JellyfinVideoItem = await response.json();
+          const playbackInfoResponse = await response.json();
 
-          // Debug logging to help diagnose playlist item issues
-          logger.debug("Video details fetched", {
+          // Extract MediaSources from PlaybackInfoResponse
+          const mediaSource = playbackInfoResponse.MediaSources?.[0];
+
+          if (!mediaSource) {
+            throw new Error("No media sources available for this video");
+          }
+
+          // Construct a JellyfinVideoItem-compatible object from the playback info
+          // We still need basic item metadata, so fetch it separately
+          const itemUrl = `${config.server}/Users/${config.userId}/Items/${itemId}?Fields=Path,Overview`;
+          const itemResponse = await fetch(itemUrl, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `MediaBrowser Token="${config.apiKey}"`,
+            },
+          });
+
+          if (!itemResponse.ok) {
+            throw new Error(`Failed to fetch item metadata: ${itemResponse.status}`);
+          }
+
+          const itemData = await itemResponse.json();
+
+          // Merge item metadata with MediaSources from PlaybackInfo
+          const data: JellyfinVideoItem = {
+            ...itemData,
+            MediaSources: playbackInfoResponse.MediaSources,
+            MediaStreams: mediaSource.MediaStreams || [],
+          };
+
+          // Debug logging to help diagnose multi-audio track issues
+          const audioStreams = mediaSource.MediaStreams?.filter((s: JellyfinMediaStream) => s.Type === "Audio") || [];
+
+          logger.info("Video details fetched via PlaybackInfo endpoint", {
             service: "JellyfinAPI",
             itemId: data.Id,
             name: data.Name,
             type: data.Type,
             hasMediaSources: !!data.MediaSources,
             mediaSourceCount: data.MediaSources?.length || 0,
-            mediaSourceId: data.MediaSources?.[0]?.Id,
+            mediaSourceId: mediaSource.Id,
+            hasMediaStreams: !!mediaSource.MediaStreams,
+            mediaStreamCount: mediaSource.MediaStreams?.length || 0,
+            audioTrackCount: audioStreams.length,
+            audioTracks: audioStreams.map((s: JellyfinMediaStream) => ({
+              index: s.Index,
+              language: s.Language || "und",
+              codec: s.Codec,
+              channels: s.Channels,
+              displayTitle: s.DisplayTitle,
+            })),
           });
 
           return data;
@@ -1590,7 +1694,7 @@ export function needsTranscoding(videoItem: JellyfinVideoItem | null): boolean {
 }
 
 /**
- * Subtitle track interface for expo-video
+ * Subtitle track interface for react-native-video
  * These tracks are passed to VideoSource.subtitleTracks
  */
 export interface SubtitleTrack {
@@ -1602,7 +1706,7 @@ export interface SubtitleTrack {
 
 /**
  * Get all subtitle tracks available for a video
- * Returns external subtitle files in VTT format for expo-video
+ * Returns external subtitle files in VTT format for react-native-video
  */
 export function getSubtitleTracks(videoItem: JellyfinVideoItem | null): SubtitleTrack[] {
   if (!videoItem || !videoItem.MediaStreams) {

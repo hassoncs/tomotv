@@ -8,6 +8,14 @@ export interface JellyfinMediaStream {
   Index?: number;
   IsExternal?: boolean;
   Language?: string;
+
+  // Audio-specific fields
+  Channels?: number;           // Audio channel count (e.g., 2 for stereo, 6 for 5.1)
+  ChannelLayout?: string;      // Audio channel layout (e.g., "5.1", "stereo")
+
+  // Subtitle-specific fields
+  IsDefault?: boolean;         // Whether this is the default track
+  IsForced?: boolean;          // Whether this is a forced subtitle track
 }
 
 export interface JellyfinMediaSource {
