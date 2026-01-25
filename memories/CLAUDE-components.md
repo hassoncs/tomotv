@@ -1,6 +1,19 @@
 # CLAUDE-components.md
 
-**Last Updated:** January 22, 2026
+**Last Updated:** January 24, 2026
+
+## Quick Reference
+**Category:** Implementation
+**Keywords:** components, UI, VideoGridItem, FolderGridItem, performance, React.memo, FlatList
+
+All reusable UI components in TomoTV with optimization patterns, props, and performance considerations.
+
+## Related Documentation
+- [`CLAUDE-testing.md`](./CLAUDE-testing.md) - Component tests
+- [`CLAUDE-patterns.md`](./CLAUDE-patterns.md) - Component patterns
+- [`CLAUDE-app-performance.md`](./CLAUDE-app-performance.md) - Performance optimizations
+
+---
 
 This document describes all reusable UI components in the TomoTV app.
 
@@ -37,7 +50,7 @@ TomoTV uses a small set of highly optimized components designed for TV platforms
 - Platform-specific sizing (TV: larger, phone: smaller)
 - High-priority image caching for first 10 items
 - BlurView backdrop only when focused
-- No scale animations (instant border feedback only)
+- No scale animations (instant border feedback only) - **PERFORMANCE:** Eliminates UI jumpiness during rapid navigation and app startup by avoiding GPU overhead for 60+ simultaneous animations
 
 **Optimizations:**
 - Custom `getItemLayout` for FlatList performance

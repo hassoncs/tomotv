@@ -1,5 +1,17 @@
 # TomoTV Development Setup
 
+## Quick Reference
+**Category:** Deployment
+**Keywords:** development, setup, environment, credentials, .env.local, configuration
+
+Local development configuration with auto-configured server URLs and smart fallback system for credentials.
+
+## Related Documentation
+- [`CLAUDE-configuration.md`](./CLAUDE-configuration.md) - Development configuration
+- [`CLAUDE-patterns.md`](./CLAUDE-patterns.md) - Development workflow
+
+---
+
 ## Local Development Configuration
 
 ### Quick Start

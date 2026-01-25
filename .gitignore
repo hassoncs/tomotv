@@ -42,4 +42,5 @@ app-example
 /ios
 /android
 
-coverage/
+coverage
+*.lcov

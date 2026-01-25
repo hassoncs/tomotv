@@ -2,6 +2,19 @@
 
 **Status:** ✅ **READY FOR SUBMISSION**
 
+## Quick Reference
+**Category:** Deployment
+**Keywords:** App Store, submission, checklist, review, screenshots, metadata, deployment
+
+Complete App Store submission checklist with URLs, metadata requirements, and pre-submission testing steps.
+
+## Related Documentation
+- [`CLAUDE-apple-store-metadata.md`](./CLAUDE-apple-store-metadata.md) - Metadata requirements
+- [`CLAUDE-tvos-icons.md`](./CLAUDE-tvos-icons.md) - Icon requirements
+- [`CLAUDE-development.md`](./CLAUDE-development.md) - Build process
+
+---
+
 All required pages have been created and the app.json has been updated with the necessary URLs.
 
 ---

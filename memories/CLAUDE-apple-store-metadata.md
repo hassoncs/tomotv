@@ -2,6 +2,17 @@
 
 **Last Updated:** January 21, 2026
 
+## Quick Reference
+**Category:** Deployment
+**Keywords:** App Store, metadata, screenshots, description, keywords, ASO, privacy policy
+
+Complete App Store metadata including app name, description, keywords, screenshots, privacy policy, and marketing copy.
+
+## Related Documentation
+- [`CLAUDE-apple-store-checklist.md`](./CLAUDE-apple-store-checklist.md) - Metadata validation
+
+---
+
 ## App Name (30 characters max)
 **TomoTV - Jellyfin Player**
 (29 characters)

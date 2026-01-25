@@ -1,5 +1,16 @@
 # tvOS App Icons & Top Shelf Images
 
+## Quick Reference
+**Category:** Deployment
+**Keywords:** tvOS, icons, top shelf, Apple TV, brand assets, imagestack, validation
+
+Apple TV icon setup with automatic generation, folder structure, naming requirements, and common validation errors.
+
+## Related Documentation
+- [`CLAUDE-apple-store-checklist.md`](./CLAUDE-apple-store-checklist.md) - Icon validation requirements
+
+---
+
 This document covers Apple TV icon setup, folder structure, naming requirements, and common validation errors.
 
 ## Automatic Icon Generation

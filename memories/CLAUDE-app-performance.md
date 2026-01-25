@@ -1,8 +1,19 @@
 # Performance Analysis - TomoTV
 
-**Last Updated:** January 21, 2026
-**Last Inspection:** After image cache and API optimization
+**Last Updated:** January 24, 2026
+**Last Inspection:** Comprehensive audit including threading analysis
+**Last Memory Profile:** January 21, 2026
 **Current Memory Usage:** 250-350MB during browsing and video playback
+
+## Quick Reference
+**Category:** Performance
+**Keywords:** performance, memory, threading, optimization, FlatList, windowSize, concurrency
+
+Memory analysis, optimization strategies, and threading safety patterns with industry benchmarks.
+
+## Related Documentation
+- [`CLAUDE-components.md`](./CLAUDE-components.md) - Component optimizations
+- [`CLAUDE-patterns.md`](./CLAUDE-patterns.md) - Performance patterns
 
 ---
 
@@ -165,3 +176,125 @@ The 250-350MB usage is **expected and normal** for:
 - Image caching
 
 All major optimizations are already in place. The primary remaining opportunity is reducing `windowSize` to actually benefit from FlatList recycling.
+
+---
+
+## Threading Safety Analysis (January 2026)
+
+**Audit Scope:** Comprehensive analysis of concurrent operations, race conditions, and thread safety patterns across the codebase.
+
+### Critical Areas Audited
+
+#### 1. Video Playback (`useVideoPlayback` hook)
+
+**Thread Safety Patterns:**
+- ✅ `isMountedRef` prevents post-unmount state updates
+- ✅ `requestIdRef` prevents stale data from overwriting current state
+- ✅ State checks before async callbacks (`if (!isMountedRef.current) return`)
+- ✅ Single retry flag prevents infinite loops (`hasRetried.current`)
+- ✅ `InteractionManager.runAfterInteractions()` ensures main thread updates
+
+**Tested:** `app/__tests__/player.threading.test.tsx`, `hooks/__tests__/useVideoPlayback.threading.test.ts`
+
+**Result:** No threading issues found. All concurrent operations use refs, atomic state updates, or proper cleanup patterns.
+
+---
+
+#### 2. Library Context (`LibraryManager`)
+
+**Thread Safety Patterns:**
+- ✅ Singleton pattern prevents multiple instances
+- ✅ Pub/sub subscribers managed safely (Set data structure)
+- ✅ Cache invalidation is atomic (single `clearCache()` call)
+- ✅ Loading state guards prevent duplicate API calls (`isLoadingRef`)
+- ✅ Listeners notified after state fully updated
+
+**Tested:** `contexts/__tests__/LibraryContext.test.tsx`
+
+**Result:** No threading issues found. State updates are atomic and properly synchronized with React lifecycle.
+
+---
+
+#### 3. Folder Navigation (`FolderNavigationManager`)
+
+**Thread Safety Patterns:**
+- ✅ Stack operations use array immutability (spread operator)
+- ✅ Navigation state updated atomically (single setState call)
+- ✅ Per-folder caching with TTL prevents race conditions
+- ✅ Cache key includes folder ID (no collision between folders)
+
+**Tested:** `contexts/__tests__/FolderNavigationContext.test.tsx`
+
+**Result:** No threading issues found. All state mutations are immutable and atomic.
+
+---
+
+#### 4. Multi-Audio Track Switching (`multiAudioLoader.ts`)
+
+**Thread Safety Patterns:**
+- ✅ Plugin registration is one-time at app startup
+- ✅ Track configuration sent to Swift atomically
+- ✅ No shared mutable state between invocations
+- ✅ Native module handles concurrency internally
+
+**Tested:** `services/__tests__/multiAudioLoader.test.ts`
+
+**Result:** No threading issues found. All operations are stateless or use native thread-safe primitives.
+
+---
+
+### Concurrency Best Practices Observed
+
+**Pattern 1: Request ID for Async Operations**
+```typescript
+const requestIdRef = useRef(0);
+
+useEffect(() => {
+  requestIdRef.current += 1; // Increment on dependency change
+}, [videoId]);
+
+const currentRequestId = requestIdRef.current;
+// ... async operation ...
+if (requestIdRef.current !== currentRequestId) {
+  return; // Discard stale result
+}
+```
+
+**Pattern 2: Mounted Check**
+```typescript
+const isMountedRef = useRef(true);
+
+useEffect(() => {
+  return () => { isMountedRef.current = false; };
+}, []);
+
+if (!isMountedRef.current) return; // Skip state updates after unmount
+```
+
+**Pattern 3: InteractionManager for Main Thread**
+```typescript
+InteractionManager.runAfterInteractions(() => {
+  if (!isMountedRef.current) return;
+  dispatch({ type: "PLAYER_READY" });
+});
+```
+
+---
+
+### Audit Conclusion
+
+**Overall Assessment:** ✅ **EXCELLENT**
+
+- Zero threading issues discovered
+- All critical paths use proper concurrency patterns
+- Refs used correctly for synchronous access
+- State updates are atomic and properly guarded
+- Cleanup logic prevents memory leaks
+
+**Recommendation:** No changes needed. Current implementation demonstrates strong understanding of React Native threading model.
+
+---
+
+**Audit Date:** January 24, 2026
+**Auditor:** AI Code Audit Team (Threading Specialist)
+**Next Review:** January 2027 or before major refactoring
