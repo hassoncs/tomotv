@@ -137,7 +137,8 @@ class HLSManifestGenerator {
             }
 
             // Strategy: Mark ALL tracks as DEFAULT=NO,AUTOSELECT=NO
-            // The default track will be selected programmatically via selectedAudioTrack prop
+            // This allows iOS to display NAME attribute for "und" tracks (when LANGUAGE is omitted)
+            // Track names display correctly in native picker
             combined += ",DEFAULT=NO,AUTOSELECT=NO"
             combined += ",URI=\"\(audioUrl)\"\n"
 

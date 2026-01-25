@@ -8,6 +8,95 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **TomoTV** is a cross-platform video streaming application that connects to a Jellyfin media server. Built with React Native TVOS and Expo, it supports iOS, Android, Apple TV, and web platforms. The app intelligently handles video codecs, automatically transcoding unsupported formats while direct-playing compatible ones.
 
+## WORKFLOW & DECISION-MAKING RULES
+
+⚠️ **CRITICAL:** Follow these rules ALWAYS to prevent wasted time and going in circles.
+
+### Platform Context
+
+- **Primary Platform:** iOS/tvOS (React Native TVOS, Swift, AVPlayer, HLS)
+- **State platform upfront** in every technical discussion
+- **Remember:** Native behavior ≠ web behavior
+- AVPlayer is the native video player (not web player)
+- HLS manifest rules follow Apple's implementation (not generic HLS)
+- Swift modules require rebuild via `npm run prebuild:tv`
+
+### Research-First Protocol
+
+1. ✅ **Read official documentation** (Apple HLS Authoring Spec, RFC 8216, library docs)
+2. ✅ **Inspect actual source code files** before proposing changes
+3. ✅ **Search for real-world examples** and known issues
+4. ❌ **NEVER propose solutions based on assumptions alone**
+
+**Example:**
+- Before modifying HLS manifest generation, read Apple's HLS Authoring Specification
+- Before changing Swift code, inspect the current implementation in `native/ios/`
+- Before assuming iOS behavior, verify with official Apple documentation
+
+### Decision Confirmation Protocol
+
+- **ASK before committing** to technical approaches
+- **Present options with evidence:** spec quotes, code snippets, research findings
+- **User confirms direction** → THEN implement
+- Don't iterate blindly on failed approaches
+
+**When to Ask:**
+- Multiple valid solutions exist (e.g., "Should we use DEFAULT=YES or programmatic track selection?")
+- Uncertainty about platform-specific behavior (e.g., "Does iOS prioritize LANGUAGE or NAME?")
+- Breaking changes or architectural decisions
+
+### Anti-Loop Protection
+
+- **Track failed approaches** internally (mental checklist)
+- **NEVER retry the same solution twice** without new evidence
+- **After 2-3 failed attempts:** STOP, ask user for guidance
+- **If context seems lost:** read relevant CLAUDE.md sections to regain context
+
+**Red Flags:**
+- "Let me try X again" (if X already failed)
+- "Maybe if we adjust Y slightly" (without understanding why Y failed)
+- Proposing solutions without reading specs/code
+
+### Code Inspection Requirements
+
+- **Read implementation files BEFORE editing**
+- **Understand current behavior first** (trace execution paths)
+- **Test assumptions with actual code**, not theories
+- Trace execution through multiple files if needed (e.g., TypeScript → Swift → AVPlayer)
+
+**Workflow:**
+1. Identify files involved in the feature
+2. Read actual implementation code
+3. Understand data flow and state management
+4. Propose changes based on code reality
+
+### Lessons Learned
+
+#### Audio Track Label Bug (January 2026)
+
+**Problem:** tvOS showed "Unknown language" instead of track name for undefined language tracks
+
+**Root Cause:** iOS/tvOS **ALWAYS prioritizes LANGUAGE attribute** over NAME for display in native picker
+
+**Solution:** Omit LANGUAGE attribute entirely for "und" tracks (RFC 8216: LANGUAGE is OPTIONAL)
+
+**Key Lesson:**
+- Read Apple's HLS implementation docs + RFC 8216 specs BEFORE trying solutions
+- Display (LANGUAGE/NAME) and auto-selection (DEFAULT/AUTOSELECT) are **separate concerns**
+- Platform-specific behavior requires platform-specific documentation
+
+**What Went Wrong:**
+- ❌ Proposed solutions without reading Apple HLS spec
+- ❌ Assumed LANGUAGE was required (it's optional per RFC 8216)
+- ❌ Went in circles trying NAME variations without understanding root cause
+- ❌ Forgot platform context (iOS HLS ≠ generic HLS)
+
+**What Worked:**
+- ✅ Read RFC 8216 to confirm LANGUAGE is optional
+- ✅ Read Apple HLS Authoring Specification
+- ✅ Inspected actual Swift code before editing
+- ✅ Tested one solution at a time with clear hypothesis
+
 ## Development Commands
 
 ### Starting Development
