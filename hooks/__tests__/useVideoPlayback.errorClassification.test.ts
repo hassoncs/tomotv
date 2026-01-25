@@ -1,8 +1,16 @@
 /**
  * useVideoPlayback - Error Classification Tests
  *
- * Tests for error classification and message generation functions.
- * These are pure functions exported from useVideoPlayback.ts
+ * This suite exercises the pure helper functions exported from useVideoPlayback.ts
+ * that are responsible for classifying playback errors and generating user-facing
+ * error messages (e.g., classifyPlaybackError and getPlaybackErrorMessage).
+ *
+ * These tests are intentionally isolated from the main useVideoPlayback hook tests
+ * so that the error-classification logic can be validated independently of any
+ * React, DOM, or player integration concerns. Keeping this logic in a separate
+ * suite ensures the tests remain fast, deterministic, and focused purely on the
+ * string-matching and mapping behavior used to derive PlaybackErrorType values
+ * and human-readable error messages.
  */
 
 import {
