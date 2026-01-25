@@ -7,7 +7,7 @@
  * Created: January 24, 2026
  */
 
-import {type AudioTrack } from "expo-video";
+import { type AudioTrack } from "expo-video";
 import type { JellyfinVideoItem } from "@/types/jellyfin";
 import type { AudioTrackInfo } from "@/services/multiAudioLoader";
 
