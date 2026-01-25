@@ -1311,7 +1311,7 @@ export function getVideoStreamUrl(itemId: string): string {
  * Get HLS transcoding URL with configurable quality
  *
  * Uses master.m3u8 HLS endpoint with full H.264/AAC transcode.
- * Subtitles are included as toggleable WebVTT tracks using SubtitleMethod=Hls.
+ * Subtitles are included as togglable WebVTT tracks using SubtitleMethod=Hls.
  * All subtitle tracks (external .srt and embedded streams) are available via native controls.
  * Quality settings are loaded from user preferences.
  *
