@@ -7,7 +7,7 @@
  * Created: January 24, 2026
  */
 
-import { type AudioTrack } from "expo-video";
+import { type AudioTrack } from "react-native-video";
 import type { JellyfinVideoItem } from "@/types/jellyfin";
 import type { AudioTrackInfo } from "@/services/multiAudioLoader";
 
@@ -50,7 +50,7 @@ describe("useVideoPlayback - Audio Track Switching", () => {
      * This tests the core algorithm that handles track switching with restart.
      */
 
-    it("should correctly map expo-video track index to Jellyfin stream index", () => {
+    it("should correctly map player track index to Jellyfin stream index", () => {
       const videoItem = createMockVideoItem();
 
       // Simulate getAudioTracks() result (sorted with English first)
@@ -76,7 +76,7 @@ describe("useVideoPlayback - Audio Track Switching", () => {
       // Build mapping array (same pattern used in hook)
       const audioTrackMapping = sortedAudioTracks.map((track) => track.Index);
 
-      // User selects track 0 (first track in expo-video, which is English)
+      // User selects track 0 (first track in player, which is English)
       const selectedExpoIndex = 0;
       const jellyfinStreamIndex = audioTrackMapping[selectedExpoIndex];
 
@@ -219,11 +219,11 @@ describe("useVideoPlayback - Audio Track Switching", () => {
 
   describe("onAudioTracks callback", () => {
     /**
-     * Tests the expo-video onAudioTracks callback that provides available audio tracks
+     * Tests the react-native-video onAudioTracks callback that provides available audio tracks
      */
 
-    it("should receive audio tracks from expo-video player", () => {
-      // Simulate expo-video's onAudioTracks callback
+    it("should receive audio tracks from video player", () => {
+      // Simulate react-native-video's onAudioTracks callback
       const mockAudioTracks: AudioTrack[] = [
         {
           index: 0,
@@ -386,7 +386,7 @@ describe("useVideoPlayback - Audio Track Switching", () => {
       const currentPosition = 125.5;
       const currentAudioStreamIndex = 1; // Currently playing English
 
-      // User selects Spanish (expo-video track index 1)
+      // User selects Spanish (player track index 1)
       const selectedExpoTrackIndex = 1;
 
       // Build mapping from sorted tracks

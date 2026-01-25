@@ -126,7 +126,7 @@ EXPO_PUBLIC_DEV_JELLYFIN_USER_ID=your_user_id
 The API key must be included in query parameters for certain URLs consumed by native components:
 
 - **Image URLs:** Poster/thumbnail URLs passed to `<Image>` components
-- **Video URLs:** Stream URLs passed to `expo-video` player
+- **Video URLs:** Stream URLs passed to `react-native-video` player
 - **Download URLs:** Direct file download URLs
 
 This is a Jellyfin API requirement - these native components cannot add custom headers to requests. The API key will appear in:

@@ -116,7 +116,7 @@ API keys appear in URLs for certain requests:
 ### Why This Happens
 
 **Technical Constraint:**
-Native components (`<Image>`, `expo-video` player) cannot add custom HTTP headers. Jellyfin API requires authentication for these resources, so the API key **must** be in the query string.
+Native components (`<Image>`, `react-native-video` player) cannot add custom HTTP headers. Jellyfin API requires authentication for these resources, so the API key **must** be in the query string.
 
 **This is a Jellyfin API design constraint, not a bug in TomoTV.**
 
@@ -265,7 +265,7 @@ Non-fatal validation warnings emitted as events (not crashes).
 
 **Security-Critical Packages:**
 - `expo-secure-store@15.0.7` - ✅ Current
-- `expo-video@3.0.14` - ✅ Current
+- `react-native-video@6.x` - ✅ Current
 - `react@19.1.0` - ✅ Latest
 - `react-native-tvos@0.81.4-0` - ✅ Maintained fork
 

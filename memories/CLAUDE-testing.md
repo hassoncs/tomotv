@@ -657,7 +657,6 @@ describe('jellyfinApi - Input Validation', () => {
 // jest.setup.js
 jest.mock('expo-secure-store');
 jest.mock('expo-router');
-jest.mock('expo-video');
 jest.mock('expo-image');
 jest.mock('@/utils/logger');
 

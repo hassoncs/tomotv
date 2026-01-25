@@ -49,7 +49,8 @@
       "Bash(xcodebuild -list:*)",
       "Bash(npm run test:coverage:*)",
       "Bash(chmod:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(xargs cat:*)"
     ],
     "deny": [],
     "ask": []
