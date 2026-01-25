@@ -50,7 +50,10 @@
       "Bash(npm run test:coverage:*)",
       "Bash(chmod:*)",
       "Bash(bash:*)",
-      "Bash(xargs cat:*)"
+      "Bash(xargs cat:*)",
+      "Bash(git log:*)",
+      "WebFetch(domain:sarunw.com)",
+      "WebFetch(domain:showmax.engineering)"
     ],
     "deny": [],
     "ask": []

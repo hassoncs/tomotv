@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, TVEventControl, View } from "react-native";
 
 /**
  * Gets the native node handle for TV focus management.
@@ -127,6 +127,23 @@ function NativeSearchScreen() {
     [router, showGlobalLoader, searchResults],
   );
 
+  // Fallback handlers for tvOS keyboard input
+  // The library attempts to disable RN gesture handlers automatically,
+  // but if that doesn't work, these callbacks provide a JS-based fallback
+  const handleSearchFieldFocused = useCallback(() => {
+    if (TVEventControl?.disableGestureHandlersCancelTouches) {
+      TVEventControl.disableGestureHandlersCancelTouches();
+      logger.debug("TVEventControl: disabled gesture handlers (search field focused)", { service: "NativeSearchScreen" });
+    }
+  }, []);
+
+  const handleSearchFieldBlurred = useCallback(() => {
+    if (TVEventControl?.enableGestureHandlersCancelTouches) {
+      TVEventControl.enableGestureHandlersCancelTouches();
+      logger.debug("TVEventControl: enabled gesture handlers (search field blurred)", { service: "NativeSearchScreen" });
+    }
+  }, []);
+
   return (
     <TvosSearchView
       results={searchResults}
@@ -137,6 +154,8 @@ function NativeSearchScreen() {
       topInset={140}
       onSearch={handleSearch}
       onSelectItem={handleSelectItem}
+      onSearchFieldFocused={handleSearchFieldFocused}
+      onSearchFieldBlurred={handleSearchFieldBlurred}
       style={styles.nativeSearchView}
     />
   );
