@@ -116,21 +116,23 @@ describe("Audio Track Mapping Logic", () => {
         ],
       };
 
-      // getAudioTracks() applies language preference and sorts
+      // getAudioTracks() respects Jellyfin's IsDefault flag for sorting
       const sortedTracks = getAudioTracks(videoItem as JellyfinVideoItem);
 
-      // After sorting: English should be first (user's language preference)
+      // After sorting: UND is first because Jellyfin marked it as default
       expect(sortedTracks.length).toBe(2);
-      expect(sortedTracks[0].Language).toBe("eng");
-      expect(sortedTracks[0].Index).toBe(8);
-      expect(sortedTracks[1].Language).toBe("und");
-      expect(sortedTracks[1].Index).toBe(1);
+      expect(sortedTracks[0].Language).toBe("und");
+      expect(sortedTracks[0].Index).toBe(1);
+      expect(sortedTracks[0].IsDefault).toBe(true);
+      expect(sortedTracks[1].Language).toBe("eng");
+      expect(sortedTracks[1].Index).toBe(8);
+      expect(sortedTracks[1].IsDefault).toBe(false);
 
       // Build mapping (CORRECT fix from Bug #2)
       const mapping = sortedTracks.map(t => t.Index);
 
-      // Mapping should match sorted order: [8, 1]
-      expect(mapping).toEqual([8, 1]);
+      // Mapping should match sorted order: [1, 8] (UND first because IsDefault: true)
+      expect(mapping).toEqual([1, 8]);
     });
 
     it("should handle single audio track", () => {

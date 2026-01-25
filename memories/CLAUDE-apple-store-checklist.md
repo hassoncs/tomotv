@@ -84,7 +84,7 @@ Includes:
 
 ### 4. Updated app.json
 
-**File:** `/Users/keiverhernandez/wn/app.json`
+**File:** `./app.json`
 
 Changes:
 
@@ -232,9 +232,9 @@ All should return `200 OK`.
 
 ## 📚 Reference Documents
 
-- **App Store Copy:** `/Users/keiverhernandez/wn/APP_STORE_COPY.md`
-- **Project Documentation:** `/Users/keiverhernandez/wn/CLAUDE.md`
-- **This Checklist:** `/Users/keiverhernandez/wn/APP_STORE_SUBMISSION_READY.md`
+- **App Store Copy:** `./APP_STORE_COPY.md`
+- **Project Documentation:** `./CLAUDE.md`
+- **This Checklist:** `./APP_STORE_SUBMISSION_READY.md`
 
 ---
 

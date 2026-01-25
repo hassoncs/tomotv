@@ -1,7 +1,7 @@
 # Testing Strategy - TomoTV
 
-**Last Updated:** January 24, 2026
-**Current Coverage:** 50.18% overall
+**Last Updated:** January 24, 2026 (added manual test video documentation)
+**Current Coverage:** 51.1% overall
 **Test Framework:** Jest 29.7.0 with react-test-renderer
 **Target Coverage:** 80% (industry standard for production apps)
 
@@ -20,7 +20,7 @@ Comprehensive testing strategy with current coverage analysis, test patterns, an
 
 ## Executive Summary
 
-TomoTV has moderate test coverage (50.18%) with significant gaps in critical areas. This document provides a comprehensive strategy to increase coverage to 80% while focusing on security-critical code, core functionality, and user workflows.
+TomoTV has moderate test coverage (51.1%) with significant gaps in critical areas. This document provides a comprehensive strategy to increase coverage to 80% while focusing on security-critical code, core functionality, and user workflows.
 
 **Key Findings:**
 - ✅ Services: 67.63% (good)
@@ -37,7 +37,7 @@ TomoTV has moderate test coverage (50.18%) with significant gaps in critical are
 
 | Category | Coverage | Files Tested | Status |
 |----------|----------|--------------|--------|
-| **Overall** | 50.18% | 14 of 31 | ⚠️ Below target (80%) |
+| **Overall** | 51.1% | 14 of 31 | ⚠️ Below target (80%) |
 | **Services** | 67.63% | 4 of 5 | ✅ Good |
 | **Contexts** | ~60% | 3 of 3 | ✅ Acceptable |
 | **Hooks** | 8.11% | 5 of 5 | ❌ Critical gap |
@@ -616,7 +616,7 @@ describe('jellyfinApi - Input Validation', () => {
 **Phase 1 Total:**
 - **3 test files created**
 - **~570 lines of test code**
-- **Expected coverage increase: +28%** (50% → 78%)
+- **Expected coverage increase: +27%** (51% → 78%)
 - **Timeline:** 1-2 weeks
 
 ---
@@ -735,11 +735,101 @@ Coverage reports are generated on every commit. Minimum threshold: 60% (will inc
 
 ---
 
+## Manual Testing Videos
+
+For manual testing and integration testing of multi-audio, subtitle, and transcoding features, use these open-source test videos:
+
+### test5.mkv - Multi-Audio & Embedded Subtitles
+
+**Source:** IETF Matroska Test Files Repository
+**URL:** https://github.com/ietf-wg-matroska/matroska-test-files/blob/master/test_files/test5.mkv
+
+**Content:**
+- Clip from "Elephants Dream" (Blender Foundation)
+- 2 audio tracks (tests multi-audio track switching)
+- 8 embedded subtitle tracks (tests embedded subtitle detection and HLS integration)
+
+**Tests:**
+- Multi-audio track switching during playback (killer feature)
+- Native tvOS audio picker integration
+- Audio track label display (language vs. name attributes)
+- Embedded subtitle track detection
+- HLS manifest generation with multiple audio streams
+- Seamless audio switching without video restart
+
+**Usage in TomoTV:**
+1. Upload to Jellyfin server library
+2. Play video in TomoTV
+3. Verify audio track names display correctly (not "Unknown language")
+4. Switch between audio tracks during playback
+5. Verify seamless switching (no playback interruption)
+6. Check subtitle tracks appear in native tvOS subtitle picker
+
+---
+
+### Sintel Videos - External Subtitle Testing
+
+**Source:** Blender Foundation - Durian Open Movie Project
+**URL:** https://durian.blender.org/download/
+
+**Content:**
+- Multiple copies of the same Sintel video file
+- Each copy has different external subtitle tracks (.srt files)
+- Tests external subtitle detection and WebVTT conversion
+
+**Test Structure:**
+```
+sintel-external-subtitles/
+├── sintel.mkv                    # Base video (no embedded subtitles)
+├── sintel-english.srt            # External English subtitles
+├── sintel-spanish.srt            # External Spanish subtitles
+├── sintel-french.srt             # External French subtitles
+└── sintel-german.srt             # External German subtitles
+
+sintel-embedded-subtitles/
+└── sintel.mkv                    # Video with embedded subtitle tracks
+```
+
+**Tests:**
+- External .srt file detection
+- WebVTT conversion via Jellyfin API
+- HLS manifest generation with `SubtitleMethod=Hls`
+- Native tvOS subtitle picker shows all tracks
+- Multiple external subtitle files for same video
+- Embedded vs. external subtitle handling
+
+**Usage in TomoTV:**
+1. Upload Sintel videos + .srt files to Jellyfin server
+2. Ensure .srt files are in same directory as video files
+3. Play video in TomoTV
+4. Verify subtitle tracks appear in native tvOS subtitle picker
+5. Toggle subtitles on/off during playback
+6. Verify WebVTT overlay rendering (not burned-in)
+
+---
+
+### Test Video Naming Convention
+
+**File naming pattern used in testing:**
+- `test5.mkv` - Multi-audio + embedded subtitles
+- `sintel-external-subtitles` - Same video, different external .srt tracks
+- `sintel-embedded-subtitles` - Video with embedded subtitle streams
+
+**Why these videos?**
+- **Open source & legal:** All videos are free, open-licensed content
+- **Comprehensive codec coverage:** Tests H.264, HEVC, and transcoding scenarios
+- **Multi-audio testing:** test5.mkv has multiple audio tracks (killer feature validation)
+- **Subtitle testing:** Both external (.srt) and embedded subtitle streams
+- **Realistic file sizes:** ~630MB each (real-world video file sizes)
+- **Public availability:** Anyone can download and use for testing
+
+---
+
 ## Coverage Targets
 
 | Timeframe | Target | Status |
 |-----------|--------|--------|
-| **Current** | 50.18% | ⚠️ Below target |
+| **Current** | 51.1% | ⚠️ Below target |
 | **Q1 2026** | 60% | 🎯 Critical paths |
 | **Q2 2026** | 70% | 🎯 Comprehensive |
 | **Q3 2026** | 80% | 🎯 Industry standard |

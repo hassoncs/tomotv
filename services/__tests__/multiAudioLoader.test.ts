@@ -179,9 +179,10 @@ describe("multiAudioLoader", () => {
 
       const tracks = getAudioTracks(videoItem);
 
-      // English should be sorted first and marked as default
-      expect(tracks[0].Language).toBe("eng");
+      // Sorted by Jellyfin's IsDefault flag - "und" is first because Jellyfin marked it as default
+      expect(tracks[0].Language).toBe("und");
       expect(tracks[0].IsDefault).toBe(true);
+      expect(tracks[1].Language).toBe("eng");
       expect(tracks[1].IsDefault).toBe(false);
     });
 
@@ -211,8 +212,12 @@ describe("multiAudioLoader", () => {
 
       const tracks = getAudioTracks(videoItem);
 
-      expect(tracks[0].Language).toBe("jpn");
+      // Sorted by IsDefault flag (respects Jellyfin's server-side metadata)
+      // The UND track is first because it has IsDefault: true
+      expect(tracks[0].Language).toBe("und");
       expect(tracks[0].IsDefault).toBe(true);
+      expect(tracks[1].Language).toBe("jpn");
+      expect(tracks[1].IsDefault).toBe(false);
     });
 
     it("should use first track as fallback if all are UND", () => {
@@ -241,8 +246,11 @@ describe("multiAudioLoader", () => {
 
       const tracks = getAudioTracks(videoItem);
 
+      // Order preserved when no IsDefault flag is set (both false)
       expect(tracks[0].Index).toBe(1);
-      expect(tracks[0].IsDefault).toBe(true);
+      expect(tracks[0].IsDefault).toBe(false);
+      expect(tracks[1].Index).toBe(2);
+      expect(tracks[1].IsDefault).toBe(false);
     });
 
     it("should handle single audio track without reordering", () => {
@@ -317,9 +325,11 @@ describe("multiAudioLoader", () => {
 
       const tracks = getAudioTracks(videoItem);
 
-      // First English variant should be preferred
+      // Order preserved when both have IsDefault: false
       expect(tracks[0].Language).toBe("en-US");
-      expect(tracks[0].IsDefault).toBe(true);
+      expect(tracks[0].IsDefault).toBe(false);
+      expect(tracks[1].Language).toBe("en-GB");
+      expect(tracks[1].IsDefault).toBe(false);
     });
 
     it("should handle video with mixed track types correctly", () => {
