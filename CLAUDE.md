@@ -497,9 +497,9 @@ The app uses a **Singleton Manager + Context wrapper** pattern for global state.
 
 #### 9. Multi-Audio Track Switching
 
-**TomoTV's Killer Feature:** Seamless multi-audio track switching during transcoding - the ONLY Jellyfin client with this capability.
+**Key Feature:** Seamless multi-audio track switching during transcoding using a custom Swift native module with multivariant HLS manifest generation.
 
-**Details:** See `memories/CLAUDE-multi-audio.md` for technical implementation, competitive advantage, and Swift module architecture.
+**Details:** See `memories/CLAUDE-multi-audio.md` for technical implementation and Swift module architecture.
 
 ## Configuration Management
 

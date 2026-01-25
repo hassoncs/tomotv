@@ -42,7 +42,7 @@ Alternative:
 **HOW IT WORKS**
 • H.264 and HEVC play directly
 • Other formats (MPEG-4, VP8, DivX, etc.) transcode automatically
-• You won't notice the difference—it just plays
+• No codec errors or configuration needed
 
 **FEATURES**
 • Browse and search your library
@@ -89,7 +89,7 @@ Keywords Strategy:
 **Multi-Audio & Subtitle Support**
 
 **New Features:**
-• Seamless multi-audio track switching - Change audio tracks during playback without video restart (ONLY Jellyfin client with this feature!)
+• Seamless multi-audio track switching - Change audio tracks during playback without video restart using custom multivariant HLS manifests
 • Advanced subtitle support - Both external (.srt) and embedded subtitle tracks with native tvOS subtitle picker
 • Fixed audio track display bug - Track names now show correctly on Apple TV instead of "Unknown language"
 
