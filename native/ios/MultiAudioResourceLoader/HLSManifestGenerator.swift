@@ -126,23 +126,22 @@ class HLSManifestGenerator {
                 NSLog("[HLSGenerator] 🎵 Track \(index + 1) audio URL (fallback): \(audioUrl)")
             }
 
-            // Build audio media tag
-            // Use "en" for undefined language - iOS shows "Unknown language" for "und"
-            let languageCode = (language == "und" || language.isEmpty) ? "en" : language
-            combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(languageCode)\""
-
-            if isDefault {
-                // Explicitly mark this as the default track
-                // AUTOSELECT=YES allows the player to select it automatically
-                combined += ",DEFAULT=YES,AUTOSELECT=YES"
-                NSLog("[HLSGenerator] 🔊 Track \(index + 1) marked as DEFAULT (Jellyfin preference)")
+            // Build audio media tag - conditionally include LANGUAGE
+            // CRITICAL: iOS ALWAYS prioritizes LANGUAGE for display. For "und" tracks, OMIT LANGUAGE entirely
+            // to force iOS to display the NAME attribute (RFC 8216: LANGUAGE is OPTIONAL)
+            if language != "und" && !language.isEmpty {
+                combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\",LANGUAGE=\"\(language)\""
             } else {
-                // Non-default tracks: AUTOSELECT=NO prevents language-based auto-selection
-                // This ensures the Jellyfin default is always respected
-                combined += ",DEFAULT=NO,AUTOSELECT=NO"
+                // OMIT LANGUAGE entirely for undefined languages - forces iOS to display NAME
+                combined += "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"\(name)\""
             }
 
+            // Strategy: Mark ALL tracks as DEFAULT=NO,AUTOSELECT=NO
+            // The default track will be selected programmatically via selectedAudioTrack prop
+            combined += ",DEFAULT=NO,AUTOSELECT=NO"
             combined += ",URI=\"\(audioUrl)\"\n"
+
+            NSLog("[HLSGenerator] 🎵 Track \(index + 1): NAME=\"\(name)\", LANGUAGE=\"\(language.isEmpty || language == "und" ? "OMITTED" : language)\", IsDefault=\(isDefault)")
         }
 
         combined += "\n"
