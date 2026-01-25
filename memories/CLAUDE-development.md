@@ -9,6 +9,7 @@ Local development configuration with auto-configured server URLs and smart fallb
 ## Related Documentation
 - [`CLAUDE-configuration.md`](./CLAUDE-configuration.md) - Development configuration
 - [`CLAUDE-patterns.md`](./CLAUDE-patterns.md) - Development workflow
+- [`CLAUDE-apple-store-checklist.md`](./CLAUDE-apple-store-checklist.md) - Build process for submission
 
 ---
 

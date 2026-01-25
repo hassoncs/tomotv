@@ -47,7 +47,9 @@
       "WebFetch(domain:www.wowza.com)",
       "WebFetch(domain:bitmovin.com)",
       "Bash(xcodebuild -list:*)",
-      "Bash(npm run test:coverage:*)"
+      "Bash(npm run test:coverage:*)",
+      "Bash(chmod:*)",
+      "Bash(bash:*)"
     ],
     "deny": [],
     "ask": []

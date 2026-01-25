@@ -12,6 +12,7 @@ TomoTV's killer feature: seamless multi-audio track switching during transcoding
 - [`CLAUDE-api-reference.md`](./CLAUDE-api-reference.md) - Transcoding API functions
 - [`CLAUDE-external-dependencies.md`](./CLAUDE-external-dependencies.md) - Swift module architecture
 - [`CLAUDE-patterns.md`](./CLAUDE-patterns.md) - Multi-audio implementation patterns
+- [`CLAUDE-lessons-learned.md`](./CLAUDE-lessons-learned.md) - Audio track debugging cases
 
 ---
 

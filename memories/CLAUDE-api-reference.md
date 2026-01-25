@@ -13,6 +13,7 @@ Complete reference for all `services/jellyfinApi.ts` functions including server 
 - [`CLAUDE-configuration.md`](./CLAUDE-configuration.md) - Configuration management functions
 - [`CLAUDE-patterns.md`](./CLAUDE-patterns.md) - Common API usage patterns
 - [`CLAUDE-multi-audio.md`](./CLAUDE-multi-audio.md) - Multi-audio transcoding implementation
+- [`CLAUDE-security.md`](./CLAUDE-security.md) - API security considerations
 
 ---
 

@@ -7,7 +7,7 @@
 
 ## Quick Reference
 **Category:** Testing
-**Keywords:** testing, Jest, coverage, unit tests, integration tests, mocking, threading
+**Keywords:** testing, test, Jest, coverage, unit tests, integration tests, mocking, threading
 
 Comprehensive testing strategy with current coverage analysis, test patterns, and roadmap to 80% coverage.
 

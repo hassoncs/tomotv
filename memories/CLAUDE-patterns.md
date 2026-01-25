@@ -12,6 +12,11 @@ Common development patterns for screens, API methods, video playback, hooks, and
 - [`CLAUDE-api-reference.md`](./CLAUDE-api-reference.md) - API usage examples
 - [`CLAUDE-state-management.md`](./CLAUDE-state-management.md) - State management patterns
 - [`CLAUDE-testing.md`](./CLAUDE-testing.md) - Testing patterns
+- [`CLAUDE-app-performance.md`](./CLAUDE-app-performance.md) - Performance patterns
+- [`CLAUDE-components.md`](./CLAUDE-components.md) - Component patterns
+- [`CLAUDE-development.md`](./CLAUDE-development.md) - Development workflow
+- [`CLAUDE-lessons-learned.md`](./CLAUDE-lessons-learned.md) - Lessons inform best practices
+- [`CLAUDE-multi-audio.md`](./CLAUDE-multi-audio.md) - Multi-audio implementation patterns
 
 ---
 

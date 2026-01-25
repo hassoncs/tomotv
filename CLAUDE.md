@@ -261,6 +261,28 @@ Should I proceed with this approach?
 
 **You DON'T need to tell me to read these files.**
 
+### Category-Based Loading
+
+**When you need all files in a category:**
+
+**Implementation (8 files):**
+- "implementation files" / "all implementation docs" → Load: api-reference, state-management, multi-audio, configuration, patterns, external-dependencies, lessons-learned, components
+
+**Testing (1 file):**
+- "testing files" / "test documentation" → Load: testing
+
+**Security (1 file):**
+- "security files" / "security docs" → Load: security
+
+**Performance (1 file):**
+- "performance files" / "performance docs" → Load: app-performance
+
+**Deployment (4 files):**
+- "deployment files" / "deployment docs" / "App Store docs" → Load: development, tvos-icons, apple-store-metadata, apple-store-checklist
+
+**Complete Context:**
+- "all memory files" / "complete documentation" → Load all 16 memory bank files
+
 ### Lessons Learned
 
 See `memories/CLAUDE-lessons-learned.md` for detailed case studies of bugs and issues encountered during development.
