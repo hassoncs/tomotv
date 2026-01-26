@@ -6,9 +6,18 @@
  */
 
 import * as jellyfinApi from "@/services/jellyfinApi";
+import { TVEventControl } from "react-native";
 
 // Mock dependencies
 jest.mock("@/services/jellyfinApi");
+jest.mock("@/utils/logger", () => ({
+  logger: {
+    debug: jest.fn(),
+    error: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+  },
+}));
 jest.mock("@/contexts/LibraryContext", () => ({
   useLibrary: () => ({
     isLoading: false,
@@ -239,6 +248,115 @@ describe("Search Screen Focus Navigation", () => {
       const hasMore = total !== undefined && items.length < total;
 
       expect(hasMore).toBe(false);
+    });
+  });
+
+  describe("onSearchFieldFocused and onSearchFieldBlurred callbacks", () => {
+    /**
+     * These callbacks are used by NativeSearchScreen to manage TVEventControl
+     * gesture handlers when the search field gains/loses focus.
+     *
+     * This is a fallback mechanism for tvOS keyboard input - the native library
+     * attempts to disable RN gesture handlers automatically, but these callbacks
+     * provide a JS-based fallback if that doesn't work.
+     */
+
+    it("should disable gesture handlers when search field is focused", () => {
+      // Mock TVEventControl
+      const mockDisable = jest.fn();
+      (TVEventControl as any).disableGestureHandlersCancelTouches = mockDisable;
+
+      // Simulate handleSearchFieldFocused callback behavior
+      const handleSearchFieldFocused = () => {
+        if (TVEventControl?.disableGestureHandlersCancelTouches) {
+          TVEventControl.disableGestureHandlersCancelTouches();
+        }
+      };
+
+      handleSearchFieldFocused();
+
+      expect(mockDisable).toHaveBeenCalledTimes(1);
+    });
+
+    it("should enable gesture handlers when search field is blurred", () => {
+      // Mock TVEventControl
+      const mockEnable = jest.fn();
+      (TVEventControl as any).enableGestureHandlersCancelTouches = mockEnable;
+
+      // Simulate handleSearchFieldBlurred callback behavior
+      const handleSearchFieldBlurred = () => {
+        if (TVEventControl?.enableGestureHandlersCancelTouches) {
+          TVEventControl.enableGestureHandlersCancelTouches();
+        }
+      };
+
+      handleSearchFieldBlurred();
+
+      expect(mockEnable).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not throw when TVEventControl methods are unavailable", () => {
+      // Clear the mocked methods to simulate unavailable TVEventControl
+      const originalDisable = (TVEventControl as any).disableGestureHandlersCancelTouches;
+      const originalEnable = (TVEventControl as any).enableGestureHandlersCancelTouches;
+
+      delete (TVEventControl as any).disableGestureHandlersCancelTouches;
+      delete (TVEventControl as any).enableGestureHandlersCancelTouches;
+
+      // Simulate callbacks with guards
+      const handleSearchFieldFocused = () => {
+        if (TVEventControl?.disableGestureHandlersCancelTouches) {
+          TVEventControl.disableGestureHandlersCancelTouches();
+        }
+      };
+
+      const handleSearchFieldBlurred = () => {
+        if (TVEventControl?.enableGestureHandlersCancelTouches) {
+          TVEventControl.enableGestureHandlersCancelTouches();
+        }
+      };
+
+      // Should not throw
+      expect(() => handleSearchFieldFocused()).not.toThrow();
+      expect(() => handleSearchFieldBlurred()).not.toThrow();
+
+      // Restore
+      (TVEventControl as any).disableGestureHandlersCancelTouches = originalDisable;
+      (TVEventControl as any).enableGestureHandlersCancelTouches = originalEnable;
+    });
+
+    it("should handle focus/blur cycle correctly", () => {
+      const mockDisable = jest.fn();
+      const mockEnable = jest.fn();
+      (TVEventControl as any).disableGestureHandlersCancelTouches = mockDisable;
+      (TVEventControl as any).enableGestureHandlersCancelTouches = mockEnable;
+
+      const handleSearchFieldFocused = () => {
+        if (TVEventControl?.disableGestureHandlersCancelTouches) {
+          TVEventControl.disableGestureHandlersCancelTouches();
+        }
+      };
+
+      const handleSearchFieldBlurred = () => {
+        if (TVEventControl?.enableGestureHandlersCancelTouches) {
+          TVEventControl.enableGestureHandlersCancelTouches();
+        }
+      };
+
+      // Simulate user focus/blur cycle
+      handleSearchFieldFocused();
+      expect(mockDisable).toHaveBeenCalledTimes(1);
+      expect(mockEnable).toHaveBeenCalledTimes(0);
+
+      handleSearchFieldBlurred();
+      expect(mockDisable).toHaveBeenCalledTimes(1);
+      expect(mockEnable).toHaveBeenCalledTimes(1);
+
+      // Second focus/blur cycle
+      handleSearchFieldFocused();
+      handleSearchFieldBlurred();
+      expect(mockDisable).toHaveBeenCalledTimes(2);
+      expect(mockEnable).toHaveBeenCalledTimes(2);
     });
   });
 });

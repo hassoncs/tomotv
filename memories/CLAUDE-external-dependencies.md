@@ -64,11 +64,12 @@ npm run prebuild:tv
 - Customizable card dimensions (default 280×420, 2:3 aspect ratio)
 - Image content modes: fill, fit, contain
 - Error and validation warning events
+- **Apple TV hardware keyboard support** (v1.3.2+) - `onSearchFieldFocused`/`onSearchFieldBlurred` callbacks for `TVEventControl` integration
 
 ### Current Integration
 
-- **Version:** 1.3.1 (npm registry)
-- **Last updated:** January 21, 2026
+- **Version:** 1.3.2 (GitHub branch during development, npm for releases)
+- **Last updated:** January 25, 2026
 - **Status:** Stable, production-ready
 - **Local modifications:** None needed
 
