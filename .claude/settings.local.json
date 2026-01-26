@@ -53,7 +53,8 @@
       "Bash(xargs cat:*)",
       "Bash(git log:*)",
       "WebFetch(domain:sarunw.com)",
-      "WebFetch(domain:showmax.engineering)"
+      "WebFetch(domain:showmax.engineering)",
+      "Bash(npx jest --verbose)"
     ],
     "deny": [],
     "ask": []

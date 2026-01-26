@@ -87,20 +87,24 @@ export default function VideoLibraryScreen() {
 
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
 
+  // Show back item when inside a library (can go back to library selection)
+  const showBackItem = folderStack.length > 0;
+
   // Dynamic content padding that accounts for tab bar safe area
   // TV tab bar is ~210px tall, phone tab bars are ~49px + safe area
   const TAB_BAR_HEIGHT = Platform.isTV ? 210 : 49;
+  const isEmpty = items.length === 0 && !showBackItem;
   const gridContentStyle = useMemo(
     () => ({
       ...styles.gridContent,
       paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 20,
+      // flexGrow:1 allows ListEmptyComponent to center vertically
+      // Only applied when empty — otherwise it can break scrolling
+      ...(isEmpty && { flexGrow: 1 }),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [insets.bottom],
+    [insets.bottom, isEmpty],
   );
-
-  // Show back item when inside a library (can go back to library selection)
-  const showBackItem = folderStack.length > 0;
 
   // Create grid data with optional back item prepended
   const gridData: GridItem[] = useMemo(() => {
@@ -241,32 +245,29 @@ export default function VideoLibraryScreen() {
 
   return (
     <View style={styles.container}>
-      {items.length === 0 && !showBackItem ? (
-        renderEmpty()
-      ) : (
-        <FlatList
-          testID="library-list"
-          data={gridData}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.Id}
-          getItemLayout={getItemLayout}
-          numColumns={numColumns}
-          key={numColumns}
-          extraData={currentFolder?.id}
-          contentContainerStyle={gridContentStyle}
-          columnWrapperStyle={styles.columnWrapper}
-          showsVerticalScrollIndicator={true}
-          updateCellsBatchingPeriod={50}
-          initialNumToRender={Platform.isTV ? 15 : 12}
-          maxToRenderPerBatch={Platform.isTV ? 15 : 12}
-          windowSize={5}
-          contentInsetAdjustmentBehavior="automatic"
-          removeClippedSubviews={false}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={renderFooter}
-        />
-      )}
+      <FlatList
+        testID="library-list"
+        data={gridData}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.Id}
+        getItemLayout={getItemLayout}
+        numColumns={numColumns}
+        key={numColumns}
+        extraData={currentFolder?.id}
+        contentContainerStyle={gridContentStyle}
+        columnWrapperStyle={styles.columnWrapper}
+        showsVerticalScrollIndicator={true}
+        updateCellsBatchingPeriod={50}
+        initialNumToRender={Platform.isTV ? 15 : 12}
+        maxToRenderPerBatch={Platform.isTV ? 15 : 12}
+        windowSize={5}
+        contentInsetAdjustmentBehavior="automatic"
+        removeClippedSubviews={false}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
+        ListEmptyComponent={renderEmpty}
+      />
       <Breadcrumb stack={folderStack} />
     </View>
   );
