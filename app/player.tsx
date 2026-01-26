@@ -1,15 +1,13 @@
 import { FocusableButton } from "@/components/FocusableButton";
-import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { useVideoPlayback } from "@/hooks/useVideoPlayback";
-import { connectToDemoServer } from "@/services/jellyfinApi";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import Video from "react-native-video";
-import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, InteractionManager, LogBox, Platform, StyleSheet, Text, TouchableOpacity, useTVEventHandler, View } from "react-native";
+import React, { useCallback, useEffect } from "react";
+import { ActivityIndicator, BackHandler, LogBox, Platform, StyleSheet, Text, TouchableOpacity, useTVEventHandler, View } from "react-native";
 
 // Suppress known warnings
 LogBox.ignoreLogs([
@@ -28,8 +26,7 @@ export default function VideoPlayerScreen() {
   }>();
   const router = useRouter();
   const { hideGlobalLoader, showGlobalLoader } = useLoading();
-  const { refreshLibrary, videos } = useLibrary();
-  const { refresh: refreshFolderNavigation } = useFolderNavigation();
+  const { videos } = useLibrary();
 
   // Parse playlist index
   const currentPlaylistIndex = params.playlistIndex ? parseInt(params.playlistIndex, 10) : -1;
@@ -68,7 +65,6 @@ export default function VideoPlayerScreen() {
 
   // Track playing state for audio UI (use negation of paused state)
   const isPlaying = !paused;
-  const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
   // Callback ref for play/pause button - focuses immediately when mounted on TV
   const playPauseButtonRef = useCallback((node: React.ElementRef<typeof TouchableOpacity> | null) => {
@@ -104,44 +100,6 @@ export default function VideoPlayerScreen() {
       logger.error("Error toggling playback", error, { service: "VideoPlayer" });
     }
   }, [play, pause, isPlaying]);
-
-  // Handle Try Demo Server
-  const handleTryDemo = useCallback(async () => {
-    if (isConnectingToDemo) return; // Prevent double-click
-
-    setIsConnectingToDemo(true);
-    let connected = false;
-
-    try {
-      showGlobalLoader();
-      await connectToDemoServer();
-      connected = true;
-
-      await refreshLibrary();
-      await refreshFolderNavigation();
-
-      hideGlobalLoader();
-
-      Alert.alert("Demo Server Connected", "You're now connected to Jellyfin's demo server. Go back to browse the demo library.", [
-        {
-          text: "Go Back",
-          onPress: () => router.back(),
-        },
-      ]);
-    } catch (error) {
-      hideGlobalLoader();
-
-      if (connected) {
-        // Connection succeeded but refresh failed
-        Alert.alert("Connected to Demo", "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.", [{ text: "OK" }]);
-      } else {
-        // Connection failed
-        Alert.alert("Connection Failed", error instanceof Error ? error.message : "Unable to connect to demo server", [{ text: "OK" }]);
-      }
-    } finally {
-      setIsConnectingToDemo(false);
-    }
-  }, [isConnectingToDemo, showGlobalLoader, hideGlobalLoader, refreshLibrary, refreshFolderNavigation, router]);
 
   // Handle TV remote events
   useTVEventHandler(
@@ -262,7 +220,6 @@ export default function VideoPlayerScreen() {
           controls={true}
           paused={paused}
           allowsExternalPlayback={true}
-          pictureInPicture={Platform.OS === "ios"}
           {...videoCallbacks}
         />
       )}

@@ -30,6 +30,30 @@ The native tvOS search functionality is maintained in a **separate repository**.
 
 **Note:** The package at `~/@keiver/expo-tvos-search` is for reference only. TomoTV uses the npm registry version, not a local file dependency.
 
+### GitHub Dependency Syntax
+
+When testing unreleased changes, use a git branch reference instead of a local file path (local `file:` paths don't work with Metro bundler):
+
+```json
+// Use GitHub branch (WORKS)
+"expo-tvos-search": "github:keiver/expo-tvos-search#branch-name"
+
+// DON'T use local file path (Metro bundler fails to resolve)
+"expo-tvos-search": "file:../@keiver/expo-tvos-search"
+```
+
+**Supported formats:**
+- `github:user/repo#branch` - Specific branch
+- `github:user/repo#commit-sha` - Specific commit
+- `github:user/repo#tag` - Specific tag
+- `github:user/repo` - Default branch
+
+After updating package.json, run:
+```bash
+npm install
+npm run prebuild:tv
+```
+
 ### Features
 
 - Native tvOS keyboard integration
@@ -40,11 +64,12 @@ The native tvOS search functionality is maintained in a **separate repository**.
 - Customizable card dimensions (default 280×420, 2:3 aspect ratio)
 - Image content modes: fill, fit, contain
 - Error and validation warning events
+- **Apple TV hardware keyboard support** (v1.3.2+) - `onSearchFieldFocused`/`onSearchFieldBlurred` callbacks for `TVEventControl` integration
 
 ### Current Integration
 
-- **Version:** 1.3.1 (npm registry)
-- **Last updated:** January 21, 2026
+- **Version:** 1.3.2 (GitHub branch during development, npm for releases)
+- **Last updated:** January 25, 2026
 - **Status:** Stable, production-ready
 - **Local modifications:** None needed
 

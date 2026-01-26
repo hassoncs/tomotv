@@ -67,7 +67,7 @@ The hook handles:
 │ ↓ success                                                      │
 ├────────────────────────────────────────────────────────────────┤
 │ INITIALIZING_PLAYER                                            │
-│ - Passes URL to expo-video VideoView                           │
+│ - Passes URL to react-native-video player                      │
 │ - Player loads and buffers first segments                      │
 │ - Error → ERROR state (WITH auto-retry if !hasRetried)         │
 │ ↓ onLoad callback                                              │
