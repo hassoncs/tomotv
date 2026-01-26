@@ -92,13 +92,14 @@ export default function VideoLibraryScreen() {
   const gridContentStyle = useMemo(
     () => ({
       ...styles.gridContent,
+      paddingTop: (Platform.isTV ? 80 : 10) + insets.top,
       paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 20,
       // flexGrow:1 allows ListEmptyComponent to center vertically
       // Only applied when empty — otherwise it can break scrolling
       ...(isEmpty && { flexGrow: 1 }),
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [insets.bottom, isEmpty],
+    [insets.top, insets.bottom, isEmpty],
   );
 
   // Create grid data with optional back item prepended
@@ -117,12 +118,17 @@ export default function VideoLibraryScreen() {
   }, [numColumns]);
 
   const getItemLayout = useCallback(
-    (_: ArrayLike<GridItem> | null | undefined, index: number) => ({
-      length: itemDimensions.itemHeight,
-      offset: itemDimensions.itemHeight * Math.floor(index / numColumns),
-      index,
-    }),
-    [itemDimensions, numColumns],
+    (_: ArrayLike<GridItem> | null | undefined, index: number) => {
+      const rowPadding = 24 * 2; // columnWrapper paddingVertical: 24 (top + bottom)
+      const rowHeight = itemDimensions.itemHeight + rowPadding;
+      const contentPaddingTop = (Platform.isTV ? 80 : 10) + insets.top; // gridContent paddingTop + safe area
+      return {
+        length: rowHeight,
+        offset: contentPaddingTop + rowHeight * Math.floor(index / numColumns),
+        index,
+      };
+    },
+    [itemDimensions, numColumns, insets.top],
   );
 
   const renderItem = useCallback(
@@ -256,7 +262,7 @@ export default function VideoLibraryScreen() {
         initialNumToRender={Platform.isTV ? 15 : 12}
         maxToRenderPerBatch={Platform.isTV ? 15 : 12}
         windowSize={5}
-        contentInsetAdjustmentBehavior="automatic"
+        contentInsetAdjustmentBehavior="never"
         removeClippedSubviews={false}
         onEndReached={handleLoadMore}
         onEndReachedThreshold={0.5}

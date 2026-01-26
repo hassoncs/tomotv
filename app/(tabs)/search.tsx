@@ -322,11 +322,15 @@ function ReactNativeSearchScreen() {
   }, [numColumns]);
 
   const getItemLayout = useCallback(
-    (_: ArrayLike<JellyfinVideoItem> | null | undefined, index: number) => ({
-      length: itemDimensions.itemHeight,
-      offset: itemDimensions.itemHeight * Math.floor(index / numColumns),
-      index,
-    }),
+    (_: ArrayLike<JellyfinVideoItem> | null | undefined, index: number) => {
+      const rowPadding = (Platform.isTV ? 24 : 12) * 2; // columnWrapper paddingVertical (top + bottom)
+      const rowHeight = itemDimensions.itemHeight + rowPadding;
+      return {
+        length: rowHeight,
+        offset: rowHeight * Math.floor(index / numColumns),
+        index,
+      };
+    },
     [itemDimensions, numColumns],
   );
 
