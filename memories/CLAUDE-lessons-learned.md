@@ -1,10 +1,10 @@
 # Lessons Learned
 
-**Last Updated:** January 24, 2026
+**Last Updated:** January 26, 2026
 
 ## Quick Reference
 **Category:** Implementation
-**Keywords:** debugging, bugs, lessons, case studies, audio tracks, HLS, platform behavior
+**Keywords:** debugging, bugs, lessons, case studies, audio tracks, HLS, platform behavior, compliance tests, anti-patterns
 
 Case studies of significant bugs encountered during TomoTV development with root causes, solutions, and key takeaways.
 
@@ -60,6 +60,41 @@ Omit LANGUAGE attribute entirely for "und" tracks. Per RFC 8216, LANGUAGE is OPT
 ### Commit
 - Hash: 703c7a2
 - Message: "fix: audio tracks show correct name, no default selected mark in list tradeoff"
+
+---
+
+## Compliance Test Anti-Pattern (January 2026)
+
+### Problem
+AI-generated tests sometimes use `fs.readFileSync` to scan source code files and assert on string presence/absence, rather than testing actual runtime behavior. These "compliance tests" provide false confidence and test nothing meaningful.
+
+### Root Cause
+When asked to verify a code property (e.g., "ensure no console.log statements"), the path of least resistance is to read the source file and check for string patterns. This satisfies the request superficially but doesn't exercise any code paths.
+
+### Solution
+Established a rule: **all tests must exercise actual code paths.** If the only way to verify something is scanning source text, use a linter rule instead or skip the test entirely. No test is better than a fake test.
+
+### What Went Wrong
+- ❌ Used `fs.readFileSync` in test files to scan source code
+- ❌ Asserted on code text patterns instead of runtime behavior
+- ❌ Created tests that pass/fail based on string matching, not functionality
+- ❌ Provided false confidence that "everything is tested"
+
+### What Worked
+- ✅ Identified the anti-pattern and documented it
+- ✅ Added explicit rule to testing best practices
+- ✅ Audited all existing test files for violations (none found)
+- ✅ Clear guidance: use ESLint for code style, Jest for behavior
+
+### Key Takeaways
+1. **Tests must exercise code paths:** A test that reads source files is not a test — it's a linter with extra steps
+2. **No test > fake test:** If you can't write a meaningful behavioral test, skip it
+3. **Right tool for the job:** Use ESLint for code style enforcement, Jest for behavior verification
+4. **Question AI-generated tests:** Compliance tests are a common AI failure mode — always review test quality, not just quantity
+
+### Files Affected
+- `memories/CLAUDE-testing.md` (added No Compliance Tests rule)
+- No existing test files were in violation
 
 ---
 

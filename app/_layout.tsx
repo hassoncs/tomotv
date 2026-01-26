@@ -11,7 +11,6 @@ import { LibraryProvider } from "@/contexts/LibraryContext";
 import { FolderNavigationProvider } from "@/contexts/FolderNavigationContext";
 import { registerMultiAudioPlugin } from "@/services/multiAudioLoader";
 import { syncDevCredentials } from "@/services/jellyfinApi";
-import { prewarmSearchView } from "expo-tvos-search";
 
 // Suppress yellow box warnings on TV platforms
 if (Platform.isTV) {
@@ -27,11 +26,10 @@ const CustomDarkTheme = {
 };
 
 export default function RootLayout() {
-  // Register plugins and prewarm native views on app startup
+  // Register plugins and sync credentials on app startup
   useEffect(() => {
     registerMultiAudioPlugin();
     syncDevCredentials();
-    prewarmSearchView();
   }, []);
 
   return (

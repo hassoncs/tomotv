@@ -5,7 +5,7 @@ import { FolderGridItem } from "@/components/folder-grid-item";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
-import { connectToDemoServer, isFolder, syncDevCredentials } from "@/services/jellyfinApi";
+import { connectToDemoServer, isFolder } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,11 +45,6 @@ export default function VideoLibraryScreen() {
     const subscription = BackHandler.addEventListener("hardwareBackPress", handleBackPress);
     return () => subscription.remove();
   }, [folderStack, navigateBack]);
-
-  // Sync dev credentials on mount
-  useEffect(() => {
-    syncDevCredentials();
-  }, []);
 
   const handleItemPress = useCallback(
     (item: JellyfinItem) => {

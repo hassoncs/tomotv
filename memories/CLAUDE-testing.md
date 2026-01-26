@@ -1,13 +1,13 @@
 # Testing Strategy - TomoTV
 
-**Last Updated:** January 24, 2026 (added manual test video documentation)
+**Last Updated:** January 26, 2026 (added No Compliance Tests rule)
 **Current Coverage:** 51.1% overall
 **Test Framework:** Jest 29.7.0 with react-test-renderer
 **Target Coverage:** 80% (industry standard for production apps)
 
 ## Quick Reference
 **Category:** Testing
-**Keywords:** testing, test, Jest, coverage, unit tests, integration tests, mocking, threading
+**Keywords:** testing, test, Jest, coverage, unit tests, integration tests, mocking, threading, compliance tests, anti-patterns
 
 Comprehensive testing strategy with current coverage analysis, test patterns, and roadmap to 80% coverage.
 
@@ -649,6 +649,37 @@ describe('jellyfinApi - Input Validation', () => {
 ---
 
 ## Testing Best Practices
+
+### No Compliance Tests (CRITICAL)
+
+**Definition:** A "compliance test" is a test written solely to satisfy a request or check a box, without testing real runtime behavior. These tests use unacceptable patterns like reading source files to assert something about the code text, rather than exercising actual code paths.
+
+**Anti-Pattern Examples:**
+```typescript
+// ❌ BAD: Reading source code to check for string absence
+import fs from 'fs';
+it('should not use console.log', () => {
+  const source = fs.readFileSync('src/services/api.ts', 'utf8');
+  expect(source).not.toContain('console.log');
+});
+
+// ❌ BAD: Scanning file contents instead of testing behavior
+it('should use proper error handling', () => {
+  const source = fs.readFileSync('src/utils/helper.ts', 'utf8');
+  expect(source).toContain('try {');
+});
+```
+
+**Why This Is Wrong:**
+- Tests should exercise code paths, not scan text files
+- Source scanning tests are fragile (break on comments, string literals, refactors)
+- They provide false confidence — passing doesn't mean the code works correctly
+- They test **what the code looks like**, not **what the code does**
+
+**What To Do Instead:**
+- Write a test that calls the function and asserts on its output or side effects
+- If no meaningful behavioral test exists for the assertion, **skip the test entirely** — no test is better than a fake test
+- Use linting rules (ESLint) for code style enforcement, not Jest tests
 
 ### Mocking External Dependencies
 
