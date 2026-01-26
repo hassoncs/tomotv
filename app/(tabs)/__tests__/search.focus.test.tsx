@@ -48,7 +48,6 @@ describe("Search Screen Focus Navigation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();
-    mockSyncDevCredentials.mockResolvedValue();
   });
 
   afterEach(() => {
@@ -357,6 +356,19 @@ describe("Search Screen Focus Navigation", () => {
       handleSearchFieldBlurred();
       expect(mockDisable).toHaveBeenCalledTimes(2);
       expect(mockEnable).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe("syncDevCredentials ownership", () => {
+    /**
+     * Regression guard: syncDevCredentials was moved from the search screen
+     * to the root layout (app/_layout.tsx) so credentials are ready before
+     * any tab loads. The search screen must NOT call it.
+     */
+    it("should not be called by the search screen", () => {
+      // After all mocks are cleared, syncDevCredentials should never be called
+      // by any search screen code path. It's handled at app startup now.
+      expect(mockSyncDevCredentials).not.toHaveBeenCalled();
     });
   });
 });

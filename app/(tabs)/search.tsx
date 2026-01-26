@@ -2,7 +2,7 @@ import { FocusableButton } from "@/components/FocusableButton";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
-import { connectToDemoServer, getPosterUrl, searchVideos, syncDevCredentials } from "@/services/jellyfinApi";
+import { connectToDemoServer, getPosterUrl, searchVideos } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
@@ -70,10 +70,6 @@ function NativeSearchScreen() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    syncDevCredentials();
-  }, []);
 
   const handleSearch = useCallback((event: { nativeEvent: { query: string } }) => {
     const query = event.nativeEvent.query;
@@ -201,10 +197,6 @@ function ReactNativeSearchScreen() {
       const tvNode = firstResultNodeRef.current as unknown as { requestTVFocus?: () => void };
       tvNode.requestTVFocus?.();
     }
-  }, []);
-
-  useEffect(() => {
-    syncDevCredentials();
   }, []);
 
   useEffect(() => {
