@@ -44,8 +44,8 @@ export default function RootLayout() {
                   name="player"
                   options={{
                     headerShown: false,
-                    presentation: "fullScreenModal",
-                    animation: "none",
+                    presentation: "transparentModal",
+                    animation: "fade",
                   }}
                 />
               </Stack>

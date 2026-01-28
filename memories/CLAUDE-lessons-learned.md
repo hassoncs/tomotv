@@ -1,6 +1,6 @@
 # Lessons Learned
 
-**Last Updated:** January 26, 2026
+**Last Updated:** January 27, 2026
 
 ## Quick Reference
 **Category:** Implementation
@@ -95,6 +95,83 @@ Established a rule: **all tests must exercise actual code paths.** If the only w
 ### Files Affected
 - `memories/CLAUDE-testing.md` (added No Compliance Tests rule)
 - No existing test files were in violation
+
+---
+
+## False Apple Docs Claim in tvOS Focus Fix (January 2026)
+
+### Problem
+Implemented a tvOS focus restoration function based on an unverified claim about Apple's documentation. The code comment stated "Per Apple docs, UIKit rebuilds the focus spatial map when a focusable view is removed from the hierarchy." This claim was false.
+
+### Root Cause
+The plan stated an Apple docs fact that was never verified. The implementation was coded, commented, and JSDoc'd with "Per Apple docs" without anyone checking what Apple actually says. What Apple actually says: "UIKit automatically updates focus when a **focused** view is removed from the view hierarchy." The word "focused" is critical — it means the currently-focused view, not any arbitrary focusable view. Additionally, Apple doesn't use the term "spatial map" at all.
+
+### Solution
+Caught the error when the user asked for verification. Research confirmed the claim was false. The implementation (adding/removing a non-focused temporary focusable view) is almost certainly a no-op — UIKit has no reason to do anything when a view that never had focus is removed.
+
+### What Went Wrong
+- ❌ Implemented a plan without verifying its core assumption
+- ❌ Wrote "Per Apple docs" in code comments without reading Apple docs
+- ❌ Treated the plan's assertion as fact and coded it without due diligence
+- ❌ The plan itself had ~50% confidence but the code comments stated it as documented fact
+- ❌ Violated the Research-First Protocol from CLAUDE.md
+
+### What Worked
+- ✅ User asked a direct yes/no verification question
+- ✅ Fetched actual Apple documentation (App Programming Guide for tvOS, WWDC 2016/2017 transcripts)
+- ✅ Found the exact discrepancy: "focused view" vs "any focusable view"
+- ✅ Admitted the error immediately and transparently
+
+### Key Takeaways
+1. **Never write "Per docs" without reading the docs:** If a plan claims something is documented, verify it before implementing. "Per Apple docs" in a code comment is a factual assertion — treat it with the same rigor as a test assertion.
+2. **Verify facts from plans the same way you'd verify facts from memory:** A plan written by an AI is not a primary source. It can be wrong. The plan said "Per Apple docs" but had never checked.
+3. **Low-confidence plans need higher verification, not lower:** The plan stated ~50% confidence. That should have triggered MORE verification, not less.
+4. **The Research-First Protocol exists for a reason:** CLAUDE.md says "NEVER propose solutions based on assumptions alone." This applies to implementing plans too — the plan was the assumption.
+
+### Files Affected
+- `@keiver/expo-tvos-search/ios/ExpoTvosSearchModule.swift` (incorrect implementation)
+- `@keiver/expo-tvos-search/src/index.tsx` (incorrect JSDoc)
+
+---
+
+## tvOS Focus Engine Research Findings (January 2026)
+
+### Problem
+tvOS up/down traversal breaks after player modal dismissal. Focus visual is correct, left/right works, but vertical navigation is completely broken across all tabs.
+
+### Root Cause (Unconfirmed — debug data needed)
+react-native-screens has zero tvOS focus code. The `afterTransitions` block in `RNSScreenStack.mm:629` runs after modal dismiss but only updates window traits (status bar, orientation). No focus restoration is performed. The Android equivalent was fixed in PR #1894 by saving/restoring `lastFocusedChild`. tvOS was never fixed.
+
+### Key Findings From Research
+1. **UIKit's `restoresFocusAfterTransition` (default YES) handles focus POSITION** — and it works (visual is correct). The bug is about TRAVERSAL, which is a separate system.
+2. **`setNeedsFocusUpdate()` controls WHERE focus goes, not traversal** — This is why v1/v2 attempts moved focus but didn't fix the problem.
+3. **`RCTScrollViewComponentView.shouldUpdateFocusInContext` blocks vertical movement** when `context.nextFocusedItem` is nil or fails the containment check (`RCTScrollViewComponentView.mm:1181`). This could be the mechanism that blocks vertical traversal.
+4. **Fabric is missing `didMoveToSuperview` focus guide lifecycle** — `RCTTVView.m` (Old Arch) restores focus guide state when views are reattached; `RCTViewComponentView.mm` (Fabric) does not.
+5. **Apple's 4 automatic focus update triggers:** focused view removed, table/collection reloads, new VC presented, Menu button. None of these trigger a general "spatial map rebuild."
+
+### What Went Wrong
+- ❌ Attempted multiple fixes without understanding the root cause
+- ❌ Conflated focus POSITION (where focus lands) with focus TRAVERSAL (ability to navigate)
+- ❌ Assumed `setNeedsFocusUpdate()` rebuilds the focus engine's spatial understanding
+- ❌ Implemented a fix based on a false documentation claim
+
+### What Should Happen Next
+- ✅ Enable `-UIFocusLoggingEnabled` and debug with UIFocusDebugger to identify exact failure point
+- ✅ Check if `context.nextFocusedItem` is nil during vertical swipes after modal dismiss
+- ✅ Check if `shouldUpdateFocusInContext` returns NO on a scroll view
+- ✅ Apply targeted fix based on actual debug data
+
+### Key Takeaways
+1. **Focus position and focus traversal are different systems** — restoring position doesn't fix traversal
+2. **Debug before fixing** — Without knowing if the problem is in the focus engine, scroll view, or focus guides, any fix is a guess
+3. **Read the actual native code** — react-native-screens, react-native-tvos, and Apple's APIs all interact. Understanding the code paths is essential.
+4. **Fabric (New Arch) has different focus behavior than Old Arch** — Missing lifecycle methods in `RCTViewComponentView.mm` may contribute to focus bugs
+
+### Files Relevant
+- `node_modules/react-native-screens/ios/RNSScreenStack.mm:629` (afterTransitions block)
+- `node_modules/react-native/React/Fabric/Mounting/ComponentViews/ScrollView/RCTScrollViewComponentView.mm:1155` (shouldUpdateFocusInContext)
+- `node_modules/react-native/React/Fabric/Mounting/ComponentViews/View/RCTViewComponentView.mm` (missing didMoveToSuperview)
+- `node_modules/react-native/React/Views/RCTTVView.m:258` (Old Arch didMoveToSuperview with focus guide restoration)
 
 ---
 

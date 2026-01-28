@@ -54,7 +54,22 @@
       "Bash(git log:*)",
       "WebFetch(domain:sarunw.com)",
       "WebFetch(domain:showmax.engineering)",
-      "Bash(npx jest --verbose)"
+      "Bash(npx jest --verbose)",
+      "Bash(while read file)",
+      "Bash(do grep -l \"NativeTabs\\\\|StableModal\\\\|fullScreenModal\\\\|modal\" $file)",
+      "Bash(done)",
+      "Bash(npx jest:*)",
+      "WebFetch(domain:asciiwwdc.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:nirajpaul2.medium.com)",
+      "WebFetch(domain:tommyb.com)",
+      "WebFetch(domain:code.tutsplus.com)",
+      "WebFetch(domain:dev.to)",
+      "WebFetch(domain:www.g2i.co)",
+      "WebFetch(domain:betterprogramming.pub)",
+      "WebFetch(domain:noriginmedia.com)",
+      "WebFetch(domain:*)",
+      "WebFetch(domain:defagos.github.io)"
     ],
     "deny": [],
     "ask": []

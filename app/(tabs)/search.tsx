@@ -6,7 +6,7 @@ import { connectToDemoServer, getPosterUrl, searchVideos } from "@/services/jell
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, TVEventControl, View } from "react-native";
@@ -139,6 +139,16 @@ function NativeSearchScreen() {
       logger.debug("TVEventControl: enabled gesture handlers (search field blurred)", { service: "NativeSearchScreen" });
     }
   }, []);
+
+  // Safety net: when search screen regains focus (e.g., after modal dismissal),
+  // ensure TVEventControl gesture handlers are in their default enabled state.
+  useFocusEffect(
+    useCallback(() => {
+      if (TVEventControl?.enableGestureHandlersCancelTouches) {
+        TVEventControl.enableGestureHandlersCancelTouches();
+      }
+    }, []),
+  );
 
   return (
     <TvosSearchView
