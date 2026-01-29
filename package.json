@@ -3,7 +3,7 @@
   "version": "1.2.0",
   "description": "Stream videos from your Jellyfin server on Apple TV with automatic transcoding",
   "main": "expo-router/entry",
-  "author": "Keiver Hernandez <keiver@keiver.dev>",
+  "author": "Keiver Hernandez <contact@keiver.dev>",
   "license": "MIT",
   "repository": {
     "type": "git",
