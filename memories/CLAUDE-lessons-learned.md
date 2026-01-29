@@ -1,6 +1,6 @@
 # Lessons Learned
 
-**Last Updated:** January 27, 2026
+**Last Updated:** January 29, 2026
 
 ## Quick Reference
 **Category:** Implementation
@@ -134,44 +134,75 @@ Caught the error when the user asked for verification. Research confirmed the cl
 
 ---
 
-## tvOS Focus Engine Research Findings (January 2026)
+## tvOS FlatList Focus Escape Bug (January 2026)
 
 ### Problem
-tvOS up/down traversal breaks after player modal dismissal. Focus visual is correct, left/right works, but vertical navigation is completely broken across all tabs.
+Focus cannot escape FlatList to reach tab bar when pressing UP. Within the grid, up/down/left/right navigation works. But vertical navigation to elements OUTSIDE the ScrollView (like tab bar) is blocked.
 
-### Root Cause (Unconfirmed — debug data needed)
-react-native-screens has zero tvOS focus code. The `afterTransitions` block in `RNSScreenStack.mm:629` runs after modal dismiss but only updates window traits (status bar, orientation). No focus restoration is performed. The Android equivalent was fixed in PR #1894 by saving/restoring `lastFocusedChild`. tvOS was never fixed.
+### Root Cause (CONFIRMED)
+`RCTScrollViewComponentView.mm` lines 1177-1182 contains an overly restrictive containment check:
 
-### Key Findings From Research
-1. **UIKit's `restoresFocusAfterTransition` (default YES) handles focus POSITION** — and it works (visual is correct). The bug is about TRAVERSAL, which is a separate system.
-2. **`setNeedsFocusUpdate()` controls WHERE focus goes, not traversal** — This is why v1/v2 attempts moved focus but didn't fix the problem.
-3. **`RCTScrollViewComponentView.shouldUpdateFocusInContext` blocks vertical movement** when `context.nextFocusedItem` is nil or fails the containment check (`RCTScrollViewComponentView.mm:1181`). This could be the mechanism that blocks vertical traversal.
-4. **Fabric is missing `didMoveToSuperview` focus guide lifecycle** — `RCTTVView.m` (Old Arch) restores focus guide state when views are reattached; `RCTViewComponentView.mm` (Fabric) does not.
-5. **Apple's 4 automatic focus update triggers:** focused view removed, table/collection reloads, new VC presented, Menu button. None of these trigger a general "spatial map rebuild."
+```objc
+BOOL isMovingUp = (context.focusHeading == UIFocusHeadingUp && self.scrollView.contentOffset.y > 0);
+BOOL isMovingDown = (context.focusHeading == UIFocusHeadingDown &&
+    self.scrollView.contentOffset.y < self.scrollView.contentSize.height - MAX(self.scrollView.visibleSize.height, 1));
 
-### What Went Wrong
-- ❌ Attempted multiple fixes without understanding the root cause
-- ❌ Conflated focus POSITION (where focus lands) with focus TRAVERSAL (ability to navigate)
-- ❌ Assumed `setNeedsFocusUpdate()` rebuilds the focus engine's spatial understanding
-- ❌ Implemented a fix based on a false documentation claim
+if (isMovingUp || isMovingDown) {
+    return (context.nextFocusedItem && [UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]);
+}
+```
 
-### What Should Happen Next
-- ✅ Enable `-UIFocusLoggingEnabled` and debug with UIFocusDebugger to identify exact failure point
-- ✅ Check if `context.nextFocusedItem` is nil during vertical swipes after modal dismiss
-- ✅ Check if `shouldUpdateFocusInContext` returns NO on a scroll view
-- ✅ Apply targeted fix based on actual debug data
+When scrolled (`contentOffset.y > 0`), pressing UP triggers the containment check. If `nextFocusedItem` (tab bar) is OUTSIDE the ScrollView, `containsEnvironment` returns NO, blocking the focus update entirely.
+
+### What We Ruled Out
+- ❌ **Video overlay / modal transitions** — Bug exists without playing video
+- ❌ **expo-router / react-navigation** — Not involved
+- ❌ **TVFocusGuideView** — Our addition made it worse, but bug exists without it
+- ❌ **expo-tvos-search native module** — Not the cause
+- ❌ **requestTVFocus() with staggered delays** — Controls position, not traversal
+- ❌ **hasTVPreferredFocus** — Only affects initial mount
+- ❌ **setNeedsFocusUpdate()** — Controls where focus goes, not if it CAN go
+
+### Key Distinction
+All attempted fixes work on **focus POSITION** (where focus is). The bug is in **focus TRAVERSAL** (where focus can go). These are separate systems in UIKit.
+
+### What We Attempted (All Failed)
+1. Multiple `requestTVFocus()` calls with staggered delays (150ms, 300ms, 500ms)
+2. `TVFocusGuideView` wrapper with `autoFocus` and `destinations` props
+3. `hasTVPreferredFocus={true}` on grid items
+4. `focusRestoreKey` state to trigger re-evaluation
+5. Passing refs via `forwardRef` to first grid item
+
+### The Real Fix (Not Yet Implemented)
+Patch `react-native-tvos` to change the containment check to defer to parent hierarchy when target exists outside:
+
+```objc
+if (isMovingUp || isMovingDown) {
+    if (!context.nextFocusedItem) {
+        return NO;  // No target, block (scroll instead)
+    }
+    if ([UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]) {
+        return YES;  // Target inside scroll view, allow
+    }
+    // Target exists but OUTSIDE - defer to parent hierarchy
+    return [super shouldUpdateFocusInContext:context];  // ← THE FIX
+}
+```
 
 ### Key Takeaways
 1. **Focus position and focus traversal are different systems** — restoring position doesn't fix traversal
-2. **Debug before fixing** — Without knowing if the problem is in the focus engine, scroll view, or focus guides, any fix is a guess
-3. **Read the actual native code** — react-native-screens, react-native-tvos, and Apple's APIs all interact. Understanding the code paths is essential.
-4. **Fabric (New Arch) has different focus behavior than Old Arch** — Missing lifecycle methods in `RCTViewComponentView.mm` may contribute to focus bugs
+2. **Verify root cause before implementing fixes** — We wasted time on JS-level fixes when the bug is in native code
+3. **Test without the suspected cause** — Testing grid navigation WITHOUT playing video proved overlay wasn't the issue
+4. **Read the actual native code** — The answer was in `RCTScrollViewComponentView.mm` the whole time
+5. **TVFocusGuideView can make things worse** — It interfered with normal focus behavior
+6. **Core RN bugs require core RN patches** — JS-level workarounds cannot fix native containment checks
 
 ### Files Relevant
-- `node_modules/react-native-screens/ios/RNSScreenStack.mm:629` (afterTransitions block)
-- `node_modules/react-native/React/Fabric/Mounting/ComponentViews/ScrollView/RCTScrollViewComponentView.mm:1155` (shouldUpdateFocusInContext)
-- `node_modules/react-native/React/Fabric/Mounting/ComponentViews/View/RCTViewComponentView.mm` (missing didMoveToSuperview)
-- `node_modules/react-native/React/Views/RCTTVView.m:258` (Old Arch didMoveToSuperview with focus guide restoration)
+- `node_modules/react-native/React/Fabric/Mounting/ComponentViews/ScrollView/RCTScrollViewComponentView.mm:1177-1182` (the bug)
+- `app/(tabs)/index.tsx` (where we attempted JS fixes)
+
+### Status
+Codebase reset to clean state. Awaiting `patch-package` implementation to fix the native code.
 
 ---
 

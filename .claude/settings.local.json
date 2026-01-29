@@ -69,7 +69,9 @@
       "WebFetch(domain:betterprogramming.pub)",
       "WebFetch(domain:noriginmedia.com)",
       "WebFetch(domain:*)",
-      "WebFetch(domain:defagos.github.io)"
+      "WebFetch(domain:defagos.github.io)",
+      "WebFetch(domain:api.github.com)",
+      "Bash(npx patch-package:*)"
     ],
     "deny": [],
     "ask": []

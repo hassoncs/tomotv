@@ -70,37 +70,29 @@ export default function VideoLibraryScreen() {
         showGlobalLoader();
         router.push({
           pathname: "/player" as const,
-          params: {
-            videoId: item.Id,
-            videoName: item.Name,
-          },
+          params: { videoId: item.Id, videoName: item.Name },
         });
       }
     },
-    [navigateToFolder, router, showGlobalLoader, currentFolder],
+    [navigateToFolder, showGlobalLoader, router, currentFolder],
   );
 
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);
 
-  // Show back item when inside a library (can go back to library selection)
-  const showBackItem = folderStack.length > 0;
-
   // Dynamic content padding that accounts for tab bar safe area
   // TV tab bar is ~210px tall, phone tab bars are ~49px + safe area
   const TAB_BAR_HEIGHT = Platform.isTV ? 210 : 49;
-  const isEmpty = items.length === 0 && !showBackItem;
   const gridContentStyle = useMemo(
     () => ({
       ...styles.gridContent,
-      paddingTop: (Platform.isTV ? 80 : 10) + insets.top,
+      paddingTop: (Platform.isTV ? 20 : 10) + insets.top + 80,
       paddingBottom: TAB_BAR_HEIGHT + insets.bottom + 20,
-      // flexGrow:1 allows ListEmptyComponent to center vertically
-      // Only applied when empty — otherwise it can break scrolling
-      ...(isEmpty && { flexGrow: 1 }),
     }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [insets.top, insets.bottom, isEmpty],
+    [insets.top, insets.bottom],
   );
+
+  // Show back item when inside a library (can go back to library selection)
+  const showBackItem = folderStack.length > 0;
 
   // Create grid data with optional back item prepended
   const gridData: GridItem[] = useMemo(() => {
@@ -118,17 +110,12 @@ export default function VideoLibraryScreen() {
   }, [numColumns]);
 
   const getItemLayout = useCallback(
-    (_: ArrayLike<GridItem> | null | undefined, index: number) => {
-      const rowPadding = 24 * 2; // columnWrapper paddingVertical: 24 (top + bottom)
-      const rowHeight = itemDimensions.itemHeight + rowPadding;
-      const contentPaddingTop = (Platform.isTV ? 80 : 10) + insets.top; // gridContent paddingTop + safe area
-      return {
-        length: rowHeight,
-        offset: contentPaddingTop + rowHeight * Math.floor(index / numColumns),
-        index,
-      };
-    },
-    [itemDimensions, numColumns, insets.top],
+    (_: ArrayLike<GridItem> | null | undefined, index: number) => ({
+      length: itemDimensions.itemHeight,
+      offset: itemDimensions.itemHeight * Math.floor(index / numColumns),
+      index,
+    }),
+    [itemDimensions, numColumns],
   );
 
   const renderItem = useCallback(
@@ -246,29 +233,32 @@ export default function VideoLibraryScreen() {
 
   return (
     <View style={styles.container}>
-      <FlatList
-        testID="library-list"
-        data={gridData}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.Id}
-        getItemLayout={getItemLayout}
-        numColumns={numColumns}
-        key={numColumns}
-        extraData={currentFolder?.id}
-        contentContainerStyle={gridContentStyle}
-        columnWrapperStyle={styles.columnWrapper}
-        showsVerticalScrollIndicator={true}
-        updateCellsBatchingPeriod={50}
-        initialNumToRender={Platform.isTV ? 15 : 12}
-        maxToRenderPerBatch={Platform.isTV ? 15 : 12}
-        windowSize={5}
-        contentInsetAdjustmentBehavior="never"
-        removeClippedSubviews={false}
-        onEndReached={handleLoadMore}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={renderFooter}
-        ListEmptyComponent={renderEmpty}
-      />
+      {items.length === 0 && !showBackItem ? (
+        renderEmpty()
+      ) : (
+        <FlatList
+          testID="library-list"
+          data={gridData}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.Id}
+          getItemLayout={getItemLayout}
+          numColumns={numColumns}
+          key={numColumns}
+          extraData={currentFolder?.id}
+          contentContainerStyle={gridContentStyle}
+          columnWrapperStyle={styles.columnWrapper}
+          showsVerticalScrollIndicator={true}
+          updateCellsBatchingPeriod={50}
+          initialNumToRender={Platform.isTV ? 15 : 12}
+          maxToRenderPerBatch={Platform.isTV ? 15 : 12}
+          windowSize={5}
+          contentInsetAdjustmentBehavior="never"
+          removeClippedSubviews={false}
+          onEndReached={handleLoadMore}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={renderFooter}
+        />
+      )}
       <Breadcrumb stack={folderStack} />
     </View>
   );
@@ -280,7 +270,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#1C1C1E",
   },
   gridContent: {
-    paddingTop: Platform.isTV ? 20 : 10,
     paddingLeft: Platform.isTV ? 80 : 60,
     paddingRight: Platform.isTV ? 40 : 20,
   },

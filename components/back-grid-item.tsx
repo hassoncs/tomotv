@@ -1,6 +1,6 @@
 import { DESIGN } from "@/constants/app";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useState } from "react";
+import React, { forwardRef, useCallback, useState } from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const IS_TV = Platform.isTV;
@@ -12,7 +12,10 @@ interface BackGridItemProps {
   hasTVPreferredFocus?: boolean;
 }
 
-function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGridItemProps) {
+const BackGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpacity>, BackGridItemProps>(function BackGridItemComponent(
+  { onPress, hasTVPreferredFocus = false },
+  ref,
+) {
   const [focused, setFocused] = useState(false);
 
   const handleFocus = useCallback(() => {
@@ -25,6 +28,7 @@ function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGri
 
   return (
     <TouchableOpacity
+      ref={ref}
       onPress={onPress}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -57,7 +61,7 @@ function BackGridItemComponent({ onPress, hasTVPreferredFocus = false }: BackGri
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 export const BackGridItem = React.memo(BackGridItemComponent);
 

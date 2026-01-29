@@ -44,7 +44,7 @@ export default function RootLayout() {
                   name="player"
                   options={{
                     headerShown: false,
-                    presentation: "transparentModal",
+                    presentation: "fullScreenModal",
                     animation: "fade",
                   }}
                 />
