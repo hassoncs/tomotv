@@ -15,6 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Communication Format
 
 **Visual Padding:**
+
 - Add 10 blank lines BEFORE my response text
 - Add 10 blank lines AFTER my response text
 - Provides visual breathing room in terminal output
@@ -31,7 +32,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 2. **Check prerequisites**
    - Do I need to read files first?
    - Is this a codebase exploration task? (use Task tool)
-   - Are there related CLAUDE-*.md files to load?
+   - Are there related CLAUDE-\*.md files to load?
 
 3. **Present my approach**
    - "Should I: [1, 2, 3]?"
@@ -46,6 +47,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **When presenting implementation plans:**
 
 **Format:**
+
 - Maximum 2 paragraphs of explanation
 - Use bulleted lists for steps
 - Use checkboxes for action items
@@ -72,6 +74,7 @@ Should I proceed with this approach?
 ```
 
 **Example Bad Plan:**
+
 - ❌ Showing full function implementations
 - ❌ Showing before/after diffs
 - ❌ Multi-page code snippets
@@ -87,22 +90,24 @@ Should I proceed with this approach?
 4. **Ask once, implement once** - Get full requirements before coding
 
 **When NOT to ask:**
+
 - Obvious bugs with clear fixes
 - User gave explicit, detailed instructions
 - Single-file changes with no architectural impact
 
 ### Tool Selection Matrix
 
-| Scenario | Tool | Why |
-|----------|------|-----|
-| "Where is X implemented?" | Task (Explore) | **ALWAYS use this - be aggressive** |
-| "Read this specific file" | Read | Direct, no overhead |
-| "Find all uses of function Y" | Grep | Exact matches, fast |
-| "Understand how feature Z works" | Task (Explore) | **ALWAYS use this - be aggressive** |
-| "How does the codebase work?" | Task (Explore) | **ALWAYS use this - be aggressive** |
-| Need to edit multiple files | Edit (parallel) | Batch edits in one message |
+| Scenario                         | Tool            | Why                                 |
+| -------------------------------- | --------------- | ----------------------------------- |
+| "Where is X implemented?"        | Task (Explore)  | **ALWAYS use this - be aggressive** |
+| "Read this specific file"        | Read            | Direct, no overhead                 |
+| "Find all uses of function Y"    | Grep            | Exact matches, fast                 |
+| "Understand how feature Z works" | Task (Explore)  | **ALWAYS use this - be aggressive** |
+| "How does the codebase work?"    | Task (Explore)  | **ALWAYS use this - be aggressive** |
+| Need to edit multiple files      | Edit (parallel) | Batch edits in one message          |
 
 **Exploration Policy:**
+
 - **BE AGGRESSIVE** with Task (Explore) tool for codebase questions
 - Don't ask permission - just use it
 - Only use manual Grep/Glob when you need exact file paths
@@ -125,6 +130,7 @@ Should I proceed with this approach?
 4. ❌ **NEVER propose solutions based on assumptions alone**
 
 **Example:**
+
 - Before modifying HLS manifest generation, read Apple's HLS Authoring Specification
 - Before changing Swift code, inspect the current implementation in `native/ios/`
 - Before assuming iOS behavior, verify with official Apple documentation
@@ -139,6 +145,7 @@ Should I proceed with this approach?
 **Decision Thresholds (Ask vs Proceed):**
 
 **MUST ASK:**
+
 - Changes affecting >3 files
 - Breaking changes to public APIs
 - New dependencies (npm packages)
@@ -146,6 +153,7 @@ Should I proceed with this approach?
 - Multiple valid approaches with tradeoffs
 
 **CAN PROCEED:**
+
 - Single-file bug fixes
 - Adding tests for existing code
 - Refactoring with identical behavior
@@ -160,6 +168,7 @@ Should I proceed with this approach?
 - **If context seems lost:** read relevant CLAUDE.md sections to regain context
 
 **Red Flags:**
+
 - "Let me try X again" (if X already failed)
 - "Maybe if we adjust Y slightly" (without understanding why Y failed)
 - Proposing solutions without reading specs/code
@@ -170,10 +179,11 @@ Should I proceed with this approach?
 
 1. **STOP immediately**
 2. **Ask:** "What was our last confirmed decision?"
-3. **Re-read relevant CLAUDE-*.md files**
+3. **Re-read relevant CLAUDE-\*.md files**
 4. **Summarize understanding** before proceeding
 
 **Signs of lost context:**
+
 - Asking about already-discussed topics
 - Proposing solutions we already rejected
 - Forgetting platform constraints (iOS/tvOS)
@@ -187,6 +197,7 @@ Should I proceed with this approach?
 - Trace execution through multiple files if needed (e.g., TypeScript → Swift → AVPlayer)
 
 **Full File Reading Policy:**
+
 - **ALWAYS read FULL files** - never sample sections
 - If file is too large for single read:
   - Split into minimum readable chunks (use offset/limit parameters)
@@ -195,6 +206,7 @@ Should I proceed with this approach?
 - Be aware of ENTIRE file contents before proposing changes
 
 **Workflow:**
+
 1. Identify files involved in the feature
 2. Read actual implementation code (FULL files)
 3. Understand data flow and state management
@@ -203,12 +215,14 @@ Should I proceed with this approach?
 ### Code Quality Standards
 
 **Always:**
+
 - Type safety (no `any` types without explicit justification)
 - Error handling (try-catch around async operations)
 - Cleanup (useEffect cleanup, unsubscribe functions)
 - Comments only where logic isn't self-evident
 
 **Never:**
+
 - Over-engineering (don't add features not requested)
 - Premature abstraction (3 uses before extracting helper)
 - Backwards compatibility hacks (delete unused code completely)
@@ -217,6 +231,7 @@ Should I proceed with this approach?
 ### Task Completion Checklist
 
 **Before marking task complete:**
+
 - [ ] Code works (tested or high confidence)
 - [ ] No console errors/warnings introduced
 - [ ] Types compile (no TypeScript errors)
@@ -224,6 +239,7 @@ Should I proceed with this approach?
 - [ ] User's EXACT request satisfied (not what I think they need)
 
 **Don't add unless requested:**
+
 - Tests (unless fixing a bug)
 - Comments (unless logic is complex)
 - Extra features (scope creep)
@@ -233,6 +249,7 @@ Should I proceed with this approach?
 **I automatically load these files when you mention:**
 
 **Implementation Details:**
+
 - "API" / "jellyfinApi" / "functions" → `memories/CLAUDE-api-reference.md`
 - "state" / "manager" / "context" → `memories/CLAUDE-state-management.md`
 - "audio tracks" / "multi-audio" → `memories/CLAUDE-multi-audio.md`
@@ -242,22 +259,26 @@ Should I proceed with this approach?
 - "lessons" / "bug" / "debugging" → `memories/CLAUDE-lessons-learned.md`
 
 **Testing & Components:**
+
 - "testing" / "tests" / "coverage" / "jest" → `memories/CLAUDE-testing.md`
 - "components" / "UI" / "design system" → `memories/CLAUDE-components.md`
 
 **Security & Performance:**
+
 - "security" / "audit" / "vulnerability" → `memories/CLAUDE-security.md`
 - "performance" / "optimization" / "slow" → `memories/CLAUDE-app-performance.md`
 
 **Development & Deployment:**
+
 - "setup" / "install" / "development" → `memories/CLAUDE-development.md`
 - "icons" / "tvOS icons" / "top shelf" → `memories/CLAUDE-tvos-icons.md`
 - "App Store" / "metadata" / "screenshots" → `memories/CLAUDE-apple-store-metadata.md`
 - "submission" / "checklist" / "release" → `memories/CLAUDE-apple-store-checklist.md`
 
 **Other:**
+
 - "image" / "vision" / "screenshot analysis" → `memories/CLAUDE-image-analysis.md`
-- "Jellyfin API" / "server API" → Official API docs at https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json
+- "Jellyfin API" / "server API" → Official API docs at <https://api.jellyfin.org/openapi/jellyfin-openapi-stable.json>
 
 **You DON'T need to tell me to read these files.**
 
@@ -266,21 +287,27 @@ Should I proceed with this approach?
 **When you need all files in a category:**
 
 **Implementation (8 files):**
+
 - "implementation files" / "all implementation docs" → Load: api-reference, state-management, multi-audio, configuration, patterns, external-dependencies, lessons-learned, components
 
 **Testing (1 file):**
+
 - "testing files" / "test documentation" → Load: testing
 
 **Security (1 file):**
+
 - "security files" / "security docs" → Load: security
 
 **Performance (1 file):**
+
 - "performance files" / "performance docs" → Load: app-performance
 
 **Deployment (4 files):**
+
 - "deployment files" / "deployment docs" / "App Store docs" → Load: development, tvos-icons, apple-store-metadata, apple-store-checklist
 
 **Complete Context:**
+
 - "all memory files" / "complete documentation" → Load all 16 memory bank files
 
 ### Lessons Learned
@@ -288,12 +315,14 @@ Should I proceed with this approach?
 See `memories/CLAUDE-lessons-learned.md` for detailed case studies of bugs and issues encountered during development.
 
 **Auto-Append Policy:**
+
 - After resolving a significant bug/issue, I will **automatically append** a new lesson to `memories/CLAUDE-lessons-learned.md`
 - Uses the template format in that file
 - Captures: problem, root cause, solution, what went wrong, what worked
 - No need to ask permission - just document it
 
 **Most Recent:**
+
 - **Audio Track Label Bug (January 2026):** iOS prioritizes LANGUAGE over NAME in HLS manifests. Solution: Omit LANGUAGE for "und" tracks.
 
 ## Development Commands
@@ -347,11 +376,13 @@ native/
 ```
 
 **Why:**
+
 - `npm run prebuild:tv` **deletes and regenerates** the `ios/` and `android/` folders
 - Native source files are copied from `native/ios/` → `ios/` during prebuild
 - Any edits to `ios/` directly will be **lost** on next prebuild
 
 **Workflow:**
+
 1. Edit files in `native/ios/MultiAudioResourceLoader/`
 2. Run `npm run prebuild:tv` to copy changes to `ios/`
 3. Run `npm run ios` to rebuild and test
@@ -414,6 +445,7 @@ IDLE → FETCHING_METADATA → CREATING_STREAM → INITIALIZING_PLAYER → READY
 ```
 
 Key features:
+
 - Codec detection (H.264, HEVC supported natively; others transcode)
 - Automatic retry with transcoding on failure
 - Subtitle track management (burned-in or separate)
@@ -425,15 +457,16 @@ Key features:
 
 **PlaybackErrorType Enum:**
 
-| Error Type | Description | Recovery Strategy |
-|------------|-------------|-------------------|
-| `METADATA_FETCH` | Failed to fetch video details from server | User retry only |
-| `STREAM_URL` | Failed to generate stream URL | User retry only |
-| `PLAYBACK` | Video player initialization failed | **Auto-retry with transcoding** |
-| `NETWORK` | Network timeout or connection error | User retry only |
-| `UNKNOWN` | Unclassified errors | User retry only |
+| Error Type       | Description                               | Recovery Strategy               |
+| ---------------- | ----------------------------------------- | ------------------------------- |
+| `METADATA_FETCH` | Failed to fetch video details from server | User retry only                 |
+| `STREAM_URL`     | Failed to generate stream URL             | User retry only                 |
+| `PLAYBACK`       | Video player initialization failed        | **Auto-retry with transcoding** |
+| `NETWORK`        | Network timeout or connection error       | User retry only                 |
+| `UNKNOWN`        | Unclassified errors                       | User retry only                 |
 
 **Auto-Retry Logic:**
+
 - Only `PLAYBACK` errors trigger automatic retry
 - First attempt: Direct play (if codec H.264/HEVC)
 - Second attempt: Transcoding (if first attempt fails)
@@ -457,6 +490,7 @@ Single service for all Jellyfin communication with retry logic, timeouts, and co
 #### 5. Performance Optimizations
 
 **VideoGridItem Component:**
+
 - `React.memo` with custom comparison function
 - Lazy metadata computation (only when focused)
 - No scale animations (instant focus feedback via border only)
@@ -465,6 +499,7 @@ Single service for all Jellyfin communication with retry logic, timeouts, and co
 - BlurView only rendered when focused
 
 **FlatList Optimization:**
+
 - Configurable columns (5 for TV, 3 for phone)
 - Custom `getItemLayout` for predictable heights
 - `windowSize` optimization
@@ -506,6 +541,7 @@ The app uses a **Singleton Manager + Context wrapper** pattern for global state.
 The app uses a smart fallback system for credentials and settings.
 
 **Details:** See `memories/CLAUDE-configuration.md` for:
+
 - Development vs production configuration
 - Demo mode implementation
 - SecureStore keys reference
@@ -517,6 +553,7 @@ The app uses a smart fallback system for credentials and settings.
 ## Common Development Patterns
 
 **Details:** See `memories/CLAUDE-patterns.md` for:
+
 - Adding new screens
 - Adding new API methods
 - Video playback implementation
@@ -529,26 +566,31 @@ The app uses a smart fallback system for credentials and settings.
 ### Test Organization
 
 **Unit Tests:**
+
 - `services/__tests__/jellyfinApi.test.ts` - API methods, retry logic, mocking
 - `utils/__tests__/logger.test.ts` - Logging utilities
 - `utils/__tests__/retry.test.ts` - Exponential backoff
 - `hooks/__tests__/useVideoPlayback.test.ts` - Playback state machine
 
 **Integration Tests:**
+
 - `contexts/__tests__/LibraryContext.test.tsx` - Manager + Context integration
 - `contexts/__tests__/FolderNavigationContext.test.tsx` - Navigation flow
 - `contexts/__tests__/LoadingContext.test.tsx` - Global loading state
 
 **Threading & Concurrency Tests:**
+
 - `app/__tests__/player.threading.test.tsx` - Concurrent playback operations
 - `hooks/__tests__/useVideoPlayback.threading.test.ts` - Race condition safety
 - Focus: Cleanup on unmount, state consistency under rapid changes
 
 **UI Component Tests:**
+
 - `app/(tabs)/__tests__/search.test.tsx` - Search screen behavior
 - `app/(tabs)/__tests__/index.test.tsx` - Library screen pagination
 
 **Test Patterns:**
+
 - Use `react-test-renderer` for component testing
 - Mock external dependencies with `jest.mock()`: `expo-secure-store`, `expo-router`
 - Test harness pattern with refs for context testing
@@ -615,6 +657,7 @@ See `memories/CLAUDE-tvos-icons.md` for detailed tvOS icon setup, folder structu
 ## Additional Resources
 
 ### Implementation Details
+
 - `memories/CLAUDE-api-reference.md` - Complete API function reference
 - `memories/CLAUDE-state-management.md` - State management architecture
 - `memories/CLAUDE-multi-audio.md` - Multi-audio track switching feature
@@ -624,20 +667,24 @@ See `memories/CLAUDE-tvos-icons.md` for detailed tvOS icon setup, folder structu
 - `memories/CLAUDE-lessons-learned.md` - Bug case studies and debugging lessons
 
 ### Component & Testing Documentation
+
 - `memories/CLAUDE-components.md` - UI component documentation
 - `memories/CLAUDE-testing.md` - Testing strategy and coverage analysis
 
 ### Security & Performance
+
 - `memories/CLAUDE-security.md` - Security architecture and audit findings
 - `memories/CLAUDE-app-performance.md` - Performance optimization notes
 
 ### Apple Store & Development
+
 - `memories/CLAUDE-tvos-icons.md` - Apple TV icon guidelines
 - `memories/CLAUDE-apple-store-metadata.md` - App Store copy and metadata
 - `memories/CLAUDE-apple-store-checklist.md` - Submission checklist
 - `memories/CLAUDE-development.md` - Development setup guide
 
 ### Other Resources
+
 - `memories/CLAUDE-image-analysis.md` - Image analysis skill
 - `.env.example` - Environment variable template
 
@@ -645,3 +692,5 @@ See `memories/CLAUDE-tvos-icons.md` for detailed tvOS icon setup, folder structu
 
 1. Unless intentionally, DO NOT run commands on the `node_modules` directory
    - Stop searching node_modules unless required to inspect current lib implementation
+
+2. Plausible explanation for the observed behavior is NEVER an accepted solution, always confirm or research unknown facts, assumtion is not allowed

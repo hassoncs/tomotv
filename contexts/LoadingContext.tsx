@@ -1,5 +1,5 @@
 import React, { createContext, ReactNode, useCallback, useContext, useMemo, useState } from "react";
-import { ActivityIndicator, Modal, StyleSheet, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 interface LoadingContextType {
   showGlobalLoader: () => void;
@@ -25,11 +25,14 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
   return (
     <LoadingContext.Provider value={value}>
       {children}
-      <Modal visible={isLoading} transparent={true} animationType="slide" statusBarTranslucent={true}>
-        <View style={styles.globalLoader}>
+      {/* Using absolute View instead of Modal to avoid tvOS focus corruption.
+          Modal creates a new native view hierarchy which can break focus traversal
+          when it unmounts on tvOS. */}
+      {isLoading && (
+        <View style={styles.globalLoader} pointerEvents="auto">
           <ActivityIndicator size="small" color="#FFFFFF" />
         </View>
-      </Modal>
+      )}
     </LoadingContext.Provider>
   );
 }
@@ -44,9 +47,10 @@ export function useLoading() {
 
 const styles = StyleSheet.create({
   globalLoader: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0, 0, 0, 0.95)",
     justifyContent: "center",
     alignItems: "center",
+    zIndex: 9999,
   },
 });

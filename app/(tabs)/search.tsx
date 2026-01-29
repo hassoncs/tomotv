@@ -6,7 +6,7 @@ import { connectToDemoServer, getPosterUrl, searchVideos } from "@/services/jell
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, findNodeHandle, FlatList, Platform, StyleSheet, Text, TextInput, TVEventControl, View } from "react-native";
@@ -139,6 +139,16 @@ function NativeSearchScreen() {
       logger.debug("TVEventControl: enabled gesture handlers (search field blurred)", { service: "NativeSearchScreen" });
     }
   }, []);
+
+  // Safety net: when search screen regains focus (e.g., after modal dismissal),
+  // ensure TVEventControl gesture handlers are in their default enabled state.
+  useFocusEffect(
+    useCallback(() => {
+      if (TVEventControl?.enableGestureHandlersCancelTouches) {
+        TVEventControl.enableGestureHandlersCancelTouches();
+      }
+    }, []),
+  );
 
   return (
     <TvosSearchView
@@ -322,11 +332,15 @@ function ReactNativeSearchScreen() {
   }, [numColumns]);
 
   const getItemLayout = useCallback(
-    (_: ArrayLike<JellyfinVideoItem> | null | undefined, index: number) => ({
-      length: itemDimensions.itemHeight,
-      offset: itemDimensions.itemHeight * Math.floor(index / numColumns),
-      index,
-    }),
+    (_: ArrayLike<JellyfinVideoItem> | null | undefined, index: number) => {
+      const rowPadding = (Platform.isTV ? 24 : 12) * 2; // columnWrapper paddingVertical (top + bottom)
+      const rowHeight = itemDimensions.itemHeight + rowPadding;
+      return {
+        length: rowHeight,
+        offset: rowHeight * Math.floor(index / numColumns),
+        index,
+      };
+    },
     [itemDimensions, numColumns],
   );
 

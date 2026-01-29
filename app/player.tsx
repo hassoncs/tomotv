@@ -5,8 +5,8 @@ import { useVideoPlayback } from "@/hooks/useVideoPlayback";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import Video from "react-native-video";
 import React, { useCallback, useEffect } from "react";
+import Video from "react-native-video";
 import { ActivityIndicator, BackHandler, LogBox, Platform, StyleSheet, Text, TouchableOpacity, useTVEventHandler, View } from "react-native";
 
 // Suppress known warnings

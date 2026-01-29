@@ -15,7 +15,7 @@ const features: Feature[] = [
   { icon: "search-circle", label: "Native Search" },
 ];
 
-const DOCS_URL = "keiver.dev/lab/tomotv";
+const DOCS_URL = "tomotv.app";
 
 export default function HelpScreen() {
   const appFile = require("@/app.json");
@@ -38,6 +38,7 @@ export default function HelpScreen() {
               </View>
               <View style={styles.titleBlock}>
                 <Text style={styles.title}>Tomo TV</Text>
+                <Text style={styles.versionText}>v {version}</Text>
                 <Text style={styles.subtitle}>Play any video and audio from your Jellyfin library.</Text>
               </View>
             </View>
@@ -56,10 +57,8 @@ export default function HelpScreen() {
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
-              Built for <Text style={styles.jellyfinAccent}>Jellyfin</Text>
+              Built for your <Text style={styles.jellyfinAccent}>Jellyfin</Text> media server
             </Text>
-            <View style={styles.dot} />
-            <Text style={styles.versionText}>{version}</Text>
           </View>
         </View>
 
@@ -69,13 +68,13 @@ export default function HelpScreen() {
             <LinearGradient colors={["rgba(52,199,89,0.15)", "rgba(52,199,89,0.05)", "transparent"]} style={styles.qrGradient} start={{ x: 0.5, y: 0 }} end={{ x: 0.5, y: 1 }} />
 
             <Text style={styles.qrEyebrow}>SETUP GUIDE</Text>
+            <Text style={styles.qrHint}>Scan to get started</Text>
 
             <View style={styles.qrFrame}>
               <Image source={require("@/assets/images/tomotv-qr-1000px.png")} style={styles.qrImage} />
             </View>
 
             <Text style={styles.qrUrl}>{DOCS_URL}</Text>
-            <Text style={styles.qrHint}>Scan to get started</Text>
           </View>
         </View>
       </View>
@@ -139,7 +138,7 @@ const styles = StyleSheet.create({
     shadowColor: "#FFC312",
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
-    shadowRadius: TV ? 50 : 30,
+    shadowRadius: TV ? 40 : 30,
   },
   appIcon: {
     width: TV ? 120 : 80,
@@ -191,7 +190,7 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: TV ? 16 : 12,
-    color: "#48484A",
+    color: "#A6BFA3",
     fontWeight: "500",
   },
   jellyfinAccent: {
@@ -202,12 +201,15 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#38383A",
+    backgroundColor: "#A6BFA3",
   },
   versionText: {
     fontSize: TV ? 16 : 12,
-    color: "#38383A",
+    color: "#A6BFA3",
     fontWeight: "500",
+    position: "absolute",
+    top: TV ? 20 : 12,
+    right: "30%",
   },
 
   // Center column - QR Card
@@ -239,7 +241,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#34C759",
     letterSpacing: 3,
-    marginBottom: TV ? 32 : 18,
+    marginBottom: 10,
+    marginTop: 10,
   },
   qrFrame: {
     backgroundColor: "#FFFFFF",
@@ -250,6 +253,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.6,
     shadowRadius: 40,
     marginBottom: TV ? 32 : 18,
+    marginTop: 20,
   },
   qrImage: {
     width: TV ? 280 : 150,
@@ -258,7 +262,7 @@ const styles = StyleSheet.create({
   qrUrl: {
     fontSize: TV ? 24 : 15,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#4B99FF",
     marginBottom: TV ? 10 : 6,
   },
   qrHint: {

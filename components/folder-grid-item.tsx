@@ -4,7 +4,7 @@ import { JellyfinItem } from "@/types/jellyfin";
 import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { forwardRef, useCallback, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const IS_TV = Platform.isTV;
@@ -19,7 +19,10 @@ interface FolderGridItemProps {
   hasTVPreferredFocus?: boolean;
 }
 
-function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus = false }: FolderGridItemProps) {
+const FolderGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpacity>, FolderGridItemProps>(function FolderGridItemComponent(
+  { folder, onPress, index, hasTVPreferredFocus = false },
+  ref,
+) {
   const [focused, setFocused] = useState(false);
 
   const thumbnailUrl = useMemo(() => (folder.ImageTags?.Primary ? getFolderThumbnailUrl(folder.Id, POSTER_SIZE) : undefined), [folder.Id, folder.ImageTags?.Primary]);
@@ -40,6 +43,7 @@ function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus =
 
   return (
     <TouchableOpacity
+      ref={ref}
       onPress={handlePress}
       onFocus={handleFocus}
       onBlur={handleBlur}
@@ -99,7 +103,7 @@ function FolderGridItemComponent({ folder, onPress, index, hasTVPreferredFocus =
       </View>
     </TouchableOpacity>
   );
-}
+});
 
 function arePropsEqual(prev: FolderGridItemProps, next: FolderGridItemProps): boolean {
   return prev.folder.Id === next.folder.Id && prev.index === next.index && prev.onPress === next.onPress && prev.hasTVPreferredFocus === next.hasTVPreferredFocus;

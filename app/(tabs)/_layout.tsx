@@ -13,14 +13,14 @@ export default function TabLayout() {
         <Label>Search</Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="help">
-        <Label>Help</Label>
-        <Icon sf="questionmark.circle.fill" />
-      </NativeTabs.Trigger>
-
       <NativeTabs.Trigger name="settings">
         <Label>Settings</Label>
         <Icon sf="gearshape.fill" />
+      </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="help">
+        <Label>Help</Label>
+        <Icon sf="questionmark.circle.fill" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
