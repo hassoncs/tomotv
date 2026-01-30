@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 import { Dimensions, Platform, StyleSheet, Text, View } from "react-native";
 
 interface UpNextOverlayProps {
@@ -7,58 +7,17 @@ interface UpNextOverlayProps {
   progress: string;
   onSkip: () => void;
   visible: boolean;
+  upNextProgress: number;
+  paused: boolean;
 }
 
-const COUNTDOWN_SECONDS = 30;
-
-export function UpNextOverlay({ nextVideoName, progress, onSkip, visible }: UpNextOverlayProps) {
-  const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Reset countdown when overlay becomes visible
+export function UpNextOverlay({ nextVideoName, progress, onSkip, visible, upNextProgress, paused }: UpNextOverlayProps) {
+  // Auto-skip when progress drains to zero and video is playing
   useEffect(() => {
-    if (visible) {
-      setCountdown(COUNTDOWN_SECONDS);
-    }
-  }, [visible]);
-
-  // Countdown timer
-  useEffect(() => {
-    if (!visible) {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-      return;
-    }
-
-    intervalRef.current = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          if (intervalRef.current) {
-            clearInterval(intervalRef.current);
-            intervalRef.current = null;
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [visible]);
-
-  // Auto-skip when countdown reaches 0
-  useEffect(() => {
-    if (visible && countdown === 0) {
+    if (visible && upNextProgress <= 0 && !paused) {
       onSkip();
     }
-  }, [countdown, visible, onSkip]);
+  }, [visible, upNextProgress, paused, onSkip]);
 
   if (!visible) {
     return null;
@@ -70,7 +29,10 @@ export function UpNextOverlay({ nextVideoName, progress, onSkip, visible }: UpNe
         <View style={styles.header}>
           <Ionicons name="play-skip-forward" size={Platform.isTV ? 28 : 20} color="#FFC312" />
           <Text style={styles.headerText}>Up Next</Text>
-          <Text style={styles.countdown}>{`${countdown}s`}</Text>
+        </View>
+
+        <View style={styles.progressBarTrack}>
+          <View style={[styles.progressBarFill, { width: `${Math.max(0, Math.min(1, upNextProgress)) * 100}%` }]} />
         </View>
 
         <Text style={styles.videoName} numberOfLines={2}>
@@ -111,10 +73,17 @@ const styles = StyleSheet.create({
     color: "#FFC312",
     flex: 1,
   },
-  countdown: {
-    fontSize: Platform.isTV ? 20 : 14,
-    fontWeight: "600",
-    color: "#8E8E93",
+  progressBarTrack: {
+    height: 4,
+    backgroundColor: "rgba(142, 142, 147, 0.3)",
+    borderRadius: 2,
+    marginBottom: Platform.isTV ? 16 : 12,
+    overflow: "hidden" as const,
+  },
+  progressBarFill: {
+    height: "100%",
+    backgroundColor: "#FFC312",
+    borderRadius: 2,
   },
   videoName: {
     fontSize: Platform.isTV ? 24 : 17,

@@ -42,6 +42,8 @@ export default function VideoPlayerScreen() {
   const [showUpNext, setShowUpNext] = useState(false);
   const showUpNextRef = useRef(false);
   const videoDurationRef = useRef(0);
+  const [upNextProgress, setUpNextProgress] = useState(1);
+  const upNextThresholdRef = useRef(30);
 
   // Handle playback end - auto-play next video
   const handlePlaybackEnd = useCallback(() => {
@@ -114,15 +116,19 @@ export default function VideoPlayerScreen() {
       onLoad: (data: OnLoadData) => {
         videoCallbacks.onLoad(data);
         videoDurationRef.current = data.duration;
+        upNextThresholdRef.current = Math.min(30, Math.floor(data.duration / 2));
       },
       onProgress: (data: OnProgressData) => {
         videoCallbacks.onProgress(data);
         if (videoDurationRef.current > 0) {
           const remaining = videoDurationRef.current - data.currentTime;
-          const shouldShow = remaining <= 30 && remaining > 0;
+          const shouldShow = remaining <= upNextThresholdRef.current && remaining > 0;
           if (shouldShow !== showUpNextRef.current) {
             showUpNextRef.current = shouldShow;
             setShowUpNext(shouldShow);
+          }
+          if (showUpNextRef.current) {
+            setUpNextProgress(Math.max(0, remaining / upNextThresholdRef.current));
           }
         }
       },
@@ -248,6 +254,8 @@ export default function VideoPlayerScreen() {
           progress={progress}
           onSkip={handleQueueSkip}
           visible={showUpNext}
+          upNextProgress={upNextProgress}
+          paused={paused}
         />
       )}
 
