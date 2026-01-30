@@ -1590,6 +1590,84 @@ export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoIt
 }
 
 /**
+ * Fetch all playable videos recursively under a folder
+ * Used by the play queue to build a sequential playlist from a folder hierarchy
+ * Fetches in pages of 500 items, sorted by SortName for natural folder order
+ *
+ * @param parentId - The folder ID to fetch videos recursively from
+ * @returns Array of all playable video items under the folder
+ */
+export async function fetchRecursiveVideos(parentId: string): Promise<JellyfinVideoItem[]> {
+  const config = await getConfig();
+
+  if (!config.server || !config.apiKey || !config.userId) {
+    throw new Error("Jellyfin server not configured.");
+  }
+
+  const PAGE_SIZE = 500;
+  const allItems: JellyfinVideoItem[] = [];
+  let startIndex = 0;
+  let hasMore = true;
+
+  while (hasMore) {
+    const query = new URLSearchParams({
+      ParentId: parentId,
+      Recursive: "true",
+      IncludeItemTypes: "Movie,Video,Episode,Audio",
+      Fields: "Path,MediaStreams,Genres,ProductionYear",
+      StartIndex: String(startIndex),
+      Limit: String(PAGE_SIZE),
+      SortBy: "SortName",
+      SortOrder: "Ascending",
+    });
+
+    const url = `${config.server}/Users/${config.userId}/Items?${query.toString()}`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.EXTENDED);
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+          Authorization: `MediaBrowser Token="${config.apiKey}"`,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch recursive videos: ${response.status}`);
+      }
+
+      const data: JellyfinVideosResponse = await response.json();
+      const items = data.Items || [];
+      allItems.push(...items);
+
+      const total = data.TotalRecordCount;
+      startIndex += items.length;
+      hasMore = items.length === PAGE_SIZE && (total === undefined || startIndex < total);
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error("Request timed out fetching recursive videos.");
+      }
+      throw error;
+    }
+  }
+
+  logger.info("Fetched recursive videos for queue", {
+    service: "JellyfinAPI",
+    parentId,
+    totalVideos: allItems.length,
+  });
+
+  return allItems;
+}
+
+/**
  * Check if a video codec is natively supported on iOS/tvOS
  * iOS/tvOS native support:
  * - H.264 (AVC): Fully supported

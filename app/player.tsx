@@ -1,12 +1,15 @@
 import { FocusableButton } from "@/components/FocusableButton";
+import { UpNextOverlay } from "@/components/up-next-overlay";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
+import { usePlayQueue } from "@/contexts/PlayQueueContext";
 import { useVideoPlayback } from "@/hooks/useVideoPlayback";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Video from "react-native-video";
+import type { OnLoadData, OnProgressData } from "react-native-video";
 import { ActivityIndicator, BackHandler, LogBox, Platform, StyleSheet, Text, TouchableOpacity, useTVEventHandler, View } from "react-native";
 
 // Suppress known warnings
@@ -23,39 +26,73 @@ export default function VideoPlayerScreen() {
     videoId: string;
     videoName: string;
     playlistIndex?: string;
+    queueMode?: string;
   }>();
   const router = useRouter();
   const { hideGlobalLoader, showGlobalLoader } = useLoading();
   const { videos } = useLibrary();
+  const { hasNext, nextVideo, progress, advanceToNext, clear } = usePlayQueue();
+
+  const isQueueMode = params.queueMode === "true";
 
   // Parse playlist index
   const currentPlaylistIndex = params.playlistIndex ? parseInt(params.playlistIndex, 10) : -1;
 
+  // --- Queue mode: near-end overlay state ---
+  const [showUpNext, setShowUpNext] = useState(false);
+  const showUpNextRef = useRef(false);
+  const videoDurationRef = useRef(0);
+
   // Handle playback end - auto-play next video
   const handlePlaybackEnd = useCallback(() => {
-    // Check if there's a next video in the playlist
-    if (currentPlaylistIndex >= 0 && currentPlaylistIndex < videos.length - 1) {
-      const nextVideo = videos[currentPlaylistIndex + 1];
-      if (nextVideo) {
-        logger.info("Auto-playing next video", { service: "VideoPlayer", videoName: nextVideo.Name });
-        showGlobalLoader();
+    if (isQueueMode) {
+      // Queue mode: advance or clear
+      if (hasNext) {
+        const next = advanceToNext();
+        if (next) {
+          logger.info("Queue: advancing to next video", {
+            service: "VideoPlayer",
+            videoName: next.Name,
+          });
+          showGlobalLoader();
+          router.replace({
+            pathname: "/player" as const,
+            params: {
+              videoId: next.Id,
+              videoName: next.Name,
+              queueMode: "true",
+            },
+          });
+          return;
+        }
+      }
+      // End of queue
+      logger.info("Queue: end of queue, returning to library", { service: "VideoPlayer" });
+      clear();
+      router.back();
+      return;
+    }
 
-        // Navigate to next video with updated playlist index
+    // Legacy playlist mode
+    if (currentPlaylistIndex >= 0 && currentPlaylistIndex < videos.length - 1) {
+      const nextVid = videos[currentPlaylistIndex + 1];
+      if (nextVid) {
+        logger.info("Auto-playing next video", { service: "VideoPlayer", videoName: nextVid.Name });
+        showGlobalLoader();
         router.replace({
           pathname: "/player" as const,
           params: {
-            videoId: nextVideo.Id,
-            videoName: nextVideo.Name,
+            videoId: nextVid.Id,
+            videoName: nextVid.Name,
             playlistIndex: (currentPlaylistIndex + 1).toString(),
           },
         });
       }
     } else {
       logger.info("End of playlist, going back to library", { service: "VideoPlayer" });
-      // End of playlist, return to library
       router.back();
     }
-  }, [currentPlaylistIndex, videos, router, showGlobalLoader]);
+  }, [isQueueMode, hasNext, advanceToNext, clear, currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
   const { videoRef, sourceUri, paused, videoCallbacks, state, isAudioOnly, showLoadingOverlay, play, pause, retry } = useVideoPlayback({
@@ -78,6 +115,37 @@ export default function VideoPlayerScreen() {
     hideGlobalLoader();
   }, [hideGlobalLoader]);
 
+  // --- Queue: wrap video callbacks to detect near-end ---
+  const wrappedCallbacks = useMemo(() => {
+    if (!isQueueMode || !hasNext) return videoCallbacks;
+
+    return {
+      ...videoCallbacks,
+      onLoad: (data: OnLoadData) => {
+        videoCallbacks.onLoad(data);
+        videoDurationRef.current = data.duration;
+      },
+      onProgress: (data: OnProgressData) => {
+        videoCallbacks.onProgress(data);
+        if (videoDurationRef.current > 0) {
+          const remaining = videoDurationRef.current - data.currentTime;
+          const shouldShow = remaining <= 30 && remaining > 0;
+          if (shouldShow !== showUpNextRef.current) {
+            showUpNextRef.current = shouldShow;
+            setShowUpNext(shouldShow);
+          }
+        }
+      },
+    };
+  }, [videoCallbacks, isQueueMode, hasNext]);
+
+  // Queue: skip to next video immediately
+  const handleQueueSkip = useCallback(() => {
+    setShowUpNext(false);
+    showUpNextRef.current = false;
+    handlePlaybackEnd();
+  }, [handlePlaybackEnd]);
+
   // Handle back navigation
   const handleBack = useCallback(() => {
     try {
@@ -85,8 +153,11 @@ export default function VideoPlayerScreen() {
     } catch (_error) {
       // Ignore errors - player may already be cleaning up
     }
+    if (isQueueMode) {
+      clear();
+    }
     router.back();
-  }, [pause, router]);
+  }, [pause, router, isQueueMode, clear]);
 
   // Toggle play/pause for audio
   const handlePlayPause = useCallback(() => {
@@ -220,7 +291,7 @@ export default function VideoPlayerScreen() {
           controls={true}
           paused={paused}
           allowsExternalPlayback={true}
-          {...videoCallbacks}
+          {...wrappedCallbacks}
         />
       )}
 
@@ -229,6 +300,16 @@ export default function VideoPlayerScreen() {
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#FFFFFF" />
         </View>
+      )}
+
+      {/* Up Next Overlay (queue mode) */}
+      {isQueueMode && nextVideo && (
+        <UpNextOverlay
+          nextVideoName={nextVideo.Name}
+          progress={progress}
+          onSkip={handleQueueSkip}
+          visible={showUpNext}
+        />
       )}
 
       {/* Back button for iOS */}

@@ -5,6 +5,7 @@ import { FolderGridItem } from "@/components/folder-grid-item";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
+import { usePlayQueue } from "@/contexts/PlayQueueContext";
 import { connectToDemoServer, isFolder } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
@@ -23,6 +24,7 @@ export default function VideoLibraryScreen() {
   const insets = useSafeAreaInsets();
   const { showGlobalLoader, hideGlobalLoader } = useLoading();
   const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore, refresh } = useFolderNavigation();
+  const { buildQueue } = usePlayQueue();
   const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
   // Handle TV menu button for back navigation
@@ -66,7 +68,17 @@ export default function VideoLibraryScreen() {
           parentId: item.ParentId,
           type: item.Type === "Playlist" ? "playlist" : "folder",
         });
+      } else if (currentFolder) {
+        // Inside a folder — build a queue of all videos under this folder
+        const folderType = currentFolder.type === "playlist" ? "playlist" : "folder";
+        buildQueue(currentFolder.id, currentFolder.name, item.Id, folderType);
+        showGlobalLoader();
+        router.push({
+          pathname: "/player" as const,
+          params: { videoId: item.Id, videoName: item.Name, queueMode: "true" },
+        });
       } else {
+        // At library root — play standalone (no queue)
         showGlobalLoader();
         router.push({
           pathname: "/player" as const,
@@ -74,7 +86,7 @@ export default function VideoLibraryScreen() {
         });
       }
     },
-    [navigateToFolder, showGlobalLoader, router, currentFolder],
+    [navigateToFolder, showGlobalLoader, router, currentFolder, buildQueue],
   );
 
   const numColumns = useMemo(() => (Platform.isTV ? 5 : 3), []);

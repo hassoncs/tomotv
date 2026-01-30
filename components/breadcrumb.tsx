@@ -28,7 +28,7 @@ export function Breadcrumb({ stack }: BreadcrumbProps) {
       <View style={styles.container}>
         <View style={styles.rotatedContent}>
           <View style={styles.scrollContent}>
-            <Text style={styles.breadcrumbTextPlaceholder}>Library</Text>
+            <Text style={styles.breadcrumbTextPlaceholder}>Home</Text>
           </View>
         </View>
       </View>
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     width: 44,
-    backgroundColor: "#B339391E",
+    backgroundColor: "#F39D120C",
     overflow: "hidden",
   },
   rotatedContent: {
@@ -86,7 +86,6 @@ const styles = StyleSheet.create({
     color: "#98989D",
     fontSize: IS_TV ? 20 : 16,
     fontWeight: "600",
-    fontStyle: "italic",
   },
   separator: {
     marginHorizontal: IS_TV ? 8 : 4,
