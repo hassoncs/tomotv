@@ -95,20 +95,10 @@ export default function VideoPlayerScreen() {
   }, [isQueueMode, hasNext, advanceToNext, clear, currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
-  const { videoRef, sourceUri, paused, videoCallbacks, state, isAudioOnly, showLoadingOverlay, play, pause, retry } = useVideoPlayback({
+  const { videoRef, sourceUri, paused, videoCallbacks, state, showLoadingOverlay, pause, retry } = useVideoPlayback({
     videoId: params.videoId,
     onPlaybackEnd: handlePlaybackEnd,
   });
-
-  // Track playing state for audio UI (use negation of paused state)
-  const isPlaying = !paused;
-
-  // Callback ref for play/pause button - focuses immediately when mounted on TV
-  const playPauseButtonRef = useCallback((node: React.ElementRef<typeof TouchableOpacity> | null) => {
-    if (node && Platform.isTV) {
-      (node as unknown as { requestTVFocus: () => void }).requestTVFocus();
-    }
-  }, []);
 
   // Hide global loader when component mounts
   useEffect(() => {
@@ -159,19 +149,6 @@ export default function VideoPlayerScreen() {
     router.back();
   }, [pause, router, isQueueMode, clear]);
 
-  // Toggle play/pause for audio
-  const handlePlayPause = useCallback(() => {
-    try {
-      if (isPlaying) {
-        pause();
-      } else {
-        play();
-      }
-    } catch (error) {
-      logger.error("Error toggling playback", error, { service: "VideoPlayer" });
-    }
-  }, [play, pause, isPlaying]);
-
   // Handle TV remote events
   useTVEventHandler(
     useCallback(
@@ -179,12 +156,8 @@ export default function VideoPlayerScreen() {
         if (evt.eventType === "menu") {
           handleBack();
         }
-        // Handle play/pause for audio files via remote buttons
-        if (isAudioOnly && (evt.eventType === "playPause" || evt.eventType === "select")) {
-          handlePlayPause();
-        }
       },
-      [handleBack, isAudioOnly, handlePlayPause],
+      [handleBack],
     ),
   );
 
@@ -240,41 +213,7 @@ export default function VideoPlayerScreen() {
     );
   }
 
-  // Render audio-only player (no VideoView to avoid threading issues)
-  if (isAudioOnly) {
-    return (
-      <View style={styles.container}>
-        {/* Audio UI - No VideoView component */}
-        <View style={styles.audioContainer}>
-          <Ionicons name="musical-notes" size={Platform.isTV ? 120 : 80} color="rgba(255, 255, 255, 0.8)" />
-          <Text style={styles.audioTitle}>{params.videoName}</Text>
-          <Text style={styles.audioSubtitle}>Audio File</Text>
-
-          {/* Play/Pause Button */}
-          <TouchableOpacity
-            ref={playPauseButtonRef}
-            style={styles.playPauseButton}
-            onPress={handlePlayPause}
-            activeOpacity={1}
-            isTVSelectable={true}
-            accessibilityLabel={isPlaying ? "Pause" : "Play"}
-            accessibilityRole="button"
-            accessibilityHint={isPlaying ? "Pause audio playback" : "Resume audio playback"}>
-            <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Back button */}
-        {!Platform.isTV && (
-          <TouchableOpacity style={styles.iosBackButton} onPress={handleBack} accessibilityLabel="Close" accessibilityRole="button" accessibilityHint="Close player and return to library">
-            <Ionicons name="close" size={30} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }
-
-  // Render video player with native controls
+  // Render video player with native controls (also handles audio-only files)
   return (
     <View style={styles.container}>
       {/* Video Player with Native Controls */}
@@ -350,40 +289,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
-  },
-  audioContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#000000",
-    padding: 40,
-  },
-  audioTitle: {
-    marginTop: 32,
-    fontSize: Platform.isTV ? 32 : 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textAlign: "center",
-    paddingHorizontal: 40,
-  },
-  audioSubtitle: {
-    marginTop: 12,
-    fontSize: Platform.isTV ? 20 : 16,
-    fontWeight: "400",
-    color: "rgba(255, 255, 255, 0.6)",
-    textAlign: "center",
-  },
-  playPauseButton: {
-    marginTop: 48,
-    width: Platform.isTV ? 120 : 96,
-    height: Platform.isTV ? 120 : 96,
-    borderRadius: Platform.isTV ? 60 : 48,
-    borderWidth: 3,
-    borderColor: "#FFC312",
-    backgroundColor: "rgba(255, 195, 18, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-    opacity: 1,
   },
   errorContainer: {
     flex: 1,
