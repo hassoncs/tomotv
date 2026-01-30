@@ -2,7 +2,7 @@
   "expo": {
     "name": "tomotv",
     "slug": "tomotv",
-    "description": "Stream any video from your Jellyfin server. Automatic transcoding handles incompatible formats so you can just hit play and watch. Made for Apple TV.",
+    "description": "Stream any video from your Jellyfin server. Automatic transcoding handles incompatible formats so you can just hit play and watch.",
     "version": "1.2.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
@@ -34,9 +34,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#B33939",
+          "backgroundColor": "#F39C12",
           "dark": {
-            "backgroundColor": "#B33939"
+            "backgroundColor": "#F39C12"
           }
         }
       ],
