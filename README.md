@@ -8,13 +8,13 @@
 A simple and usable Jellyfin client for Apple TV with seamless multi-audio track switching and advanced subtitle support.
 
 <p align="center">
-  <img src="assets/images/screenshots/open-movies.webp" width="700" alt="TomoTV open movies view"/>
+  <img src="assets/images/screenshots/open-movies.webp" width="100%" alt="TomoTV with open movies folder"/>
 </p>
 
 <table>
   <tr>
     <td align="center">
-      <img src="assets/images/screenshots/folder-exploration.webp" width="280" alt="Folder exploration"/><br/>
+      <img src="assets/images/screenshots/folder-exploration.webp" width="280" alt="Folder exploration, browse by seassons"/><br/>
       <sub>Folder exploration</sub>
     </td>
     <td align="center">
