@@ -4,8 +4,8 @@ export default function TabLayout() {
   return (
     <NativeTabs blurEffect="systemChromeMaterial">
       <NativeTabs.Trigger name="index">
-        <Label>Library</Label>
         <Icon sf="film.fill" />
+        <Label>Library</Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="search">
@@ -14,13 +14,13 @@ export default function TabLayout() {
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="settings">
-        <Label>Settings</Label>
         <Icon sf="gearshape.fill" />
+        <Label>Settings</Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="help">
-        <Label>Help</Label>
         <Icon sf="questionmark.circle.fill" />
+        <Label>Help</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

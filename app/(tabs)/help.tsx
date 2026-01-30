@@ -10,9 +10,11 @@ interface Feature {
 }
 
 const features: Feature[] = [
-  { icon: "play-circle", label: "Adaptive Streaming" },
-  { icon: "cloud-done", label: "iCloud Sync" },
+  { icon: "play-circle", label: "Smart Streaming" },
+  { icon: "headset", label: "Multi-Audio Tracks" },
+  { icon: "text", label: "Subtitle Support" },
   { icon: "search-circle", label: "Native Search" },
+  { icon: "play-skip-forward", label: "Up Next Queue" },
 ];
 
 const DOCS_URL = "tomotv.app";
@@ -39,7 +41,7 @@ export default function HelpScreen() {
               <View style={styles.titleBlock}>
                 <Text style={styles.title}>Tomo TV</Text>
                 <Text style={styles.versionText}>v {version}</Text>
-                <Text style={styles.subtitle}>Play any video and audio from your Jellyfin library.</Text>
+                <Text style={styles.subtitle}>Stream any video from your Jellyfin server. Just press play.</Text>
               </View>
             </View>
 
@@ -163,7 +165,8 @@ const styles = StyleSheet.create({
   // Feature pills
   pillsRow: {
     flexDirection: "row",
-    gap: TV ? 16 : 10,
+    flexWrap: "wrap",
+    gap: TV ? 12 : 8,
   },
   pill: {
     flexDirection: "row",
@@ -209,7 +212,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     position: "absolute",
     top: TV ? 20 : 12,
-    right: "30%",
+    right: "40%",
   },
 
   // Center column - QR Card

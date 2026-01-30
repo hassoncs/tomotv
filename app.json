@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "tomotv",
+    "name": "Tomo TV",
     "slug": "tomotv",
     "description": "Stream any video from your Jellyfin server. Automatic transcoding handles incompatible formats so you can just hit play and watch.",
     "version": "1.2.0",
@@ -22,7 +22,7 @@
         "NSAppTransportSecurity": {
           "NSAllowsLocalNetworking": true
         },
-        "NSLocalNetworkUsageDescription": "TomoTV needs to access your local network to connect to your Jellyfin media server and stream videos to your Apple TV.",
+        "NSLocalNetworkUsageDescription": "Tomo TV needs to access your local network to connect to your Jellyfin media server and stream videos to your Apple TV.",
         "NSBonjourServices": ["_jellyfin._tcp"]
       }
     },

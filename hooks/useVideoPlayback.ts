@@ -1045,6 +1045,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     // Note: Already logged in player error handler above
     setHasTriedTranscoding(true);
     autoPlayTriggeredRef.current = false;
+    isPlayingRef.current = false;
 
     // Clear streamUrl to unmount Video component during retry
     // This prevents the old URL from firing additional errors
@@ -1089,6 +1090,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     setHasStablePlayback(false);
     hasStablePlaybackRef.current = false;
     autoPlayTriggeredRef.current = false;
+    isPlayingRef.current = false;
     dispatch({ type: "RETRY" });
   }, []);
 
