@@ -71,16 +71,17 @@
       "WebFetch(domain:*)",
       "WebFetch(domain:defagos.github.io)",
       "WebFetch(domain:api.github.com)",
-      "Bash(npx patch-package:*)"
+      "Bash(npx patch-package:*)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []
   },
-  "outputStyle": "default",
-  "spinnerTipsEnabled": false,
   "enabledPlugins": {
     "expo-app-design@expo-plugins": true,
     "upgrading-expo@expo-plugins": true,
     "expo-deployment@expo-plugins": true
-  }
+  },
+  "outputStyle": "default",
+  "spinnerTipsEnabled": false
 }

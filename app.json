@@ -2,7 +2,7 @@
   "expo": {
     "name": "tomotv",
     "slug": "tomotv",
-    "description": "Stream any video from your Jellyfin server. Automatic transcoding handles incompatible formats so you can just hit play and watch. Made for Apple TV.",
+    "description": "Stream any video from your Jellyfin server. Automatic transcoding handles incompatible formats so you can just hit play and watch.",
     "version": "1.2.0",
     "orientation": "default",
     "icon": "./assets/images/icon.png",
@@ -34,9 +34,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#B33939",
+          "backgroundColor": "#F39C12",
           "dark": {
-            "backgroundColor": "#B33939"
+            "backgroundColor": "#F39C12"
           }
         }
       ],
@@ -44,20 +44,12 @@
         "@react-native-tvos/config-tv",
         {
           "isTV": true,
-          "tvosDeploymentTarget": "15.1",
-          "appleTVImages": {
-            "icon": "./assets/images/tvos-flattened/icon-1280x768.png",
-            "iconSmall": "./assets/images/tvos-flattened/icon-400x240.png",
-            "iconSmall2x": "./assets/images/tvos-flattened/icon-800x480.png",
-            "topShelf": "./assets/images/tvos-flattened/topshelf-1920x720.png",
-            "topShelf2x": "./assets/images/tvos-flattened/topshelf-3840x1440.png",
-            "topShelfWide": "./assets/images/tvos-flattened/topshelf-wide-2320x720.png",
-            "topShelfWide2x": "./assets/images/tvos-flattened/topshelf-wide-4640x1440.png"
-          }
+          "tvosDeploymentTarget": "15.1"
         }
       ],
       "expo-secure-store",
-      "./plugins/withMultiAudioResourceLoader"
+      "./plugins/withMultiAudioResourceLoader",
+      "./plugins/withTVImageAssets"
     ],
     "experiments": {
       "typedRoutes": true,

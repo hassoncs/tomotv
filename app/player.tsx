@@ -1,12 +1,15 @@
 import { FocusableButton } from "@/components/FocusableButton";
+import { UpNextOverlay } from "@/components/up-next-overlay";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
+import { usePlayQueue } from "@/contexts/PlayQueueContext";
 import { useVideoPlayback } from "@/hooks/useVideoPlayback";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Video from "react-native-video";
+import type { OnLoadData, OnProgressData } from "react-native-video";
 import { ActivityIndicator, BackHandler, LogBox, Platform, StyleSheet, Text, TouchableOpacity, useTVEventHandler, View } from "react-native";
 
 // Suppress known warnings
@@ -23,60 +26,115 @@ export default function VideoPlayerScreen() {
     videoId: string;
     videoName: string;
     playlistIndex?: string;
+    queueMode?: string;
   }>();
   const router = useRouter();
   const { hideGlobalLoader, showGlobalLoader } = useLoading();
   const { videos } = useLibrary();
+  const { hasNext, nextVideo, progress, advanceToNext, clear } = usePlayQueue();
+
+  const isQueueMode = params.queueMode === "true";
 
   // Parse playlist index
   const currentPlaylistIndex = params.playlistIndex ? parseInt(params.playlistIndex, 10) : -1;
 
+  // --- Queue mode: near-end overlay state ---
+  const [showUpNext, setShowUpNext] = useState(false);
+  const showUpNextRef = useRef(false);
+  const videoDurationRef = useRef(0);
+
   // Handle playback end - auto-play next video
   const handlePlaybackEnd = useCallback(() => {
-    // Check if there's a next video in the playlist
-    if (currentPlaylistIndex >= 0 && currentPlaylistIndex < videos.length - 1) {
-      const nextVideo = videos[currentPlaylistIndex + 1];
-      if (nextVideo) {
-        logger.info("Auto-playing next video", { service: "VideoPlayer", videoName: nextVideo.Name });
-        showGlobalLoader();
+    if (isQueueMode) {
+      // Queue mode: advance or clear
+      if (hasNext) {
+        const next = advanceToNext();
+        if (next) {
+          logger.info("Queue: advancing to next video", {
+            service: "VideoPlayer",
+            videoName: next.Name,
+          });
+          showGlobalLoader();
+          router.replace({
+            pathname: "/player" as const,
+            params: {
+              videoId: next.Id,
+              videoName: next.Name,
+              queueMode: "true",
+            },
+          });
+          return;
+        }
+      }
+      // End of queue
+      logger.info("Queue: end of queue, returning to library", { service: "VideoPlayer" });
+      clear();
+      router.back();
+      return;
+    }
 
-        // Navigate to next video with updated playlist index
+    // Legacy playlist mode
+    if (currentPlaylistIndex >= 0 && currentPlaylistIndex < videos.length - 1) {
+      const nextVid = videos[currentPlaylistIndex + 1];
+      if (nextVid) {
+        logger.info("Auto-playing next video", { service: "VideoPlayer", videoName: nextVid.Name });
+        showGlobalLoader();
         router.replace({
           pathname: "/player" as const,
           params: {
-            videoId: nextVideo.Id,
-            videoName: nextVideo.Name,
+            videoId: nextVid.Id,
+            videoName: nextVid.Name,
             playlistIndex: (currentPlaylistIndex + 1).toString(),
           },
         });
       }
     } else {
       logger.info("End of playlist, going back to library", { service: "VideoPlayer" });
-      // End of playlist, return to library
       router.back();
     }
-  }, [currentPlaylistIndex, videos, router, showGlobalLoader]);
+  }, [isQueueMode, hasNext, advanceToNext, clear, currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
-  const { videoRef, sourceUri, paused, videoCallbacks, state, isAudioOnly, showLoadingOverlay, play, pause, retry } = useVideoPlayback({
+  const { videoRef, sourceUri, paused, videoCallbacks, state, showLoadingOverlay, pause, retry } = useVideoPlayback({
     videoId: params.videoId,
     onPlaybackEnd: handlePlaybackEnd,
   });
-
-  // Track playing state for audio UI (use negation of paused state)
-  const isPlaying = !paused;
-
-  // Callback ref for play/pause button - focuses immediately when mounted on TV
-  const playPauseButtonRef = useCallback((node: React.ElementRef<typeof TouchableOpacity> | null) => {
-    if (node && Platform.isTV) {
-      (node as unknown as { requestTVFocus: () => void }).requestTVFocus();
-    }
-  }, []);
 
   // Hide global loader when component mounts
   useEffect(() => {
     hideGlobalLoader();
   }, [hideGlobalLoader]);
+
+  // --- Queue: wrap video callbacks to detect near-end ---
+  const wrappedCallbacks = useMemo(() => {
+    if (!isQueueMode || !hasNext) return videoCallbacks;
+
+    return {
+      ...videoCallbacks,
+      onLoad: (data: OnLoadData) => {
+        videoCallbacks.onLoad(data);
+        videoDurationRef.current = data.duration;
+      },
+      onProgress: (data: OnProgressData) => {
+        videoCallbacks.onProgress(data);
+        if (videoDurationRef.current > 0) {
+          const remaining = videoDurationRef.current - data.currentTime;
+          const shouldShow = remaining <= 30 && remaining > 0;
+          if (shouldShow !== showUpNextRef.current) {
+            showUpNextRef.current = shouldShow;
+            setShowUpNext(shouldShow);
+          }
+        }
+      },
+    };
+  }, [videoCallbacks, isQueueMode, hasNext]);
+
+  // Queue: skip to next video immediately
+  const handleQueueSkip = useCallback(() => {
+    setShowUpNext(false);
+    showUpNextRef.current = false;
+    handlePlaybackEnd();
+  }, [handlePlaybackEnd]);
 
   // Handle back navigation
   const handleBack = useCallback(() => {
@@ -85,21 +143,11 @@ export default function VideoPlayerScreen() {
     } catch (_error) {
       // Ignore errors - player may already be cleaning up
     }
-    router.back();
-  }, [pause, router]);
-
-  // Toggle play/pause for audio
-  const handlePlayPause = useCallback(() => {
-    try {
-      if (isPlaying) {
-        pause();
-      } else {
-        play();
-      }
-    } catch (error) {
-      logger.error("Error toggling playback", error, { service: "VideoPlayer" });
+    if (isQueueMode) {
+      clear();
     }
-  }, [play, pause, isPlaying]);
+    router.back();
+  }, [pause, router, isQueueMode, clear]);
 
   // Handle TV remote events
   useTVEventHandler(
@@ -108,12 +156,8 @@ export default function VideoPlayerScreen() {
         if (evt.eventType === "menu") {
           handleBack();
         }
-        // Handle play/pause for audio files via remote buttons
-        if (isAudioOnly && (evt.eventType === "playPause" || evt.eventType === "select")) {
-          handlePlayPause();
-        }
       },
-      [handleBack, isAudioOnly, handlePlayPause],
+      [handleBack],
     ),
   );
 
@@ -169,41 +213,7 @@ export default function VideoPlayerScreen() {
     );
   }
 
-  // Render audio-only player (no VideoView to avoid threading issues)
-  if (isAudioOnly) {
-    return (
-      <View style={styles.container}>
-        {/* Audio UI - No VideoView component */}
-        <View style={styles.audioContainer}>
-          <Ionicons name="musical-notes" size={Platform.isTV ? 120 : 80} color="rgba(255, 255, 255, 0.8)" />
-          <Text style={styles.audioTitle}>{params.videoName}</Text>
-          <Text style={styles.audioSubtitle}>Audio File</Text>
-
-          {/* Play/Pause Button */}
-          <TouchableOpacity
-            ref={playPauseButtonRef}
-            style={styles.playPauseButton}
-            onPress={handlePlayPause}
-            activeOpacity={1}
-            isTVSelectable={true}
-            accessibilityLabel={isPlaying ? "Pause" : "Play"}
-            accessibilityRole="button"
-            accessibilityHint={isPlaying ? "Pause audio playback" : "Resume audio playback"}>
-            <Ionicons name={isPlaying ? "pause" : "play"} size={Platform.isTV ? 48 : 36} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Back button */}
-        {!Platform.isTV && (
-          <TouchableOpacity style={styles.iosBackButton} onPress={handleBack} accessibilityLabel="Close" accessibilityRole="button" accessibilityHint="Close player and return to library">
-            <Ionicons name="close" size={30} color="#FFFFFF" />
-          </TouchableOpacity>
-        )}
-      </View>
-    );
-  }
-
-  // Render video player with native controls
+  // Render video player with native controls (also handles audio-only files)
   return (
     <View style={styles.container}>
       {/* Video Player with Native Controls */}
@@ -220,7 +230,7 @@ export default function VideoPlayerScreen() {
           controls={true}
           paused={paused}
           allowsExternalPlayback={true}
-          {...videoCallbacks}
+          {...wrappedCallbacks}
         />
       )}
 
@@ -229,6 +239,16 @@ export default function VideoPlayerScreen() {
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#FFFFFF" />
         </View>
+      )}
+
+      {/* Up Next Overlay (queue mode) */}
+      {isQueueMode && nextVideo && (
+        <UpNextOverlay
+          nextVideoName={nextVideo.Name}
+          progress={progress}
+          onSkip={handleQueueSkip}
+          visible={showUpNext}
+        />
       )}
 
       {/* Back button for iOS */}
@@ -269,40 +289,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     zIndex: 1000,
-  },
-  audioContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#000000",
-    padding: 40,
-  },
-  audioTitle: {
-    marginTop: 32,
-    fontSize: Platform.isTV ? 32 : 24,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textAlign: "center",
-    paddingHorizontal: 40,
-  },
-  audioSubtitle: {
-    marginTop: 12,
-    fontSize: Platform.isTV ? 20 : 16,
-    fontWeight: "400",
-    color: "rgba(255, 255, 255, 0.6)",
-    textAlign: "center",
-  },
-  playPauseButton: {
-    marginTop: 48,
-    width: Platform.isTV ? 120 : 96,
-    height: Platform.isTV ? 120 : 96,
-    borderRadius: Platform.isTV ? 60 : 48,
-    borderWidth: 3,
-    borderColor: "#FFC312",
-    backgroundColor: "rgba(255, 195, 18, 0.15)",
-    justifyContent: "center",
-    alignItems: "center",
-    opacity: 1,
   },
   errorContainer: {
     flex: 1,

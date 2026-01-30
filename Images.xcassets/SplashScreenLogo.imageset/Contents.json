@@ -16,12 +16,12 @@
       "scale" : "3x"
     },
     {
-      "filename" : "200-icon@1x 1.png",
+      "filename" : "200-icon-tv@1x.png",
       "idiom" : "tv",
       "scale" : "1x"
     },
     {
-      "filename" : "200-icon@2x 1.png",
+      "filename" : "200-icon-tv@2x.png",
       "idiom" : "tv",
       "scale" : "2x"
     }

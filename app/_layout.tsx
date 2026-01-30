@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { LoadingProvider } from "@/contexts/LoadingContext";
 import { LibraryProvider } from "@/contexts/LibraryContext";
 import { FolderNavigationProvider } from "@/contexts/FolderNavigationContext";
+import { PlayQueueProvider } from "@/contexts/PlayQueueContext";
 import { registerMultiAudioPlugin } from "@/services/multiAudioLoader";
 import { syncDevCredentials } from "@/services/jellyfinApi";
 
@@ -37,20 +38,22 @@ export default function RootLayout() {
       <LoadingProvider>
         <LibraryProvider>
           <FolderNavigationProvider>
-            <ThemeProvider value={CustomDarkTheme}>
-              <Stack>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen
-                  name="player"
-                  options={{
-                    headerShown: false,
-                    presentation: "fullScreenModal",
-                    animation: "fade",
-                  }}
-                />
-              </Stack>
-              <StatusBar style="light" backgroundColor="transparent" translucent={true} />
-            </ThemeProvider>
+            <PlayQueueProvider>
+              <ThemeProvider value={CustomDarkTheme}>
+                <Stack>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="player"
+                    options={{
+                      headerShown: false,
+                      presentation: "fullScreenModal",
+                      animation: "fade",
+                    }}
+                  />
+                </Stack>
+                <StatusBar style="light" backgroundColor="transparent" translucent={true} />
+              </ThemeProvider>
+            </PlayQueueProvider>
           </FolderNavigationProvider>
         </LibraryProvider>
       </LoadingProvider>
