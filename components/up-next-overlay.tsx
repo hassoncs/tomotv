@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Platform, StyleSheet, Text, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useEffect, useRef, useState } from "react";
+import { Dimensions, Platform, StyleSheet, Text, View } from "react-native";
 
 interface UpNextOverlayProps {
   nextVideoName: string;
@@ -86,12 +86,12 @@ export function UpNextOverlay({ nextVideoName, progress, onSkip, visible }: UpNe
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    bottom: Platform.isTV ? 80 : 40,
-    right: Platform.isTV ? 80 : 20,
+    bottom: Dimensions.get("window").height * 0.3,
+    right: 76,
     zIndex: 200,
   },
   card: {
-    backgroundColor: "rgba(28, 28, 30, 0.95)",
+    backgroundColor: "rgba(28, 28, 30, 0.65)",
     borderRadius: 23,
     padding: Platform.isTV ? 28 : 20,
     minWidth: Platform.isTV ? 400 : 280,
