@@ -1,6 +1,6 @@
 # App Store Metadata for TomoTV
 
-**Last Updated:** January 24, 2026
+**Last Updated:** January 30, 2026
 
 ## Quick Reference
 **Category:** Deployment
@@ -30,8 +30,8 @@ Alternative:
 ---
 
 ## Promotional Text (170 characters max)
-**Stream any video from your Jellyfin server. Automatic transcoding handles incompatible formats so you can just hit play and watch. Made for Apple TV.**
-(165 characters)
+**Stream any video from your Jellyfin server. Automatic transcoding, playlist auto-continue, and quality presets. Just hit play. No codec headaches. Made for Apple TV.**
+(166 characters)
 
 ---
 
@@ -48,6 +48,8 @@ Alternative:
 • Browse and search your library
 • Demo mode - try the app instantly without setup
 • Full playlist support - browse and play from playlists
+• Play next queue with up next overlay
+• Multi-audio track switching
 • Quality presets: 480p, 540p, 720p, 1080p
 • Subtitle support
 • Audio file playback
@@ -86,18 +88,20 @@ Keywords Strategy:
 ## What's New (4,000 characters max)
 
 ### Version 1.2.0
-**Multi-Audio & Subtitle Support**
+**Queue Playback, Multi-Audio & Subtitles**
 
 **New Features:**
-• Seamless multi-audio track switching - Change audio tracks during playback without video restart using custom multivariant HLS manifests
-• Advanced subtitle support - Both external (.srt) and embedded subtitle tracks with native tvOS subtitle picker
-• Fixed audio track display bug - Track names now show correctly on Apple TV instead of "Unknown language"
+• Play next queue — videos queue up and auto-continue so you can keep watching
+• Up next overlay with progress bar shows what's coming
+• Seamless multi-audio track switching during playback
+• Subtitle support — external (.srt) and embedded tracks with native tvOS picker
+• Native audio player improvements
+• Updated app icons
 
-**Technical Improvements:**
-• Enhanced test coverage (51.1% overall, 270 tests passing)
-• Improved type safety and code quality
-• Removed dead code for better performance
-• RFC 8216 compliant HLS manifest generation
+**Improvements:**
+• Enhanced tvOS focus and navigation reliability
+• Faster native search loading
+• UI and stability fixes
 
 ---
 
@@ -443,7 +447,7 @@ Notes:
 |-------|-------|---------|--------|
 | App Name | 30 | 29 | ✅ |
 | Subtitle | 30 | 30 | ✅ |
-| Promotional Text | 170 | 165 | ✅ |
+| Promotional Text | 170 | 166 | ✅ |
 | Description | 4,000 | ~2,200 | ✅ |
 | Keywords | 100 | 99 | ✅ |
 | What's New | 4,000 | ~1,400 | ✅ |
