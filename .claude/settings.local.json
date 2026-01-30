@@ -72,7 +72,8 @@
       "WebFetch(domain:defagos.github.io)",
       "WebFetch(domain:api.github.com)",
       "Bash(npx patch-package:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "WebFetch(domain:keiver.dev)"
     ],
     "deny": [],
     "ask": []

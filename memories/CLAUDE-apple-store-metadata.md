@@ -30,8 +30,8 @@ Alternative:
 ---
 
 ## Promotional Text (170 characters max)
-**Stream any video from your Jellyfin server. Automatic transcoding, playlist auto-continue, and quality presets. Just hit play. No codec headaches. Made for Apple TV.**
-(166 characters)
+**Stream any video from your Jellyfin server. Automatic transcoding, multi-audio switching, and subtitles. Just hit play. No codec headaches. Made for Apple TV.**
+(158 characters)
 
 ---
 
@@ -447,7 +447,7 @@ Notes:
 |-------|-------|---------|--------|
 | App Name | 30 | 29 | ✅ |
 | Subtitle | 30 | 30 | ✅ |
-| Promotional Text | 170 | 166 | ✅ |
+| Promotional Text | 170 | 158 | ✅ |
 | Description | 4,000 | ~2,200 | ✅ |
 | Keywords | 100 | 99 | ✅ |
 | What's New | 4,000 | ~1,400 | ✅ |
