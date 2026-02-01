@@ -21,7 +21,11 @@
     "video-player",
     "streaming",
     "expo",
-    "transcoding"
+    "transcoding",
+    "mkv",
+    "media-server",
+    "media-center",
+    "home-theater"
   ],
   "engines": {
     "node": ">=18.0.0",
