@@ -208,7 +208,6 @@ class FolderNavigationManager {
       this.isLoadingRef = true
       this.isLoading = true
       this.error = null
-      this.items = []  // Clear old items immediately to prevent stale content flash
       this.nextStartIndex = 0
       this.notifyListeners()
 
@@ -255,6 +254,7 @@ class FolderNavigationManager {
         hasMore: this.hasMoreResults
       })
     } catch (err) {
+      this.items = []
       this.error = err instanceof Error ? err.message : "Failed to load folder"
       this.isLoading = false
       this.notifyListeners()

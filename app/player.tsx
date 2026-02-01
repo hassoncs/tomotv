@@ -248,16 +248,7 @@ export default function VideoPlayerScreen() {
       )}
 
       {/* Up Next Overlay (queue mode) */}
-      {isQueueMode && nextVideo && (
-        <UpNextOverlay
-          nextVideoName={nextVideo.Name}
-          progress={progress}
-          onSkip={handleQueueSkip}
-          visible={showUpNext}
-          upNextProgress={upNextProgress}
-          paused={paused}
-        />
-      )}
+      {isQueueMode && nextVideo && <UpNextOverlay nextVideoName={nextVideo.Name} progress={progress} onSkip={handleQueueSkip} visible={showUpNext} upNextProgress={upNextProgress} paused={paused} />}
 
       {/* Back button for iOS */}
       {!Platform.isTV && (

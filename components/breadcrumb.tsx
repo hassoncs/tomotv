@@ -77,6 +77,7 @@ const styles = StyleSheet.create({
   breadcrumbText: {
     color: "#4CD964",
     fontSize: IS_TV ? 20 : 16,
+    lineHeight: IS_TV ? 20 : 16,
     fontWeight: "600",
   },
   breadcrumbTextCurrent: {
@@ -85,6 +86,7 @@ const styles = StyleSheet.create({
   breadcrumbTextPlaceholder: {
     color: "#98989D",
     fontSize: IS_TV ? 20 : 16,
+    lineHeight: IS_TV ? 20 : 16,
     fontWeight: "600",
   },
   separator: {

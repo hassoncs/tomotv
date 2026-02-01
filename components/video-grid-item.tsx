@@ -47,6 +47,11 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
     [video], // Only video ID needed, not entire video object
   );
 
+  const contentFit = useMemo(() => {
+    const ratio = video.PrimaryImageAspectRatio;
+    return ratio !== undefined && ratio >= 1 ? ("contain" as const) : ("cover" as const);
+  }, [video.PrimaryImageAspectRatio]);
+
   // Lazy compute metadata ONLY when focused - huge performance win!
   const metadata = useMemo(() => {
     if (!focused) return null;
@@ -113,12 +118,11 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
             <Image
               source={{ uri: posterUrl }}
               style={styles.poster}
-              contentFit="contain"
+              contentFit={contentFit}
               transition={0}
               priority={index < 10 ? "high" : "normal"}
               cachePolicy="disk" // Disk only - saves 60-100MB RAM
               recyclingKey={video.Id} // Helps with memory recycling
-              placeholderContentFit="contain"
               accessible={true}
               accessibilityLabel={`${video.Name || "Video"} poster`}
             />
@@ -177,6 +181,7 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
 function arePropsEqual(prevProps: VideoGridItemProps, nextProps: VideoGridItemProps): boolean {
   return (
     prevProps.video.Id === nextProps.video.Id &&
+    prevProps.video.PrimaryImageAspectRatio === nextProps.video.PrimaryImageAspectRatio &&
     prevProps.index === nextProps.index &&
     prevProps.onPress === nextProps.onPress &&
     prevProps.onItemFocus === nextProps.onItemFocus &&
@@ -191,7 +196,7 @@ export const VideoGridItem = React.memo(VideoGridItemComponent, arePropsEqual);
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1 / NUM_COLUMNS,
+    width: `${100 / NUM_COLUMNS}%`,
     padding: CARD_PADDING,
   },
   card: {

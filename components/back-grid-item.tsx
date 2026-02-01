@@ -1,7 +1,7 @@
 import { DESIGN } from "@/constants/app";
 import { Ionicons } from "@expo/vector-icons";
 import React, { forwardRef, useCallback, useState } from "react";
-import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const IS_TV = Platform.isTV;
 const CARD_PADDING = IS_TV ? 16 : 8;
@@ -10,10 +10,11 @@ const NUM_COLUMNS = IS_TV ? 5 : 3;
 interface BackGridItemProps {
   onPress: () => void;
   hasTVPreferredFocus?: boolean;
+  isLoading?: boolean;
 }
 
 const BackGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpacity>, BackGridItemProps>(function BackGridItemComponent(
-  { onPress, hasTVPreferredFocus = false },
+  { onPress, hasTVPreferredFocus = false, isLoading = false },
   ref,
 ) {
   const [focused, setFocused] = useState(false);
@@ -42,7 +43,7 @@ const BackGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpacit
       <View style={styles.card}>
         <View style={styles.imageContainer}>
           <View style={styles.placeholderPoster}>
-            <Ionicons name="return-up-back" size={IS_TV ? 80 : 50} color="rgba(250, 196, 0, 0.5)" />
+            {isLoading ? <ActivityIndicator size="small" color="rgba(250, 196, 0, 0.5)" /> : <Ionicons name="return-up-back" size={IS_TV ? 80 : 50} color="rgba(250, 196, 0, 0.5)" />}
             <Text style={styles.placeholderText}> </Text>
           </View>
 
@@ -67,7 +68,7 @@ export const BackGridItem = React.memo(BackGridItemComponent);
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1 / NUM_COLUMNS,
+    width: `${100 / NUM_COLUMNS}%`,
     padding: CARD_PADDING,
   },
   card: {
