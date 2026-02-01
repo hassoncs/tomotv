@@ -12,6 +12,8 @@ describe("UpNextOverlay", () => {
     progress: "1 of 10",
     onSkip: jest.fn(),
     visible: true,
+    upNextProgress: 1,
+    paused: false,
   };
 
   beforeEach(() => {
@@ -36,9 +38,7 @@ describe("UpNextOverlay", () => {
   it("returns null when not visible", () => {
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
-      renderer = TestRenderer.create(
-        <UpNextOverlay {...defaultProps} visible={false} />
-      );
+      renderer = TestRenderer.create(<UpNextOverlay {...defaultProps} visible={false} />);
     });
     const tree = renderer!.toJSON();
     expect(tree).toBeNull();
@@ -85,100 +85,71 @@ describe("UpNextOverlay", () => {
     renderer!.unmount();
   });
 
-  it("counts down from 30 to 0", () => {
+  it("reflects upNextProgress in progress bar width", () => {
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
-      renderer = TestRenderer.create(<UpNextOverlay {...defaultProps} />);
+      renderer = TestRenderer.create(<UpNextOverlay {...defaultProps} upNextProgress={0.8} />);
     });
     const root = renderer!.root;
 
-    const findCountdown = () => {
-      const textNodes = root.findAllByType("Text" as any);
-      return textNodes.find((t) => {
-        try {
-          const children = t.props.children;
-          return typeof children === "string" && children.endsWith("s");
-        } catch {
-          return false;
+    const findProgressFill = () => {
+      const views = root.findAllByType("View" as any);
+      return views.find((v) => {
+        const style = v.props.style;
+        if (Array.isArray(style)) {
+          return style.some((s: Record<string, unknown>) => typeof s?.width === "string" && (s.width as string).endsWith("%"));
         }
+        return false;
       });
     };
 
-    expect(findCountdown()?.props.children).toBe("30s");
+    const fill = findProgressFill();
+    const widthStyle = fill?.props.style.find((s: Record<string, unknown>) => typeof s?.width === "string");
+    expect(widthStyle?.width).toBe("80%");
 
     act(() => {
-      jest.advanceTimersByTime(3000);
+      renderer!.update(<UpNextOverlay {...defaultProps} upNextProgress={0.5} />);
     });
 
-    expect(findCountdown()?.props.children).toBe("27s");
+    const fill2 = findProgressFill();
+    const widthStyle2 = fill2?.props.style.find((s: Record<string, unknown>) => typeof s?.width === "string");
+    expect(widthStyle2?.width).toBe("50%");
 
     renderer!.unmount();
   });
 
-  it("auto-skips when countdown reaches 0", () => {
+  it("auto-skips when upNextProgress reaches 0", () => {
     const onSkip = jest.fn();
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
-      renderer = TestRenderer.create(
-        <UpNextOverlay {...defaultProps} onSkip={onSkip} />
-      );
+      renderer = TestRenderer.create(<UpNextOverlay {...defaultProps} onSkip={onSkip} upNextProgress={0.5} />);
     });
 
+    expect(onSkip).not.toHaveBeenCalled();
+
     act(() => {
-      jest.advanceTimersByTime(30000);
+      renderer!.update(<UpNextOverlay {...defaultProps} onSkip={onSkip} upNextProgress={0} />);
     });
 
     expect(onSkip).toHaveBeenCalledTimes(1);
     renderer!.unmount();
   });
 
-  it("resets countdown when visibility changes", () => {
+  it("does not auto-skip when paused", () => {
+    const onSkip = jest.fn();
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
-      renderer = TestRenderer.create(
-        <UpNextOverlay {...defaultProps} visible={false} />
-      );
+      renderer = TestRenderer.create(<UpNextOverlay {...defaultProps} onSkip={onSkip} upNextProgress={0} paused={true} />);
     });
 
-    act(() => {
-      renderer!.update(<UpNextOverlay {...defaultProps} visible={true} />);
-    });
-
-    // Advance 5 seconds
-    act(() => {
-      jest.advanceTimersByTime(5000);
-    });
-
-    // Hide and show again
-    act(() => {
-      renderer!.update(<UpNextOverlay {...defaultProps} visible={false} />);
-    });
-    act(() => {
-      renderer!.update(<UpNextOverlay {...defaultProps} visible={true} />);
-    });
-
-    const root = renderer!.root;
-    const textNodes = root.findAllByType("Text" as any);
-    const countdown = textNodes.find((t) => {
-      try {
-        const children = t.props.children;
-        return typeof children === "string" && children.endsWith("s");
-      } catch {
-        return false;
-      }
-    });
-
-    expect(countdown?.props.children).toBe("30s");
-
+    expect(onSkip).not.toHaveBeenCalled();
     renderer!.unmount();
   });
 
   it("does not render progress text when empty", () => {
     let renderer: TestRenderer.ReactTestRenderer;
     act(() => {
-      renderer = TestRenderer.create(
-        <UpNextOverlay {...defaultProps} progress="" />
-      );
+      renderer = TestRenderer.create(<UpNextOverlay {...defaultProps} progress="" />);
     });
     const root = renderer!.root;
 

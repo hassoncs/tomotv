@@ -48,6 +48,7 @@ export interface JellyfinVideoItem {
   ImageTags?: {
     Primary?: string;
   };
+  PrimaryImageAspectRatio?: number;
 }
 
 export interface JellyfinVideosResponse {

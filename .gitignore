@@ -46,3 +46,7 @@ coverage
 *.lcov
 
 nogit/
+
+.claude/settings.json
+.claude/settings.local.json
+.claude/mcp/

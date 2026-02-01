@@ -27,6 +27,11 @@ const FolderGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpac
 
   const thumbnailUrl = useMemo(() => (folder.ImageTags?.Primary ? getFolderThumbnailUrl(folder.Id, POSTER_SIZE) : undefined), [folder.Id, folder.ImageTags?.Primary]);
 
+  const contentFit = useMemo(() => {
+    const ratio = folder.PrimaryImageAspectRatio;
+    return ratio !== undefined && ratio >= 1 ? ("contain" as const) : ("cover" as const);
+  }, [folder.PrimaryImageAspectRatio]);
+
   const handleFocus = useCallback(() => {
     setFocused(true);
   }, []);
@@ -57,7 +62,7 @@ const FolderGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpac
       <View style={styles.card}>
         <View style={styles.imageContainer}>
           {thumbnailUrl ? (
-            <Image source={{ uri: thumbnailUrl }} style={styles.poster} contentFit="cover" transition={0} priority={index < 10 ? "high" : "normal"} cachePolicy="disk" recyclingKey={folder.Id} />
+            <Image source={{ uri: thumbnailUrl }} style={styles.poster} contentFit={contentFit} transition={0} priority={index < 10 ? "high" : "normal"} cachePolicy="disk" recyclingKey={folder.Id} />
           ) : (
             <View style={styles.placeholderPoster}>
               <Ionicons name="folder" size={IS_TV ? 80 : 50} color="#FFC312" />
@@ -106,14 +111,20 @@ const FolderGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpac
 });
 
 function arePropsEqual(prev: FolderGridItemProps, next: FolderGridItemProps): boolean {
-  return prev.folder.Id === next.folder.Id && prev.index === next.index && prev.onPress === next.onPress && prev.hasTVPreferredFocus === next.hasTVPreferredFocus;
+  return (
+    prev.folder.Id === next.folder.Id &&
+    prev.folder.PrimaryImageAspectRatio === next.folder.PrimaryImageAspectRatio &&
+    prev.index === next.index &&
+    prev.onPress === next.onPress &&
+    prev.hasTVPreferredFocus === next.hasTVPreferredFocus
+  );
 }
 
 export const FolderGridItem = React.memo(FolderGridItemComponent, arePropsEqual);
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1 / NUM_COLUMNS,
+    width: `${100 / NUM_COLUMNS}%`,
     padding: CARD_PADDING,
   },
   card: {

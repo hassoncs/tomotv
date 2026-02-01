@@ -954,11 +954,19 @@ export async function searchVideos(searchTerm: string, { limit = 60, startIndex 
         }
       }
 
+      // Deduplicate: episodes may appear in both direct results and series expansion
+      const seen = new Set<string>();
+      const uniqueItems = playableItems.filter((item) => {
+        if (seen.has(item.Id)) return false;
+        seen.add(item.Id);
+        return true;
+      });
+
       // Preserve original server total for proper pagination
-      // Only use playableItems.length if server didn't provide total
+      // Only use uniqueItems.length if server didn't provide total
       return {
-        items: playableItems,
-        total: result.total ?? playableItems.length,
+        items: uniqueItems,
+        total: result.total ?? uniqueItems.length,
       };
     },
     { maxAttempts: 3 },
@@ -1056,7 +1064,7 @@ export async function fetchFolderContents(parentId: string | null, { limit = 60,
       const query = new URLSearchParams({
         ParentId: parentId,
         IncludeItemTypes: "Movie,Video,Audio,Folder,CollectionFolder,Series,Season,Episode,BoxSet,MusicAlbum,MusicArtist,PhotoAlbum,Playlist",
-        Fields: "Path,MediaStreams,Genres,ChildCount,ParentId",
+        Fields: "Path,MediaStreams,Genres,ChildCount,ParentId,ImageTags,PrimaryImageAspectRatio",
         StartIndex: String(startIndex),
         Limit: String(limit),
         SortBy: "SortName",
