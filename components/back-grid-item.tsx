@@ -48,7 +48,7 @@ const BackGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpacit
           </View>
 
           <View style={styles.folderBadge}>
-            <Ionicons name="arrow-back" size={IS_TV ? 20 : 16} color="rgba(250, 196, 0, 0.5)" />
+            <Ionicons name="arrow-back" size={IS_TV ? 20 : 16} color="#FFC312" />
           </View>
 
           {focused && (
