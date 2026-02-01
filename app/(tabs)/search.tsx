@@ -2,6 +2,7 @@ import { FocusableButton } from "@/components/FocusableButton";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { connectToDemoServer, getPosterUrl, searchVideos } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
@@ -67,6 +68,8 @@ const SearchHeader = React.memo(
 function NativeSearchScreen() {
   const router = useRouter();
   const { showGlobalLoader } = useLoading();
+  const colorScheme = useColorScheme();
+  const searchTextColor = colorScheme === "light" ? "#FFFFFF" : undefined;
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -158,6 +161,9 @@ function NativeSearchScreen() {
       emptyStateText="Find by title, season, or year..."
       isLoading={isSearching}
       topInset={140}
+      colorScheme="dark"
+      textColor={searchTextColor}
+      accentColor={searchTextColor}
       onSearch={handleSearch}
       onSelectItem={handleSelectItem}
       onSearchFieldFocused={handleSearchFieldFocused}

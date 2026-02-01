@@ -8,7 +8,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "tomotv",
     "userInterfaceStyle": "dark",
-    "backgroundColor": "#000000",
+    "backgroundColor": "#1C1C1E",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -31,12 +31,12 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/input-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#F39C12",
           "dark": {
-            "backgroundColor": "#F39C12"
+            "backgroundColor": "#1C1C1E"
           }
         }
       ],

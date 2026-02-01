@@ -73,7 +73,8 @@
       "WebFetch(domain:api.github.com)",
       "Bash(npx patch-package:*)",
       "Bash(npm run build:*)",
-      "WebFetch(domain:keiver.dev)"
+      "WebFetch(domain:keiver.dev)",
+      "WebFetch(domain:forums.developer.apple.com)"
     ],
     "deny": [],
     "ask": []
