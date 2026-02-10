@@ -162,6 +162,7 @@ function NativeSearchScreen() {
       isLoading={isSearching}
       topInset={140}
       colorScheme="dark"
+      overlayTitleSize={30}
       textColor={searchTextColor}
       accentColor={searchTextColor}
       onSearch={handleSearch}
