@@ -148,6 +148,10 @@ Screens live in `app/` using Expo Router's file-based routing with native tvOS t
 - **Jest 29.7** — Unit and integration tests
 - **[expo-tvos-search](https://github.com/keiver/expo-tvos-search)** — Native tvOS search UI using SwiftUI
 
+## A Note on AI
+
+I use Claude as a development tool for drafting code and documentation. Architecture and decisions are mine, blame me for any shady code.
+
 ## Contributing
 
 Contributions are welcome! This is a real, production app used by real users.
