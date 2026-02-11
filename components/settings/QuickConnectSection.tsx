@@ -26,7 +26,7 @@ export function QuickConnectSection({ code, status, error, onCancel, onSwitchToP
 
           {status === "SHOWING_CODE" && code && (
             <View style={styles.centeredContent}>
-              <Text style={styles.quickConnectLabel}>Enter this code on another device:</Text>
+              <Text style={styles.quickConnectLabel}>Enter this code on your server:</Text>
               <Text style={styles.quickConnectCode}>{code}</Text>
               <View style={styles.waitingRow}>
                 <ActivityIndicator size="small" color="#8E8E93" />

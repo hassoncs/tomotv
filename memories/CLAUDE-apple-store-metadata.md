@@ -1,6 +1,6 @@
 # App Store Metadata for TomoTV
 
-**Last Updated:** January 30, 2026
+**Last Updated:** February 11, 2026
 
 ## Quick Reference
 **Category:** Deployment
@@ -37,37 +37,34 @@ Alternative:
 
 ## Description (4,000 characters max)
 
-**TomoTV** connects your Apple TV to your Jellyfin media server. Select a video, it plays. No codec errors, no configuration needed.
-
-**HOW IT WORKS**
-• H.264 and HEVC play directly
-• Other formats (MPEG-4, VP8, DivX, etc.) transcode automatically
-• No codec errors or configuration needed
+TomoTV connects your Apple TV to your Jellyfin media server. Select a video, it plays. No configuration needed.
 
 **FEATURES**
-• Browse and search your library
-• Demo mode - try the app instantly without setup
-• Full playlist support - browse and play from playlists
-• Play next queue with up next overlay
+• Browse and search your entire library
+• Demo mode to try the app instantly without setup
+• Full playlist support with auto-continue
+• Up next queue and overlay
 • Multi-audio track switching
-• Quality presets: 480p, 540p, 720p, 1080p
 • Subtitle support
 • Audio file playback
-• Playlist auto-continue
-• Secure Keychain storage
+• Quality presets: 480p, 540p, 720p, 1080p
+• Secure on-device credential storage
 
 **SETUP**
 1. Run Jellyfin on your Mac, PC, or NAS
-2. Enter server URL, API key, and user ID in Settings
-3. Done
+2. Enter your server URL and credentials in Settings
+3. Start watching
 
 **REQUIREMENTS**
-• Jellyfin 10.8+
-• Transcoding enabled on server
-• Local network or HTTPS
+• Jellyfin 10.8 or later
+• Transcoding enabled on your server
+• Local network or HTTPS connection
+
+**COMPATIBILITY**
+Most video formats just work. Common formats play directly on your Apple TV, while others convert automatically on your server.
 
 **PRIVACY**
-No analytics. No tracking. No ads. Your credentials stay in secure device storage. Video streams directly from your server.
+No analytics. No tracking. No ads. Your credentials stay in device Keychain. Video streams directly from your server to your Apple TV.
 
 ---
 
@@ -86,6 +83,21 @@ Keywords Strategy:
 ---
 
 ## What's New (4,000 characters max)
+
+### Version 1.3.0
+**Quick Connect, Sign-In & Continue Watching**
+
+**New Features:**
+• Quick Connect — sign in with a code from any Jellyfin device
+• Username & password sign-in
+• Continue watching — resume where you left off
+
+**Improvements:**
+• Larger text for better readability on TV
+• Scrolling titles on cards for long names
+• Refined settings layout
+
+---
 
 ### Version 1.2.0
 **Queue Playback, Multi-Audio & Subtitles**
@@ -196,7 +208,7 @@ We're excited to bring you the first release of TomoTV, built from the ground up
 • Remote search with live results
 • Autoplay playlist (continuous video playback)
 • Subtitle support (external tracks embedded automatically)
-• Secure Keychain credential storage
+• Secure on-device credential storage
 • Comprehensive help section with troubleshooting
 • Native Apple TV remote support
 
@@ -395,7 +407,7 @@ Notes:
 
 ## Build Number & Version Notes
 
-**Version:** 1.2.0 (matches app.json)
+**Version:** 1.3.0 (matches app.json)
 **Build Number:** 1 (auto-increments on Xcode Archive)
 
 **Version Naming Convention Going Forward:**
@@ -448,9 +460,9 @@ Notes:
 | App Name | 30 | 29 | ✅ |
 | Subtitle | 30 | 30 | ✅ |
 | Promotional Text | 170 | 158 | ✅ |
-| Description | 4,000 | ~2,200 | ✅ |
+| Description | 4,000 | ~2,400 | ✅ |
 | Keywords | 100 | 99 | ✅ |
-| What's New | 4,000 | ~1,400 | ✅ |
+| What's New | 4,000 | ~1,800 | ✅ |
 
 ---
 
