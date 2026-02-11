@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**TomoTV** is a cross-platform video streaming application that connects to a Jellyfin media server. Built with React Native TVOS and Expo, it supports iOS, Android, Apple TV, and web platforms. The app intelligently handles video codecs, automatically transcoding unsupported formats while direct-playing compatible ones.
+**TomoTV** is a video streaming application that connects to a Jellyfin media server. Built with React Native TVOS and Expo, it supports Apple TV (tvOS). The app intelligently handles video codecs, automatically transcoding unsupported formats while direct-playing compatible ones.
 
 ## WORKFLOW & DECISION-MAKING RULES
 

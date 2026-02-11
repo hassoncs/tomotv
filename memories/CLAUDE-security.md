@@ -31,7 +31,7 @@ This document describes the security architecture, known limitations, and mitiga
 ### Native Secure Storage
 
 **Platform Implementation:**
-- **iOS/tvOS:** iCloud Keychain (AES-256 encrypted)
+- **iOS/tvOS:** tvOS Keychain (device-local, AES-256 encrypted)
 - **Android:** Android Keystore (hardware-backed when available)
 - **Library:** `expo-secure-store` (official Expo module)
 
@@ -46,7 +46,7 @@ This document describes the security architecture, known limitations, and mitiga
 
 **Security Features:**
 - ✅ Automatic encryption at rest
-- ✅ Keychain syncs across user devices (iOS)
+- ✅ Keychain storage is device-local (tvOS does not support iCloud Keychain sync)
 - ✅ Cannot be accessed by other apps
 - ✅ Cleared on app uninstall
 - ✅ Protected by device PIN/biometrics

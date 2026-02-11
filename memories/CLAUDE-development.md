@@ -121,7 +121,7 @@ To test how the app behaves for end users (without dev credentials):
    - App shows: "Jellyfin server not configured"
    - Tap "Go to Settings" button
    - Configure your server manually
-   - Settings persist in iCloud Keychain
+   - Settings persist in device Keychain
 
 4. **Restore dev credentials:**
    ```bash

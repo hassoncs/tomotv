@@ -54,7 +54,7 @@ Alternative:
 • Subtitle support
 • Audio file playback
 • Playlist auto-continue
-• iCloud Keychain sync
+• Secure Keychain storage
 
 **SETUP**
 1. Run Jellyfin on your Mac, PC, or NAS
@@ -67,7 +67,7 @@ Alternative:
 • Local network or HTTPS
 
 **PRIVACY**
-No analytics. No tracking. No ads. Your credentials stay in iCloud Keychain. Video streams directly from your server.
+No analytics. No tracking. No ads. Your credentials stay in secure device storage. Video streams directly from your server.
 
 ---
 
@@ -196,7 +196,7 @@ We're excited to bring you the first release of TomoTV, built from the ground up
 • Remote search with live results
 • Autoplay playlist (continuous video playback)
 • Subtitle support (external tracks embedded automatically)
-• iCloud Keychain credential sync
+• Secure Keychain credential storage
 • Comprehensive help section with troubleshooting
 • Native Apple TV remote support
 
@@ -255,8 +255,8 @@ DATA COLLECTION
 • No third-party tracking or advertising SDKs are included.
 
 CREDENTIAL STORAGE
-• Server credentials (URL, API key, User ID) are stored locally on your device using Apple's Secure Enclave (iCloud Keychain).
-• Credentials sync across your Apple devices via iCloud if enabled.
+• Server credentials (URL, API key, User ID) are stored locally on your device using the tvOS Keychain (secure, device-local storage).
+• Credentials never leave your device. tvOS does not support iCloud Keychain sync.
 • We never have access to your credentials.
 
 DATA TRANSMISSION
@@ -296,7 +296,7 @@ Q: Transcoding is slow
 A: Lower quality in Settings → Video Quality. Enable hardware acceleration in Jellyfin if available.
 
 Q: Settings not saving
-A: Check iCloud Keychain is enabled in iOS Settings → [Your Name] → iCloud → Keychain
+A: Try restarting the app. Credentials are stored in the device Keychain and persist across app launches.
 
 CONTACT
 Email: contact@keiver.dev
