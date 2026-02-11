@@ -5,6 +5,7 @@ import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
 import React, { forwardRef, useCallback, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { MarqueeText } from "./MarqueeText";
 
 // Cache platform values at module level for better performance
 const IS_TV = Platform.isTV;
@@ -144,9 +145,9 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
                 </Text>
                 <Text style={styles.infoValue}>{metadata.resolution}</Text>
                 <Text style={styles.infoValue}>{metadata?.duration}</Text>
-                <Text style={styles.infoValueTitle} numberOfLines={1}>
+                <MarqueeText active={focused} style={styles.infoValueTitle}>
                   {video?.Name || "Unknown"}
-                </Text>
+                </MarqueeText>
               </BlurView>
             ) : (
               <View style={styles.infoOverlay}>
@@ -159,9 +160,9 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
                     {metadata.fileSize} / {metadata.duration}
                   </Text>
                 )}
-                <Text style={styles.infoValueTitle} numberOfLines={1}>
+                <MarqueeText active={focused} style={styles.infoValueTitle}>
                   {video?.Name || "Unknown"}
-                </Text>
+                </MarqueeText>
               </View>
             ))}
 
@@ -263,7 +264,7 @@ const styles = StyleSheet.create({
   },
   infoValue: {
     color: "#FFFFFF",
-    fontSize: IS_TV ? 16 : 13,
+    fontSize: IS_TV ? 24 : 13,
     fontWeight: "700",
     textAlign: "center",
     marginVertical: IS_TV ? 3 : 2,
@@ -271,7 +272,7 @@ const styles = StyleSheet.create({
   },
   infoValueTitle: {
     color: "#FFFFFF",
-    fontSize: IS_TV ? 16 : 13,
+    fontSize: IS_TV ? 30 : 13,
     fontWeight: "700",
     textAlign: "center",
     marginVertical: IS_TV ? 3 : 2,

@@ -618,7 +618,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 16,
-    fontSize: Platform.isTV ? 20 : 17,
+    fontSize: Platform.isTV ? 30 : 18,
     color: "#8E8E93",
   },
   // Section Headers (iOS style)
@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.isTV ? 12 : 8,
   },
   sectionHeaderText: {
-    fontSize: Platform.isTV ? 16 : 13,
+    fontSize: Platform.isTV ? 28 : 16,
     fontWeight: "600",
     color: "#8E8E93",
     letterSpacing: -0.08,
@@ -670,28 +670,28 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   listItemTitle: {
-    fontSize: Platform.isTV ? 25 : 20,
+    fontSize: Platform.isTV ? 30 : 20,
     fontWeight: "400",
     color: "#FFFFFF",
     marginBottom: 2,
   },
   listItemSubtitle: {
     color: "#8E8E93",
-    fontSize: Platform.isTV ? 20 : 17,
+    fontSize: Platform.isTV ? 28 : 18,
   },
   // Input Fields
   inputContainer: {
     gap: Platform.isTV ? 20 : 12,
   },
   inputLabel: {
-    fontSize: Platform.isTV ? 18 : 15,
+    fontSize: Platform.isTV ? 30 : 18,
     fontWeight: "500",
     color: "#8E8E93",
     marginBottom: 4,
   },
   inputHint: {
-    fontSize: Platform.isTV ? 15 : 12,
-    color: "#636366",
+    fontSize: Platform.isTV ? 26 : 15,
+    color: "#FFC312",
     marginTop: 6,
   },
   inputHost: {
@@ -704,7 +704,7 @@ const styles = StyleSheet.create({
     // backgroundColor: "#2C2C2E",
     borderRadius: Platform.isTV ? 12 : 8,
     paddingHorizontal: Platform.isTV ? 16 : 12,
-    fontSize: Platform.isTV ? 24 : 20,
+    fontSize: Platform.isTV ? 28 : 20,
     color: "#FFFFFF",
   },
   // Buttons

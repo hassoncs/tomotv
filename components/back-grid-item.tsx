@@ -141,13 +141,13 @@ const styles = StyleSheet.create({
   },
   folderName: {
     color: "#FFFFFF",
-    fontSize: IS_TV ? 16 : 13,
+    fontSize: IS_TV ? 30 : 13,
     fontWeight: "700",
     textAlign: "center",
   },
   hint: {
     color: "rgba(250, 196, 0, 0.5)",
-    fontSize: IS_TV ? 14 : 11,
+    fontSize: IS_TV ? 22 : 11,
     fontWeight: "500",
     marginTop: 4,
   },

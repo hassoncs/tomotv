@@ -137,7 +137,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    fontSize: Platform.isTV ? 24 : 18,
+    fontSize: Platform.isTV ? 28 : 18,
     fontWeight: "600",
   },
   buttonTextDisabled: {
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   },
   destructiveButtonText: {
     color: "#FF3B30",
-    fontSize: Platform.isTV ? 20 : 17,
+    fontSize: Platform.isTV ? 24 : 17,
   },
 
   // Debug variant (Gray border)
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   debugButtonText: {
     color: "#8E8E93",
-    fontSize: Platform.isTV ? 20 : 17,
+    fontSize: Platform.isTV ? 24 : 17,
   },
 
   // Retry variant (Yellow background)
