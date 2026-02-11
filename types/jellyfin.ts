@@ -78,3 +78,26 @@ export interface JellyfinFolderResponse {
   TotalRecordCount?: number; // Optional - Jellyfin API doesn't always include this
   StartIndex: number;
 }
+
+// Authentication response from /Users/AuthenticateByName or /Users/AuthenticateWithQuickConnect
+export interface JellyfinAuthResult {
+  AccessToken: string;
+  User: {
+    Id: string;
+    Name: string;
+  };
+}
+
+// Quick Connect initiate/poll response from /QuickConnect/Initiate and /QuickConnect/Connect
+export interface QuickConnectResult {
+  Code: string;
+  Secret: string;
+  Authenticated: boolean;
+}
+
+// Public server info from /System/Info/Public (no auth required)
+export interface JellyfinPublicServerInfo {
+  ServerName: string;
+  Version: string;
+  Id: string;
+}

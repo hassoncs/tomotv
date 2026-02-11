@@ -1,15 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { LayoutChangeEvent, Platform, StyleSheet, TextStyle, View } from "react-native";
-import Animated, {
-  Easing,
-  cancelAnimation,
-  useAnimatedStyle,
-  useSharedValue,
-  withDelay,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
+import Animated, { Easing, cancelAnimation, useAnimatedStyle, useSharedValue, withDelay, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 
 const IS_TV = Platform.isTV;
 
@@ -52,13 +43,7 @@ export function MarqueeText({ children, active, style, speed = 60 }: MarqueeText
     const overflow = textWidth - containerWidth;
     const scrollMs = (overflow / speed) * 1000;
 
-    translateX.value = withRepeat(
-      withSequence(
-        withDelay(300, withTiming(-overflow, { duration: scrollMs, easing: Easing.linear })),
-        withDelay(800, withTiming(0, { duration: 0 })),
-      ),
-      -1,
-    );
+    translateX.value = withRepeat(withSequence(withDelay(300, withTiming(-overflow, { duration: scrollMs, easing: Easing.linear })), withDelay(800, withTiming(0, { duration: 0 }))), -1);
 
     return () => {
       cancelAnimation(translateX);
@@ -95,17 +80,8 @@ export function MarqueeText({ children, active, style, speed = 60 }: MarqueeText
         </Animated.Text>
       </View>
 
-      <Animated.View
-        style={[
-          styles.slider,
-          animatedStyle,
-          overflows && active ? { width: textWidth } : undefined,
-        ]}
-      >
-        <Animated.Text
-          style={innerTextStyle}
-          numberOfLines={overflows && active ? undefined : 1}
-        >
+      <Animated.View style={[styles.slider, animatedStyle, overflows && active ? { width: textWidth } : undefined]}>
+        <Animated.Text style={innerTextStyle} numberOfLines={overflows && active ? undefined : 1}>
           {children}
         </Animated.Text>
       </Animated.View>

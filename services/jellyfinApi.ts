@@ -1,4 +1,4 @@
-import { JellyfinFolderResponse, JellyfinItem, JellyfinMediaStream, JellyfinVideoItem, JellyfinVideosResponse } from "@/types/jellyfin";
+import { JellyfinAuthResult, JellyfinFolderResponse, JellyfinItem, JellyfinMediaStream, JellyfinPublicServerInfo, JellyfinVideoItem, JellyfinVideosResponse, QuickConnectResult } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { retryWithBackoff } from "@/utils/retry";
 import * as SecureStore from "expo-secure-store";
@@ -17,6 +17,10 @@ const STORAGE_KEYS = {
   USER_ID: "jellyfin_user_id",
   VIDEO_QUALITY: "app_video_quality",
   IS_DEMO_MODE: "jellyfin_is_demo_mode",
+  DEVICE_ID: "jellyfin_device_id",
+  USER_NAME: "jellyfin_user_name",
+  AUTH_METHOD: "jellyfin_auth_method",
+  SERVER_NAME: "jellyfin_server_name",
 };
 
 // Demo server credentials (Jellyfin's official public demo server)
@@ -554,6 +558,401 @@ export async function disconnectFromDemo(): Promise<void> {
     });
     throw new Error("Failed to disconnect from demo server");
   }
+}
+
+// ============================================================
+// Authentication API Functions
+// ============================================================
+
+/**
+ * Get or create a persistent device ID for this installation.
+ * Stored in SecureStore so it survives app restarts but not reinstalls.
+ */
+async function getOrCreateDeviceId(): Promise<string> {
+  let deviceId = await SecureStore.getItemAsync(STORAGE_KEYS.DEVICE_ID);
+  if (!deviceId) {
+    // Generate a UUID-like device ID
+    deviceId = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+    await SecureStore.setItemAsync(STORAGE_KEYS.DEVICE_ID, deviceId);
+    logger.debug("Generated new device ID", { service: "JellyfinAPI", deviceId });
+  }
+  return deviceId;
+}
+
+/**
+ * Build the MediaBrowser client auth header (no Token) for unauthenticated requests.
+ * Required by Jellyfin for auth endpoints like /Users/AuthenticateByName.
+ */
+function getClientAuthHeader(deviceId: string): string {
+  return `MediaBrowser Client="TomoTV", Device="${Platform.OS}", DeviceId="${deviceId}", Version="1.2.1"`;
+}
+
+// Lazy-import Platform to avoid circular dependency issues at module scope
+import { Platform } from "react-native";
+
+/**
+ * Validate a server URL by hitting /System/Info/Public (no auth required).
+ * Returns server name, version, and ID if the server is reachable.
+ */
+export async function checkServerInfo(serverUrl: string): Promise<JellyfinPublicServerInfo> {
+  const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+  const url = `${cleanUrl}/System/Info/Public`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.SHORT);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Server returned ${response.status}`);
+    }
+
+    const data: JellyfinPublicServerInfo = await response.json();
+
+    if (!data.ServerName || !data.Version) {
+      throw new Error("Response missing ServerName or Version — not a valid Jellyfin server");
+    }
+
+    logger.info("Server info validated", {
+      service: "JellyfinAPI",
+      serverName: data.ServerName,
+      version: data.Version,
+    });
+
+    return data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Connection timed out. Check the server URL and make sure Jellyfin is running.");
+    }
+    if (error instanceof Error && error.message.includes("not a valid Jellyfin")) {
+      throw error;
+    }
+    throw new Error("Unable to reach Jellyfin server. Check the URL and ensure the server is running.");
+  }
+}
+
+/**
+ * Check if Quick Connect is enabled on the server.
+ */
+export async function checkQuickConnectEnabled(serverUrl: string): Promise<boolean> {
+  const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+  const url = `${cleanUrl}/QuickConnect/Enabled`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.SHORT);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      return false;
+    }
+
+    // Jellyfin returns the boolean directly as the response body (e.g. "true" or "false")
+    const text = await response.text();
+    return text.trim().toLowerCase() === "true";
+  } catch {
+    clearTimeout(timeoutId);
+    return false;
+  }
+}
+
+/**
+ * Initiate a Quick Connect session. Returns a code to display and a secret for polling.
+ */
+export async function initiateQuickConnect(serverUrl: string): Promise<QuickConnectResult> {
+  const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+  const deviceId = await getOrCreateDeviceId();
+  const url = `${cleanUrl}/QuickConnect/Initiate`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: getClientAuthHeader(deviceId),
+      },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Quick Connect initiation failed: ${response.status}`);
+    }
+
+    const data: QuickConnectResult = await response.json();
+
+    if (!data.Code || !data.Secret) {
+      throw new Error("Invalid Quick Connect response: missing Code or Secret");
+    }
+
+    logger.info("Quick Connect initiated", {
+      service: "JellyfinAPI",
+      code: data.Code,
+    });
+
+    return data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Quick Connect request timed out.");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Poll Quick Connect status. Returns updated result with Authenticated flag.
+ */
+export async function pollQuickConnect(serverUrl: string, secret: string): Promise<QuickConnectResult> {
+  const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+  const url = `${cleanUrl}/QuickConnect/Connect?secret=${encodeURIComponent(secret)}`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.SHORT);
+
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Quick Connect poll failed: ${response.status}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Quick Connect poll timed out.");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Authenticate with a Quick Connect secret after user approves.
+ * Returns an access token and user info.
+ */
+export async function authenticateWithQuickConnect(serverUrl: string, secret: string): Promise<JellyfinAuthResult> {
+  const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+  const deviceId = await getOrCreateDeviceId();
+  const url = `${cleanUrl}/Users/AuthenticateWithQuickConnect`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: getClientAuthHeader(deviceId),
+      },
+      body: JSON.stringify({ Secret: secret }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Quick Connect authentication failed: ${response.status}`);
+    }
+
+    const data: JellyfinAuthResult = await response.json();
+
+    if (!data.AccessToken || !data.User?.Id) {
+      throw new Error("Invalid auth response: missing AccessToken or User");
+    }
+
+    return data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Authentication request timed out.");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Authenticate with username and password.
+ * Returns an access token and user info.
+ */
+export async function authenticateByName(serverUrl: string, username: string, password: string): Promise<JellyfinAuthResult> {
+  const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+  const deviceId = await getOrCreateDeviceId();
+  const url = `${cleanUrl}/Users/AuthenticateByName`;
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        Authorization: getClientAuthHeader(deviceId),
+      },
+      body: JSON.stringify({ Username: username, Pw: password }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.status === 401) {
+      throw new Error("Invalid username or password.");
+    }
+
+    if (!response.ok) {
+      throw new Error(`Authentication failed: ${response.status}`);
+    }
+
+    const data: JellyfinAuthResult = await response.json();
+
+    if (!data.AccessToken || !data.User?.Id) {
+      throw new Error("Invalid auth response: missing AccessToken or User");
+    }
+
+    return data;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Authentication request timed out.");
+    }
+    throw error;
+  }
+}
+
+/**
+ * Save auth credentials atomically and refresh the config cache.
+ * Works for both Quick Connect and Username/Password auth results.
+ */
+export async function saveAuthResult(
+  serverUrl: string,
+  accessToken: string,
+  userId: string,
+  userName: string,
+  serverName: string,
+  method: "quickconnect" | "password" | "apikey",
+): Promise<void> {
+  const cleanUrl = serverUrl.trim().replace(/\/+$/, "");
+
+  // Save all credential keys atomically
+  await Promise.all([
+    SecureStore.setItemAsync(STORAGE_KEYS.SERVER_URL, cleanUrl),
+    SecureStore.setItemAsync(STORAGE_KEYS.API_KEY, accessToken),
+    SecureStore.setItemAsync(STORAGE_KEYS.USER_ID, userId),
+    SecureStore.setItemAsync(STORAGE_KEYS.USER_NAME, userName),
+    SecureStore.setItemAsync(STORAGE_KEYS.AUTH_METHOD, method),
+    SecureStore.setItemAsync(STORAGE_KEYS.SERVER_NAME, serverName),
+    // Clear demo mode flag when signing in with real credentials
+    SecureStore.deleteItemAsync(STORAGE_KEYS.IS_DEMO_MODE).catch(() => {}),
+  ]);
+
+  // Refresh config cache so all API calls pick up the new credentials
+  await refreshConfig();
+
+  // Clear manager caches to prevent stale data from old server
+  try {
+    const { libraryManager } = await import("@/services/libraryManager");
+    const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+    libraryManager.clearCache();
+    folderNavigationManager.clearCache();
+  } catch (cacheError) {
+    logger.warn("Failed to clear manager caches after auth", cacheError, {
+      service: "JellyfinAPI",
+    });
+  }
+
+  logger.info("Auth credentials saved", {
+    service: "JellyfinAPI",
+    serverUrl: cleanUrl,
+    userName,
+    method,
+  });
+}
+
+/**
+ * Sign out: clear all credential keys and reset config.
+ */
+export async function signOut(): Promise<void> {
+  await Promise.all([
+    SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_URL),
+    SecureStore.deleteItemAsync(STORAGE_KEYS.API_KEY),
+    SecureStore.deleteItemAsync(STORAGE_KEYS.USER_ID),
+    SecureStore.deleteItemAsync(STORAGE_KEYS.USER_NAME),
+    SecureStore.deleteItemAsync(STORAGE_KEYS.AUTH_METHOD),
+    SecureStore.deleteItemAsync(STORAGE_KEYS.SERVER_NAME),
+    SecureStore.deleteItemAsync(STORAGE_KEYS.IS_DEMO_MODE),
+  ]);
+
+  // Refresh config to reset to defaults
+  await refreshConfig();
+
+  // Clear manager caches
+  try {
+    const { libraryManager } = await import("@/services/libraryManager");
+    const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+    libraryManager.clearCache();
+    folderNavigationManager.clearCache();
+  } catch (cacheError) {
+    logger.warn("Failed to clear manager caches on sign out", cacheError, {
+      service: "JellyfinAPI",
+    });
+  }
+
+  logger.info("User signed out", { service: "JellyfinAPI" });
+}
+
+/**
+ * Read the stored username (for display in connected state).
+ */
+export async function getStoredUserName(): Promise<string | null> {
+  return SecureStore.getItemAsync(STORAGE_KEYS.USER_NAME);
+}
+
+/**
+ * Read the stored auth method (for display in connected state).
+ */
+export async function getStoredAuthMethod(): Promise<string | null> {
+  return SecureStore.getItemAsync(STORAGE_KEYS.AUTH_METHOD);
+}
+
+/**
+ * Read the stored server name (for display in connected state).
+ */
+export async function getStoredServerName(): Promise<string | null> {
+  return SecureStore.getItemAsync(STORAGE_KEYS.SERVER_NAME);
 }
 
 /**
