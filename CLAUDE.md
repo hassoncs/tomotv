@@ -634,7 +634,7 @@ The help screen (`app/(tabs)/help.tsx`) is a single-screen landing page:
 ### Network Configuration
 
 - **iOS/tvOS:** `NSAppTransportSecurity` allows local HTTP connections
-- **iOS/tvOS:** `NSLocalNetworkUsageDescription` for Bonjour discovery
+- **iOS/tvOS:** `NSLocalNetworkUsageDescription` for local network access prompt
 
 ### Apple TV Specific
 
