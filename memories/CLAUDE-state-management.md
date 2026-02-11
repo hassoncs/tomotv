@@ -124,7 +124,7 @@ Location: `contexts/`
 
 ## Other State
 
-- **SecureStore:** Persistent storage for credentials (iCloud Keychain/Android Keystore)
+- **SecureStore:** Persistent storage for credentials (device Keychain / Android Keystore)
 - **Component State:** React hooks (`useState`, `useReducer`) for local state
 - **Configuration:** Three-tier fallback (user settings → dev credentials → defaults)
 

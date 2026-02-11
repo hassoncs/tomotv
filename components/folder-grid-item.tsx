@@ -6,6 +6,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import React, { forwardRef, useCallback, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { MarqueeText } from "./MarqueeText";
 
 const IS_TV = Platform.isTV;
 const CARD_PADDING = IS_TV ? 16 : 8;
@@ -81,9 +82,9 @@ const FolderGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpac
           {focused &&
             (thumbnailUrl ? (
               <BlurView intensity={80} style={styles.infoOverlay} tint="dark">
-                <Text style={styles.folderName} numberOfLines={2}>
+                <MarqueeText active={focused} style={styles.folderName}>
                   {folder.Name}
-                </Text>
+                </MarqueeText>
                 {itemCount !== undefined && (
                   <Text style={styles.childCount}>
                     {itemCount} {itemCount === 1 ? "item" : "items"}
@@ -92,9 +93,9 @@ const FolderGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpac
               </BlurView>
             ) : (
               <View style={styles.infoOverlayNoBlur}>
-                <Text style={styles.folderName} numberOfLines={2}>
+                <MarqueeText active={focused} style={styles.folderName}>
                   {folder.Name}
-                </Text>
+                </MarqueeText>
                 {itemCount !== undefined && (
                   <Text style={styles.childCount}>
                     {itemCount} {itemCount === 1 ? "item" : "items"}
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
   },
   placeholderText: {
     color: "#98989D",
-    fontSize: IS_TV ? 16 : 12,
+    fontSize: IS_TV ? 30 : 12,
     fontWeight: "600",
     textAlign: "center",
     marginTop: IS_TV ? 16 : 10,
@@ -215,13 +216,13 @@ const styles = StyleSheet.create({
   },
   folderName: {
     color: "#FFFFFF",
-    fontSize: IS_TV ? 16 : 13,
+    fontSize: IS_TV ? 30 : 13,
     fontWeight: "700",
     textAlign: "center",
   },
   childCount: {
     color: "#98989D",
-    fontSize: IS_TV ? 14 : 11,
+    fontSize: IS_TV ? 22 : 11,
     fontWeight: "500",
     marginTop: 4,
   },

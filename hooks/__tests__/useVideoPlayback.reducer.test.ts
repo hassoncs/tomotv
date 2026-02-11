@@ -223,6 +223,23 @@ describe("error classification", () => {
       expect(state).toHaveProperty("canRetryWithTranscode", false);
     });
 
+    it("should not allow transcode retry when already in transcode mode (seek recovery is hook-level)", () => {
+      let state: VideoPlayerState = {
+        type: "PLAYING",
+        mode: "transcode",
+      };
+
+      state = videoPlayerReducer(state, {
+        type: "PLAYER_ERROR",
+        error: { message: "CoreMediaErrorDomain error -15628" },
+        mode: "transcode",
+        hasTriedTranscode: true,
+      });
+
+      expect(state.type).toBe("ERROR");
+      expect(state).toHaveProperty("canRetryWithTranscode", false);
+    });
+
     it("should set error state for non-retryable errors", () => {
       let state: VideoPlayerState = {
         type: "READY",

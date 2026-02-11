@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**TomoTV** is a cross-platform video streaming application that connects to a Jellyfin media server. Built with React Native TVOS and Expo, it supports iOS, Android, Apple TV, and web platforms. The app intelligently handles video codecs, automatically transcoding unsupported formats while direct-playing compatible ones.
+**TomoTV** is a video streaming application that connects to a Jellyfin media server. Built with React Native TVOS and Expo, it supports Apple TV (tvOS). The app intelligently handles video codecs, automatically transcoding unsupported formats while direct-playing compatible ones.
 
 ## WORKFLOW & DECISION-MAKING RULES
 
@@ -634,7 +634,7 @@ The help screen (`app/(tabs)/help.tsx`) is a single-screen landing page:
 ### Network Configuration
 
 - **iOS/tvOS:** `NSAppTransportSecurity` allows local HTTP connections
-- **iOS/tvOS:** `NSLocalNetworkUsageDescription` for Bonjour discovery
+- **iOS/tvOS:** `NSLocalNetworkUsageDescription` for local network access prompt
 
 ### Apple TV Specific
 

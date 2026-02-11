@@ -59,7 +59,7 @@ Features:
 Includes:
 
 - Complete "no data collection" policy
-- Credential storage explanation (iCloud Keychain)
+- Credential storage explanation (device Keychain)
 - Direct device-to-server communication clarification
 - No third-party services disclosure
 - GDPR and CCPA compliance sections

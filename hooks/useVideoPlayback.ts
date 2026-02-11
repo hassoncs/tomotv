@@ -1,7 +1,9 @@
 import { useEffect, useState, useMemo, useRef, useCallback, useReducer } from "react";
 import type { VideoRef, OnLoadData, OnProgressData, OnVideoErrorData, AudioTrack, TextTrack } from "react-native-video";
 import { InteractionManager } from "react-native";
-import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig, getConfig } from "@/services/jellyfinApi";
+import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig, getConfig, JELLYFIN_TIME } from "@/services/jellyfinApi";
+import { getProgress } from "@/services/watchProgressService";
+import { useWatchProgress } from "./useWatchProgress";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { prepareMultiAudioPlayback, shouldUseMultiAudio, isMultiAudioAvailable, getAudioTracks } from "@/services/multiAudioLoader";
@@ -268,6 +270,8 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const [videoDetails, setVideoDetails] = useState<JellyfinVideoItem | null>(null);
   const [hasTriedTranscoding, setHasTriedTranscoding] = useState(false);
   const [hasTriedCredentialRefresh, setHasTriedCredentialRefresh] = useState(false);
+  const [hasTriedSeekRecovery, setHasTriedSeekRecovery] = useState(false);
+  const hasTriedResumeFallbackRef = useRef(false);
 
   // Request ID to prevent race conditions when videoId changes
   // Incremented on each videoId change, async operations check before updating state
@@ -282,6 +286,13 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const isMountedRef = useRef(true);
   const autoPlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const stablePlaybackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Seek recovery: store ticks to resume transcoding from after a seek crash
+  const startTimeTicksRef = useRef<number | null>(null);
+
+  // Resume fallback: store position (seconds) when StartTimeTicks is used from watch progress
+  // If the StartTimeTicks URL fails, we can retry with client-side seek instead
+  const resumePositionForFallbackRef = useRef<number | null>(null);
 
   // Status tracking (for debouncing rapid status changes)
   const isSeekingRef = useRef(false);
@@ -357,6 +368,38 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         }
       } else {
         logger.info("Using direct play", { service: "useVideoPlayback" });
+      }
+
+      // Load saved watch progress for auto-resume (only if no other seek is pending)
+      if (seekToPositionAfterLoadRef.current === null && startTimeTicksRef.current === null) {
+        try {
+          const saved = await getProgress(videoId);
+          if (saved && saved.position > 0) {
+            if (selectedMode === "transcode") {
+              // Server-side offset — transcode starts from resume point directly
+              startTimeTicksRef.current = saved.position * JELLYFIN_TIME.TICKS_PER_SECOND;
+              // Store position for fallback: if StartTimeTicks URL fails,
+              // we can retry with client-side seek instead
+              resumePositionForFallbackRef.current = saved.position;
+              logger.info("Resuming transcoded video from saved position", {
+                service: "useVideoPlayback",
+                position: saved.position,
+                startTimeTicks: startTimeTicksRef.current,
+              });
+            } else {
+              // Client-side seek — player seeks after load
+              seekToPositionAfterLoadRef.current = saved.position;
+              logger.info("Resuming direct play video from saved position", {
+                service: "useVideoPlayback",
+                position: saved.position,
+              });
+            }
+          }
+        } catch (err) {
+          logger.warn("Failed to load watch progress, starting from beginning", err, {
+            service: "useVideoPlayback",
+          });
+        }
       }
 
       // Update mode ref before dispatch (for event listener closures)
@@ -460,7 +503,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
             });
 
             // First get the base transcoding URL
-            const baseUrl = await getTranscodingStreamUrl(videoId, details);
+            const seekTicks = startTimeTicksRef.current ?? undefined;
+            const baseUrl = await getTranscodingStreamUrl(videoId, details, undefined, seekTicks);
+            startTimeTicksRef.current = null; // Clear after use
 
             // Then prepare multi-audio playback with custom protocol
             const cachedConfig = await getConfig();
@@ -478,7 +523,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
             // Regular transcoding
             // Pass selected audio track index if available
             const audioStreamIndex = selectedAudioTrackIndexRef.current ?? undefined;
-            url = await getTranscodingStreamUrl(videoId, details, audioStreamIndex);
+            const seekTicks = startTimeTicksRef.current ?? undefined;
+            url = await getTranscodingStreamUrl(videoId, details, audioStreamIndex, seekTicks);
+            startTimeTicksRef.current = null; // Clear after use
 
             // CLEAR REF: Not using multi-audio
             isUsingMultiAudioRef.current = false;
@@ -598,6 +645,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const lastLoggedAudioTracksRef = useRef<string>("");
   const lastLoggedTextTracksRef = useRef<string>("");
 
+  // Watch progress polling — decoupled from playback state machine
+  const { markEnded } = useWatchProgress({ videoId, videoRef, durationRef });
+
   /**
    * Step 5: Video event callbacks (replacing player.addListener calls)
    */
@@ -616,7 +666,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     // Auto-seek to saved position if this is a restart (audio track switch)
     const seekPosition = seekToPositionAfterLoadRef.current;
     if (seekPosition !== null && seekPosition > 0) {
-      logger.info("⏩ Auto-seeking to saved position after audio track switch", {
+      logger.info("⏩ Auto-seeking to saved position", {
         service: "useVideoPlayback",
         position: seekPosition,
       });
@@ -633,7 +683,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         // This allows the user to switch tracks again after the restart
         selectedAudioTrackIndexRef.current = null;
 
-        logger.info("✅ Audio track switch complete - resumed playback", {
+        logger.info("✅ Auto-seek complete — resumed playback", {
           service: "useVideoPlayback",
           position: seekPosition,
         });
@@ -745,6 +795,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     if (!isMountedRef.current) return;
 
     logger.info("Video playback ended, triggering callback", { service: "useVideoPlayback" });
+
+    // Mark video as ended — clears saved progress
+    markEnded();
+
     InteractionManager.runAfterInteractions(() => {
       if (!isMountedRef.current) return;
       onPlaybackEndRef.current?.();
@@ -832,6 +886,74 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       return;
     }
 
+    // Seek recovery: when a transcode stream crashes mid-playback (e.g. seek to non-keyframe),
+    // restart the transcode session from the last known position using StartTimeTicks.
+    // Limited to 1 attempt to prevent loops.
+    if (currentMode === "transcode" && currentTimeRef.current > 1 && !hasTriedSeekRecovery) {
+      const lastPositionSec = currentTimeRef.current;
+      const ticks = lastPositionSec * JELLYFIN_TIME.TICKS_PER_SECOND;
+
+      logger.info("Seek crash detected during transcode, attempting recovery", {
+        service: "useVideoPlayback",
+        lastPositionSec,
+        startTimeTicks: ticks,
+      });
+
+      setHasTriedSeekRecovery(true);
+      startTimeTicksRef.current = ticks;
+
+      // Reset playback state for the recovery attempt
+      autoPlayTriggeredRef.current = false;
+      isPlayingRef.current = false;
+      hasStablePlaybackRef.current = false;
+      setHasStablePlayback(false);
+
+      // Clear stream URL to unmount Video component
+      setStreamUrl(null);
+
+      // Do NOT set seekToPositionAfterLoadRef — the HLS stream already starts at the offset
+
+      InteractionManager.runAfterInteractions(() => {
+        if (!isMountedRef.current) return;
+        dispatch({ type: "RETRY_WITH_TRANSCODE" });
+      });
+
+      return;
+    }
+
+    // Resume fallback: when a transcoded stream with StartTimeTicks fails on initial load
+    // (e.g. Jellyfin returns NSURLErrorResourceUnavailable -1008), retry without StartTimeTicks
+    // and use client-side seek instead. Only fires when the player never started (currentTime ≈ 0).
+    if (currentMode === "transcode" && resumePositionForFallbackRef.current !== null && !hasTriedResumeFallbackRef.current) {
+      const resumePosition = resumePositionForFallbackRef.current;
+
+      logger.info("StartTimeTicks resume failed, retrying with client-side seek", {
+        service: "useVideoPlayback",
+        resumePosition,
+      });
+
+      hasTriedResumeFallbackRef.current = true;
+      resumePositionForFallbackRef.current = null;
+      seekToPositionAfterLoadRef.current = resumePosition;
+      selectedAudioTrackIndexRef.current = null;
+
+      // Reset playback state for the retry
+      autoPlayTriggeredRef.current = false;
+      isPlayingRef.current = false;
+      hasStablePlaybackRef.current = false;
+      setHasStablePlayback(false);
+
+      // Clear stream URL to unmount Video component
+      setStreamUrl(null);
+
+      InteractionManager.runAfterInteractions(() => {
+        if (!isMountedRef.current) return;
+        dispatch({ type: "RETRY_WITH_TRANSCODE" });
+      });
+
+      return;
+    }
+
     // Log at INFO level if we'll auto-retry, ERROR level if this is a real failure
     if (willRetryWithTranscode) {
       logger.info("Direct play failed, will retry with transcoding", error, { service: "useVideoPlayback" });
@@ -851,7 +973,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         hasTriedTranscode: hasTriedTranscoding,
       });
     });
-  }, [hasTriedTranscoding, hasTriedCredentialRefresh]);
+  }, [hasTriedTranscoding, hasTriedCredentialRefresh, hasTriedSeekRecovery]);
 
   // Callback: Audio tracks discovered from HLS manifest
   const onAudioTracks = useCallback((data: { audioTracks: AudioTrack[] }) => {
@@ -979,7 +1101,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       // Stop playback on unmount
       setPaused(true);
     };
-  }, []);
+  }, [videoId]);
 
   /**
    * Reset state when video ID changes
@@ -1003,6 +1125,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     setStreamUrl(null);
     setHasTriedTranscoding(false);
     setHasTriedCredentialRefresh(false);
+    setHasTriedSeekRecovery(false);
+    hasTriedResumeFallbackRef.current = false;
+    resumePositionForFallbackRef.current = null;
     setHasStablePlayback(false);
     hasStablePlaybackRef.current = false;
     autoPlayTriggeredRef.current = false;
@@ -1010,6 +1135,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     lastStatusChangeRef.current = 0;
     currentModeRef.current = "direct";
     seekToPositionAfterLoadRef.current = null;
+    startTimeTicksRef.current = null;
     selectedAudioTrackIndexRef.current = null;
     audioTrackMappingRef.current = [];
     isUsingMultiAudioRef.current = false;
@@ -1087,6 +1213,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     }
 
     setHasTriedTranscoding(false);
+    setHasTriedSeekRecovery(false);
+    hasTriedResumeFallbackRef.current = false;
+    resumePositionForFallbackRef.current = null;
+    startTimeTicksRef.current = null;
     setHasStablePlayback(false);
     hasStablePlaybackRef.current = false;
     autoPlayTriggeredRef.current = false;

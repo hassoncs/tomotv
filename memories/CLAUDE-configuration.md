@@ -62,7 +62,7 @@ connectToDemoServer(clearCaches: boolean = true)
 | `app_video_quality` | Transcoding quality preset (0-3) | string (number) |
 | `jellyfin_is_demo_mode` | Demo server connection flag | "true" \| null |
 
-**Note:** All keys are stored in iCloud Keychain (iOS) / Android Keystore automatically.
+**Note:** All keys are stored in device Keychain via expo-secure-store.
 
 ## Protection Logic
 
@@ -119,7 +119,7 @@ EXPO_PUBLIC_DEV_JELLYFIN_USER_ID=your_user_id
 - Never commit `.env.local` (already in `.gitignore`)
 - No hardcoded credentials in source code
 - ATS (App Transport Security) allows HTTP for local networks only (HTTPS required for internet servers)
-- Credentials stored in iCloud Keychain (iOS) / Android Keystore
+- Credentials stored in device Keychain
 
 ### API Key in URLs (Jellyfin Limitation)
 
