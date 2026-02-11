@@ -1,6 +1,6 @@
 # Lessons Learned
 
-**Last Updated:** January 29, 2026
+**Last Updated:** February 10, 2026
 
 ## Quick Reference
 **Category:** Implementation
@@ -15,6 +15,43 @@ Case studies of significant bugs encountered during TomoTV development with root
 ---
 
 This document captures important lessons from debugging sessions, bugs, and issues encountered during TomoTV development. Each lesson reinforces the workflow and decision-making rules in the main CLAUDE.md.
+
+---
+
+## UIHostingController Containment Bug — .searchable Keyboard Disappears (February 2026)
+
+### Problem
+After interacting with any TextInput on the Settings tab (which opens a tvOS keyboard dialog/UIAlertController), navigating to the Search tab caused the native `.searchable` SwiftUI keyboard to stop appearing entirely. Fresh app launches worked fine.
+
+### Root Cause
+In `expo-tvos-search`, the `UIHostingController` hosting the SwiftUI `NavigationView` with `.searchable` was created and its **view** was added as a subview, but the controller itself was never added as a child view controller via `addChild`/`didMove(toParent:)`. This meant:
+- The hosting controller never received `viewWillAppear`/`viewDidAppear` lifecycle events
+- SwiftUI's `.searchable` modifier relies on UIKit's focus system integration, which requires proper VC containment
+- It worked "by accident" on fresh launch (no prior focus state to conflict with)
+- After a Settings TextInput opened a UIAlertController (keyboard dialog), UIKit's focus engine state changed, and returning to Search, the focus engine couldn't route focus back to `.searchable` because the hosting controller wasn't in the VC hierarchy
+
+### Solution
+Added proper UIKit view controller containment in `ExpoTvosSearchView.swift`:
+1. `didMoveToWindow()` override — when view enters a window, find nearest parent VC via responder chain and call `addChild`/`didMove(toParent:)`. When removed, call `willMove(toParent: nil)`/`removeFromParent()`
+2. Early containment in `setupView()` for cases where the view already has a window at setup time
+3. Cleanup in `deinit` to remove VC relationship
+
+### What Went Wrong
+- First attempt tried `Keyboard.dismiss()` + `.blur()` cleanup in settings.tsx `useFocusEffect` — this was a red herring because the issue wasn't a lingering first responder on the JS side
+- The real issue was a missing Apple-documented UIKit pattern in the native Swift library
+
+### What Worked
+- Reading Apple's documentation on UIHostingController containment requirements
+- Tracing the lifecycle: Settings TextInput -> UIAlertController -> focus engine state change -> missing VC hierarchy -> .searchable can't reclaim focus
+
+### Key Takeaways
+1. **UIHostingController requires proper child VC containment** — adding just the `.view` as a subview is not sufficient. Without `addChild`/`didMove(toParent:)`, SwiftUI never receives lifecycle events
+2. **"Works on first launch but breaks after X" is a containment/lifecycle smell** — if something works initially but breaks after unrelated UIKit interactions, suspect missing lifecycle integration
+3. **Focus engine bugs on tvOS are often VC hierarchy bugs** — the tvOS focus engine relies on the view controller hierarchy to route focus. If a VC isn't in the hierarchy, its views can't participate in focus updates
+
+### Files Affected
+- `expo-tvos-search/ios/ExpoTvosSearchView.swift` (library fix)
+- `app/(tabs)/settings.tsx` (defensive cleanup, kept but not the fix)
 
 ---
 

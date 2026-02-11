@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useCallback, useRef, useState } from "react";
-import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 const STORAGE_KEYS = {
   SERVER_URL: "jellyfin_server_url",
@@ -72,6 +72,8 @@ export default function SettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+  const [userIdFocused, setUserIdFocused] = useState(false);
+  const [apiKeyFocused, setApiKeyFocused] = useState(false);
 
   // Refs for text fields
   const serverUrlRef = useRef<TextInput>(null);
@@ -83,11 +85,23 @@ export default function SettingsScreen() {
   const currentApiKey = useRef(apiKey);
   const currentUserId = useRef(userId);
 
+  const maskValue = (val: string) =>
+    val.length > 4 ? "••••••••" + val.slice(-4) : val;
+
   // Reload settings whenever the screen comes into focus
   // This ensures demo server credentials are shown after connecting
   useFocusEffect(
     useCallback(() => {
       loadSettings();
+
+      return () => {
+        Keyboard.dismiss();
+        serverUrlRef.current?.blur();
+        apiKeyRef.current?.blur();
+        userIdRef.current?.blur();
+        setUserIdFocused(false);
+        setApiKeyFocused(false);
+      };
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
@@ -429,6 +443,9 @@ Video Quality: ${qualityLabel}
                   numberOfLines={1}
                   multiline={false}
                 />
+                <Text style={styles.inputHint}>
+                  Your Jellyfin server address, e.g. http://192.168.1.100:8096
+                </Text>
               </View>
             </View>
 
@@ -438,7 +455,7 @@ Video Quality: ${qualityLabel}
                 <Text style={styles.inputLabel}>User ID</Text>
                 <TextInput
                   ref={userIdRef}
-                  value={userId}
+                  value={userIdFocused ? userId : maskValue(userId)}
                   placeholder="Enter your user ID"
                   placeholderTextColor="#8E8E93"
                   autoCorrect={false}
@@ -447,11 +464,17 @@ Video Quality: ${qualityLabel}
                     setUserId(value);
                     currentUserId.current = value;
                   }}
+                  onFocus={() => setUserIdFocused(true)}
+                  onBlur={() => setUserIdFocused(false)}
                   style={styles.textInput}
                   autoFocus={false}
                   multiline={false}
                   numberOfLines={1}
                 />
+                <Text style={styles.inputHint}>
+                  Dashboard → Users → click your name → copy the ID from the
+                  URL
+                </Text>
               </View>
             </View>
 
@@ -461,21 +484,25 @@ Video Quality: ${qualityLabel}
                 <Text style={styles.inputLabel}>API Key</Text>
                 <TextInput
                   ref={apiKeyRef}
-                  value={apiKey}
+                  value={apiKeyFocused ? apiKey : maskValue(apiKey)}
                   placeholder="Enter your API key"
                   placeholderTextColor="#8E8E93"
                   autoCorrect={false}
                   autoCapitalize="none"
-                  secureTextEntry={!Platform.isTV}
                   onChangeText={(value) => {
                     setApiKey(value);
                     currentApiKey.current = value;
                   }}
+                  onFocus={() => setApiKeyFocused(true)}
+                  onBlur={() => setApiKeyFocused(false)}
                   style={styles.textInput}
                   autoFocus={false}
                   numberOfLines={1}
                   multiline={false}
                 />
+                <Text style={styles.inputHint}>
+                  Dashboard → API Keys → create a key for Tomo TV
+                </Text>
               </View>
             </View>
           </View>
@@ -660,7 +687,12 @@ const styles = StyleSheet.create({
     fontSize: Platform.isTV ? 18 : 15,
     fontWeight: "500",
     color: "#8E8E93",
-    marginBottom: 15,
+    marginBottom: 4,
+  },
+  inputHint: {
+    fontSize: Platform.isTV ? 15 : 12,
+    color: "#636366",
+    marginTop: 6,
   },
   inputHost: {
     width: "100%",
