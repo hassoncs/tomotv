@@ -1048,6 +1048,24 @@ describe("jellyfinApi", () => {
         expect(url).not.toContain("SubtitleMethod");
       });
 
+      it("should append StartTimeTicks when provided", async () => {
+        const url = await getTranscodingStreamUrl("video123", null, undefined, 3000000000);
+
+        expect(url).toContain("StartTimeTicks=3000000000");
+      });
+
+      it("should omit StartTimeTicks when not provided", async () => {
+        const url = await getTranscodingStreamUrl("video123");
+
+        expect(url).not.toContain("StartTimeTicks");
+      });
+
+      it("should omit StartTimeTicks when 0", async () => {
+        const url = await getTranscodingStreamUrl("video123", null, undefined, 0);
+
+        expect(url).not.toContain("StartTimeTicks");
+      });
+
     });
 
     describe("getSubtitleTracks", () => {

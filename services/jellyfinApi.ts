@@ -55,7 +55,7 @@ const TRANSCODING = {
 } as const;
 
 // Jellyfin time constants
-const JELLYFIN_TIME = {
+export const JELLYFIN_TIME = {
   TICKS_PER_SECOND: 10000000, // Jellyfin uses 100-nanosecond intervals (ticks)
 } as const;
 
@@ -1734,7 +1734,8 @@ export function getVideoStreamUrl(itemId: string): string {
 export async function getTranscodingStreamUrl(
   itemId: string,
   videoItem?: JellyfinVideoItem | null,
-  audioStreamIndex?: number
+  audioStreamIndex?: number,
+  startTimeTicks?: number
 ): Promise<string> {
   if (!cachedConfig.server || !cachedConfig.apiKey) {
     logger.warn("getTranscodingStreamUrl called before config loaded", { service: "JellyfinAPI" });
@@ -1831,6 +1832,17 @@ export async function getTranscodingStreamUrl(
       service: "JellyfinAPI",
       itemId,
       audioStreamIndex,
+    });
+  }
+
+  // If resuming from a seek crash, start transcoding from the given position
+  if (startTimeTicks !== undefined && startTimeTicks > 0) {
+    url += `&StartTimeTicks=${Math.round(startTimeTicks)}`;
+    logger.info("Transcoding with StartTimeTicks (seek recovery)", {
+      service: "JellyfinAPI",
+      itemId,
+      startTimeTicks,
+      startTimeSeconds: startTimeTicks / JELLYFIN_TIME.TICKS_PER_SECOND,
     });
   }
 
