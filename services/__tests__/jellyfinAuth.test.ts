@@ -1,6 +1,8 @@
 import {
   checkServerInfo,
   checkQuickConnectEnabled,
+  initiateQuickConnect,
+  pollQuickConnect,
   authenticateByName,
   authenticateWithQuickConnect,
   saveAuthResult,
@@ -448,6 +450,148 @@ describe("jellyfinAuth", () => {
       expect(SecureStore.getItemAsync).toHaveBeenCalledWith(
         "jellyfin_server_name",
       );
+    });
+  });
+
+  describe("initiateQuickConnect", () => {
+    it("should throw on timeout (AbortError)", async () => {
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(
+        "test-device-id",
+      );
+
+      mockFetch.mockRejectedValueOnce(
+        Object.assign(new Error("AbortError"), { name: "AbortError" }),
+      );
+
+      await expect(
+        initiateQuickConnect("http://192.168.1.100:8096"),
+      ).rejects.toThrow("Quick Connect request timed out.");
+    });
+
+    it("should throw on non-OK response", async () => {
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(
+        "test-device-id",
+      );
+
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
+
+      await expect(
+        initiateQuickConnect("http://192.168.1.100:8096"),
+      ).rejects.toThrow("Quick Connect initiation failed: 500");
+    });
+
+    it("should throw on missing Code in response", async () => {
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(
+        "test-device-id",
+      );
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ Secret: "secret-123" }),
+      });
+
+      await expect(
+        initiateQuickConnect("http://192.168.1.100:8096"),
+      ).rejects.toThrow("missing Code or Secret");
+    });
+
+    it("should throw on missing Secret in response", async () => {
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(
+        "test-device-id",
+      );
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ Code: "123456" }),
+      });
+
+      await expect(
+        initiateQuickConnect("http://192.168.1.100:8096"),
+      ).rejects.toThrow("missing Code or Secret");
+    });
+
+    it("should include Authorization header with device ID", async () => {
+      (SecureStore.getItemAsync as jest.Mock).mockResolvedValueOnce(
+        "my-device-id",
+      );
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ Code: "123456", Secret: "secret-abc" }),
+      });
+
+      await initiateQuickConnect("http://server:8096");
+
+      const fetchCall = mockFetch.mock.calls[0];
+      expect(fetchCall[0]).toBe("http://server:8096/QuickConnect/Initiate");
+      expect(fetchCall[1].method).toBe("POST");
+      expect(fetchCall[1].headers.Authorization).toContain(
+        'DeviceId="my-device-id"',
+      );
+      expect(fetchCall[1].headers.Authorization).toContain(
+        'Client="TomoTV"',
+      );
+    });
+  });
+
+  describe("pollQuickConnect", () => {
+    it("should throw on timeout (AbortError)", async () => {
+      mockFetch.mockRejectedValueOnce(
+        Object.assign(new Error("AbortError"), { name: "AbortError" }),
+      );
+
+      await expect(
+        pollQuickConnect("http://192.168.1.100:8096", "secret-123"),
+      ).rejects.toThrow("Quick Connect poll timed out.");
+    });
+
+    it("should throw on non-OK response", async () => {
+      mockFetch.mockResolvedValueOnce({ ok: false, status: 404 });
+
+      await expect(
+        pollQuickConnect("http://192.168.1.100:8096", "secret-123"),
+      ).rejects.toThrow("Quick Connect poll failed: 404");
+    });
+
+    it("should encode secret in query string", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          Code: "123456",
+          Secret: "secret&special=chars",
+          Authenticated: false,
+        }),
+      });
+
+      await pollQuickConnect(
+        "http://server:8096",
+        "secret&special=chars",
+      );
+
+      const fetchCall = mockFetch.mock.calls[0];
+      expect(fetchCall[0]).toBe(
+        "http://server:8096/QuickConnect/Connect?secret=secret%26special%3Dchars",
+      );
+      expect(fetchCall[1].method).toBe("GET");
+    });
+
+    it("should return result with Authenticated flag", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          Code: "123456",
+          Secret: "secret-abc",
+          Authenticated: true,
+        }),
+      });
+
+      const result = await pollQuickConnect(
+        "http://server:8096",
+        "secret-abc",
+      );
+
+      expect(result.Authenticated).toBe(true);
+      expect(result.Secret).toBe("secret-abc");
     });
   });
 });
