@@ -466,8 +466,10 @@ export async function connectToDemoServer(clearCaches: boolean = true): Promise<
       try {
         const { libraryManager } = await import("@/services/libraryManager");
         const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+        const { clearAllProgress } = await import("@/services/watchProgressService");
         libraryManager.clearCache();
         folderNavigationManager.clearCache();
+        await clearAllProgress();
         logger.debug("Manager caches cleared", {
           service: "JellyfinAPI",
         });
@@ -536,12 +538,14 @@ export async function disconnectFromDemo(): Promise<void> {
     // Refresh config to reset to defaults
     await refreshConfig();
 
-    // Clear manager caches (defensive - don't fail on cache clear errors)
+    // Clear manager caches and watch progress (defensive - don't fail on cache clear errors)
     try {
       const { libraryManager } = await import("@/services/libraryManager");
       const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+      const { clearAllProgress } = await import("@/services/watchProgressService");
       libraryManager.clearCache();
       folderNavigationManager.clearCache();
+      await clearAllProgress();
     } catch (cacheError) {
       // Log but don't fail - cache clearing is not critical for functionality
       logger.warn("Failed to clear manager caches", cacheError, {
@@ -919,12 +923,14 @@ export async function signOut(): Promise<void> {
   // Refresh config to reset to defaults
   await refreshConfig();
 
-  // Clear manager caches
+  // Clear manager caches and watch progress
   try {
     const { libraryManager } = await import("@/services/libraryManager");
     const { folderNavigationManager } = await import("@/services/folderNavigationManager");
+    const { clearAllProgress } = await import("@/services/watchProgressService");
     libraryManager.clearCache();
     folderNavigationManager.clearCache();
+    await clearAllProgress();
   } catch (cacheError) {
     logger.warn("Failed to clear manager caches on sign out", cacheError, {
       service: "JellyfinAPI",

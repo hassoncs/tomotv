@@ -2,6 +2,8 @@ import { useEffect, useState, useMemo, useRef, useCallback, useReducer } from "r
 import type { VideoRef, OnLoadData, OnProgressData, OnVideoErrorData, AudioTrack, TextTrack } from "react-native-video";
 import { InteractionManager } from "react-native";
 import { fetchVideoDetails, needsTranscoding, isAudioOnly, getSubtitleTracks, getVideoStreamUrl, getTranscodingStreamUrl, isDemoMode, connectToDemoServer, refreshConfig, getConfig, JELLYFIN_TIME } from "@/services/jellyfinApi";
+import { getProgress } from "@/services/watchProgressService";
+import { useWatchProgress } from "./useWatchProgress";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { prepareMultiAudioPlayback, shouldUseMultiAudio, isMultiAudioAvailable, getAudioTracks } from "@/services/multiAudioLoader";
@@ -363,6 +365,35 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         logger.info("Using direct play", { service: "useVideoPlayback" });
       }
 
+      // Load saved watch progress for auto-resume (only if no other seek is pending)
+      if (seekToPositionAfterLoadRef.current === null && startTimeTicksRef.current === null) {
+        try {
+          const saved = await getProgress(videoId);
+          if (saved && saved.position > 0) {
+            if (selectedMode === "transcode") {
+              // Server-side offset — transcode starts from resume point directly
+              startTimeTicksRef.current = saved.position * JELLYFIN_TIME.TICKS_PER_SECOND;
+              logger.info("Resuming transcoded video from saved position", {
+                service: "useVideoPlayback",
+                position: saved.position,
+                startTimeTicks: startTimeTicksRef.current,
+              });
+            } else {
+              // Client-side seek — player seeks after load
+              seekToPositionAfterLoadRef.current = saved.position;
+              logger.info("Resuming direct play video from saved position", {
+                service: "useVideoPlayback",
+                position: saved.position,
+              });
+            }
+          }
+        } catch (err) {
+          logger.warn("Failed to load watch progress, starting from beginning", err, {
+            service: "useVideoPlayback",
+          });
+        }
+      }
+
       // Update mode ref before dispatch (for event listener closures)
       currentModeRef.current = selectedMode;
 
@@ -606,6 +637,9 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
   const lastLoggedAudioTracksRef = useRef<string>("");
   const lastLoggedTextTracksRef = useRef<string>("");
 
+  // Watch progress polling — decoupled from playback state machine
+  const { markEnded } = useWatchProgress({ videoId, videoRef, durationRef });
+
   /**
    * Step 5: Video event callbacks (replacing player.addListener calls)
    */
@@ -624,7 +658,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     // Auto-seek to saved position if this is a restart (audio track switch)
     const seekPosition = seekToPositionAfterLoadRef.current;
     if (seekPosition !== null && seekPosition > 0) {
-      logger.info("⏩ Auto-seeking to saved position after audio track switch", {
+      logger.info("⏩ Auto-seeking to saved position", {
         service: "useVideoPlayback",
         position: seekPosition,
       });
@@ -641,7 +675,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
         // This allows the user to switch tracks again after the restart
         selectedAudioTrackIndexRef.current = null;
 
-        logger.info("✅ Audio track switch complete - resumed playback", {
+        logger.info("✅ Auto-seek complete — resumed playback", {
           service: "useVideoPlayback",
           position: seekPosition,
         });
@@ -753,6 +787,10 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
     if (!isMountedRef.current) return;
 
     logger.info("Video playback ended, triggering callback", { service: "useVideoPlayback" });
+
+    // Mark video as ended — clears saved progress
+    markEnded();
+
     InteractionManager.runAfterInteractions(() => {
       if (!isMountedRef.current) return;
       onPlaybackEndRef.current?.();
@@ -1022,7 +1060,7 @@ export function useVideoPlayback(config: VideoPlaybackConfig): VideoPlaybackResu
       // Stop playback on unmount
       setPaused(true);
     };
-  }, []);
+  }, [videoId]);
 
   /**
    * Reset state when video ID changes
