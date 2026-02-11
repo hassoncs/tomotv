@@ -588,7 +588,7 @@ async function getOrCreateDeviceId(): Promise<string> {
  * Required by Jellyfin for auth endpoints like /Users/AuthenticateByName.
  */
 function getClientAuthHeader(deviceId: string): string {
-  return `MediaBrowser Client="TomoTV", Device="${Platform.OS}", DeviceId="${deviceId}", Version="1.2.1"`;
+  return `MediaBrowser Client="TomoTV", Device="${Platform.OS}", DeviceId="${deviceId}", Version="1.3.0"`;
 }
 
 // Lazy-import Platform to avoid circular dependency issues at module scope
