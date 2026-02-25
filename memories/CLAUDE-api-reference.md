@@ -82,8 +82,9 @@ This document provides a complete reference for all `services/jellyfinApi.ts` fu
 | 540p | 960×540 | 2.5 Mbps | Balanced quality |
 | 720p | 1280×720 | 4 Mbps | HD quality, good bandwidth |
 | 1080p | 1920×1080 | 8 Mbps | Full HD, fast connections |
+| 4K | 3840×2160 | 20 Mbps | Ultra HD, high bandwidth |
 
-**Note:** Bitrates are optimized for quality (increased from original 1/1.5/3/5 Mbps values).
+**Note:** Bitrates are optimized for quality (increased from original 1/1.5/3/5 Mbps values). 4K uses H.264 level 5.1 for optimal encoding at 2160p resolution.
 
 ## Implementation Details
 

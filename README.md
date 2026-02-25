@@ -1,6 +1,6 @@
 # Tomo TV - Jellyfin Client for Apple TV
 
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/keiver/tomotv/releases)
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](https://github.com/keiver/tomotv/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-tvOS-lightgrey.svg)](https://apps.apple.com/us/app/tomo-tv/id6755077888)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](package.json)
@@ -112,7 +112,7 @@ npx expo run:ios
 
 ### Video Quality Presets
 
-Tomo TV supports 480p, 540p, 720p, and 1080p transcoding quality presets. Configure via Settings → Video Quality.
+Tomo TV supports 480p, 540p, 720p, 1080p, and 4K transcoding quality presets. Configure via Settings → Video Quality.
 
 ### Network Requirements
 
