@@ -1000,7 +1000,54 @@ describe("jellyfinApi", () => {
         expect(url).toContain("MaxWidth=1920");
         expect(url).toContain("MaxHeight=1080");
         expect(url).toContain("VideoBitrate=8000000");
+        expect(url).toContain("VideoLevel=41");
         expect(url).toContain("api_key=test-api-key");
+      });
+
+      it("should generate 4K transcoding URL with level 5.1", async () => {
+        // Mock quality settings - use index 4 for 4K
+        mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+          if (key === "app_video_quality") return Promise.resolve("4"); // 4K index
+          return Promise.resolve(mockConfig[key as keyof typeof mockConfig] || null);
+        });
+
+        await refreshConfig();
+        const url = await getTranscodingStreamUrl("video123");
+
+        expect(url).toContain("MaxWidth=3840");
+        expect(url).toContain("MaxHeight=2160");
+        expect(url).toContain("VideoBitrate=20000000");
+        expect(url).toContain("VideoLevel=51");
+      });
+
+      it("should fallback to 480p defaults for out-of-bounds quality index", async () => {
+        mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+          if (key === "app_video_quality") return Promise.resolve("99"); // Out of bounds
+          return Promise.resolve(mockConfig[key as keyof typeof mockConfig] || null);
+        });
+
+        await refreshConfig();
+        const url = await getTranscodingStreamUrl("video123");
+
+        expect(url).toContain("MaxWidth=854");
+        expect(url).toContain("MaxHeight=480");
+        expect(url).toContain("VideoBitrate=1500000");
+        expect(url).toContain("VideoLevel=41");
+      });
+
+      it("should fallback to 480p defaults for corrupted quality value", async () => {
+        mockSecureStore.getItemAsync.mockImplementation((key: string) => {
+          if (key === "app_video_quality") return Promise.resolve("abc"); // NaN after parseInt
+          return Promise.resolve(mockConfig[key as keyof typeof mockConfig] || null);
+        });
+
+        await refreshConfig();
+        const url = await getTranscodingStreamUrl("video123");
+
+        expect(url).toContain("MaxWidth=854");
+        expect(url).toContain("MaxHeight=480");
+        expect(url).toContain("VideoBitrate=1500000");
+        expect(url).toContain("VideoLevel=41");
       });
 
       it("should use MediaSourceId from videoItem when available", async () => {

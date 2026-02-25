@@ -36,6 +36,7 @@ const QUALITY_PRESETS = [
   { label: "540p", value: 1, description: "Balanced - Good" },
   { label: "720p", value: 2, description: "Smooth - High" },
   { label: "1080p", value: 3, description: "Best - Highest" },
+  { label: "4K", value: 4, description: "Ultra - Maximum" },
 ];
 
 type ScreenState = "LOADING" | "NOT_CONNECTED" | "QUICK_CONNECT" | "USERNAME_PASSWORD" | "CONNECTED";

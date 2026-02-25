@@ -47,7 +47,7 @@ TomoTV connects your Apple TV to your Jellyfin media server. Select a video, it 
 • Multi-audio track switching
 • Subtitle support
 • Audio file playback
-• Quality presets: 480p, 540p, 720p, 1080p
+• Quality presets: 480p, 540p, 720p, 1080p, 4K
 • Secure on-device credential storage
 
 **SETUP**
@@ -83,6 +83,18 @@ Keywords Strategy:
 ---
 
 ## What's New (4,000 characters max)
+
+### Version 1.3.1
+**4K Support**
+
+**New Features:**
+• 4K (2160p) transcoding — stream in Ultra HD quality
+• Per-preset H.264 levels for optimal encoding (level 5.1 for 4K)
+
+**Improvements:**
+• Updated quality selector with 5 presets (480p through 4K)
+
+---
 
 ### Version 1.3.0
 **Quick Connect, Sign-In & Continue Watching**
@@ -407,7 +419,7 @@ Notes:
 
 ## Build Number & Version Notes
 
-**Version:** 1.3.0 (matches app.json)
+**Version:** 1.3.1 (matches app.json)
 **Build Number:** 1 (auto-increments on Xcode Archive)
 
 **Version Naming Convention Going Forward:**

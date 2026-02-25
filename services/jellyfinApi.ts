@@ -31,10 +31,11 @@ const DEMO_PASSWORD = ""; // Empty password
 
 // Video quality presets (matches settings page)
 const QUALITY_PRESETS = [
-  { label: "480p", bitrate: 1500000, width: 854, height: 480 }, // Increased from 1Mbps
-  { label: "540p", bitrate: 2500000, width: 960, height: 540 }, // Increased from 1.5Mbps
-  { label: "720p", bitrate: 4000000, width: 1280, height: 720 }, // Increased from 3Mbps
-  { label: "1080p", bitrate: 8000000, width: 1920, height: 1080 }, // Increased from 5Mbps
+  { label: "480p", bitrate: 1500000, width: 854, height: 480, level: 41 },
+  { label: "540p", bitrate: 2500000, width: 960, height: 540, level: 41 },
+  { label: "720p", bitrate: 4000000, width: 1280, height: 720, level: 41 },
+  { label: "1080p", bitrate: 8000000, width: 1920, height: 1080, level: 41 },
+  { label: "4K", bitrate: 20000000, width: 3840, height: 2160, level: 51 },
 ];
 
 const DEFAULT_QUALITY = 0; // 480p
@@ -50,7 +51,6 @@ const API_TIMEOUTS = {
 // Transcoding quality constants
 const TRANSCODING = {
   AUDIO_BITRATE: 192000, // 192kbps AAC
-  VIDEO_LEVEL: 41, // H.264 level 4.1
   MAX_AUDIO_CHANNELS: 2, // Stereo output
 } as const;
 
@@ -963,7 +963,7 @@ export async function getStoredServerName(): Promise<string | null> {
 
 /**
  * Get video quality settings from SecureStore
- * Returns quality preset index (0-3) or default (540p)
+ * Returns quality preset index (0-4) or default (480p)
  */
 async function getQualitySettings(): Promise<{
   index: number;
@@ -971,6 +971,7 @@ async function getQualitySettings(): Promise<{
   width: number;
   height: number;
   label: string;
+  level: number;
 }> {
   try {
     const savedQuality = await SecureStore.getItemAsync(STORAGE_KEYS.VIDEO_QUALITY);
@@ -986,6 +987,7 @@ async function getQualitySettings(): Promise<{
       width: preset.width,
       height: preset.height,
       label: preset.label,
+      level: preset.level,
     };
   } catch (error) {
     logger.error("Error reading quality settings", error);
@@ -996,6 +998,7 @@ async function getQualitySettings(): Promise<{
       width: preset.width,
       height: preset.height,
       label: preset.label,
+      level: preset.level,
     };
   }
 }
@@ -1731,7 +1734,7 @@ export function getVideoStreamUrl(itemId: string): string {
  * Optimized for Apple TV with:
  * - Fast encoding preset (veryfast/superfast)
  * - Larger segments (10s) for reduced overhead
- * - Higher H.264 level (4.1) for better compression
+ * - Per-preset H.264 level (4.1 for ≤1080p, 5.1 for 4K)
  * - Hardware acceleration hints
  *
  * @param itemId - The video item ID
@@ -1766,7 +1769,7 @@ export async function getTranscodingStreamUrl(
     `&AudioBitrate=${TRANSCODING.AUDIO_BITRATE}` + // 192kbps AAC for quality
     `&MaxWidth=${quality.width}` +
     `&MaxHeight=${quality.height}` +
-    `&VideoLevel=${TRANSCODING.VIDEO_LEVEL}` + // H.264 level 4.1 (was 30)
+    `&VideoLevel=${quality.level}` + // H.264 level per preset (4.1 for ≤1080p, 5.1 for 4K)
     `&TranscodingMaxAudioChannels=${TRANSCODING.MAX_AUDIO_CHANNELS}` + // Stereo output
     `&SegmentContainer=ts` +
     `&MinSegments=1` +
