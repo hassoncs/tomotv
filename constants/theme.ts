@@ -1,9 +1,4 @@
-// To enable Liquid Glass (iOS 26+ / tvOS 26+):
-// 1. npm install @callstack/liquid-glass
-// 2. EXPO_TV=1 npx expo prebuild --platform ios --clean
-// 3. Uncomment the isLiquidGlassSupported import below and the GLASS.isSupported assignment
-//
-// import { isLiquidGlassSupported } from "@callstack/liquid-glass";
+import { isLiquidGlassSupported } from "@callstack/liquid-glass";
 
 export const COLORS = {
   background: "#0A0A0A",
@@ -45,7 +40,7 @@ export const TYPOGRAPHY = {
 } as const;
 
 export const GLASS = {
-  isSupported: false, // Replace with isLiquidGlassSupported once package is installed
+  isSupported: isLiquidGlassSupported,
   fallbackBlurIntensity: 60,
   fallbackBlurTint: "dark" as const,
 } as const;
