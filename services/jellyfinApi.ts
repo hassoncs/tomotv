@@ -38,7 +38,7 @@ const QUALITY_PRESETS = [
   { label: "4K", bitrate: 20000000, width: 3840, height: 2160, level: 51 },
 ];
 
-const DEFAULT_QUALITY = 0; // 480p
+const DEFAULT_QUALITY = 3; // 1080p — N100 has Quick Sync hardware transcode
 
 // Standardized timeout constants
 const API_TIMEOUTS = {
@@ -220,13 +220,25 @@ export async function refreshConfig(): Promise<void> {
  */
 export async function syncDevCredentials(): Promise<void> {
   try {
-    // CRITICAL: Never overwrite demo mode credentials with dev credentials
-    const demoModeFlag = await SecureStore.getItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
-    if (demoModeFlag === "true") {
-      logger.debug("Skipping dev credential sync (demo mode active)", {
-        service: "JellyfinAPI",
-      });
-      return;
+    // In dev mode (DEV_* env vars present), always override stored credentials
+    // including demo mode. Dev .env.local is authoritative during development.
+    if (DEV_SERVER && DEV_API_KEY && DEV_USER_ID) {
+      const demoModeFlag = await SecureStore.getItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
+      if (demoModeFlag === "true") {
+        logger.debug("Clearing demo mode (dev credentials present)", {
+          service: "JellyfinAPI",
+        });
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
+      }
+    } else {
+      // No dev credentials — respect demo mode
+      const demoModeFlag = await SecureStore.getItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
+      if (demoModeFlag === "true") {
+        logger.debug("Skipping dev credential sync (demo mode active)", {
+          service: "JellyfinAPI",
+        });
+        return;
+      }
     }
 
     // Migrate old config format if needed
@@ -249,7 +261,10 @@ export async function syncDevCredentials(): Promise<void> {
     ]);
     logger.debug("Synced dev credentials to SecureStore", {
       service: "JellyfinAPI",
+      server: DEV_SERVER,
     });
+    // Refresh cached config so API calls use the new credentials immediately
+    await refreshConfig();
   } catch (error) {
     logger.error("Error syncing dev credentials", error, {
       service: "JellyfinAPI",
@@ -1702,8 +1717,10 @@ async function requestLibraryItems(
 
 /**
  * Get video stream URL for a specific item
- * Always uses direct download - HLS generation appears broken in Jellyfin
- * Returns empty string if config not yet loaded
+ * Uses /Videos/{id}/stream with Container=mp4 so Jellyfin remuxes MKV→MP4
+ * on the fly (stream copy, no re-encode). This lets AVPlayer handle H.264+EAC3
+ * content that fails with the raw /Download endpoint (MKV not supported by AVFoundation).
+ * Returns empty string if config not yet loaded.
  * @param itemId - The video item ID
  */
 export function getVideoStreamUrl(itemId: string): string {
@@ -1711,8 +1728,10 @@ export function getVideoStreamUrl(itemId: string): string {
     logger.warn("getVideoStreamUrl called before config loaded", { service: "JellyfinAPI" });
     return "";
   }
-  // Use direct download endpoint with API key in URL
-  const url = `${cachedConfig.server}/Items/${itemId}/Download?api_key=${cachedConfig.apiKey}`;
+  // Use stream endpoint with MP4 container hint for AVPlayer compatibility.
+  // Static=true tells Jellyfin to stream-copy (remux) without re-encoding.
+  // This is instant and preserves original quality.
+  const url = `${cachedConfig.server}/Videos/${itemId}/stream.mp4?api_key=${cachedConfig.apiKey}&Static=true&Container=mp4`;
 
   logger.debug("Generated direct play stream URL", {
     service: "JellyfinAPI",

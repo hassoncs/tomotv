@@ -60,7 +60,7 @@ npm run lint          # Run ESLint and Prettier check
 ## Environment Configuration
 
 Create a `.env.local` file for development:
-- `EXPO_PUBLIC_DEV_JELLYFIN_SERVER`: `http://192.168.1.202:8096`
+- `EXPO_PUBLIC_DEV_JELLYFIN_SERVER`: `http://jellyfin.lan:8096` (IP: `192.168.1.202`)
 - `EXPO_PUBLIC_DEV_API_KEY`: Your Jellyfin API Key
 - `EXPO_PUBLIC_DEV_USER_ID`: Your Jellyfin User ID
 

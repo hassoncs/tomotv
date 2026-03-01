@@ -964,8 +964,8 @@ describe("jellyfinApi", () => {
       it("should generate direct play URL with API key", () => {
         const url = getVideoStreamUrl("video123");
 
-        expect(url).toBe("http://192.168.1.100:8096/Items/video123/Download?api_key=test-api-key");
-        expect(url).toContain("/Items/video123/Download");
+        expect(url).toBe("http://192.168.1.100:8096/Videos/video123/stream.mp4?api_key=test-api-key&Static=true&Container=mp4");
+        expect(url).toContain("/Videos/video123/stream.mp4");
         expect(url).toContain("api_key=test-api-key");
       });
 
@@ -979,7 +979,7 @@ describe("jellyfinApi", () => {
         const url = getVideoStreamUrl("video123");
 
         expect(url).toContain("https://jellyfin.example.com");
-        expect(url).toContain("/Items/video123/Download");
+        expect(url).toContain("/Videos/video123/stream.mp4");
       });
     });
 
@@ -1020,7 +1020,7 @@ describe("jellyfinApi", () => {
         expect(url).toContain("VideoLevel=51");
       });
 
-      it("should fallback to 480p defaults for out-of-bounds quality index", async () => {
+      it("should fallback to 1080p defaults for out-of-bounds quality index", async () => {
         mockSecureStore.getItemAsync.mockImplementation((key: string) => {
           if (key === "app_video_quality") return Promise.resolve("99"); // Out of bounds
           return Promise.resolve(mockConfig[key as keyof typeof mockConfig] || null);
@@ -1029,13 +1029,13 @@ describe("jellyfinApi", () => {
         await refreshConfig();
         const url = await getTranscodingStreamUrl("video123");
 
-        expect(url).toContain("MaxWidth=854");
-        expect(url).toContain("MaxHeight=480");
-        expect(url).toContain("VideoBitrate=1500000");
+        expect(url).toContain("MaxWidth=1920");
+        expect(url).toContain("MaxHeight=1080");
+        expect(url).toContain("VideoBitrate=8000000");
         expect(url).toContain("VideoLevel=41");
       });
 
-      it("should fallback to 480p defaults for corrupted quality value", async () => {
+      it("should fallback to 1080p defaults for corrupted quality value", async () => {
         mockSecureStore.getItemAsync.mockImplementation((key: string) => {
           if (key === "app_video_quality") return Promise.resolve("abc"); // NaN after parseInt
           return Promise.resolve(mockConfig[key as keyof typeof mockConfig] || null);
@@ -1044,9 +1044,9 @@ describe("jellyfinApi", () => {
         await refreshConfig();
         const url = await getTranscodingStreamUrl("video123");
 
-        expect(url).toContain("MaxWidth=854");
-        expect(url).toContain("MaxHeight=480");
-        expect(url).toContain("VideoBitrate=1500000");
+        expect(url).toContain("MaxWidth=1920");
+        expect(url).toContain("MaxHeight=1080");
+        expect(url).toContain("VideoBitrate=8000000");
         expect(url).toContain("VideoLevel=41");
       });
 
