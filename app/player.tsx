@@ -6,6 +6,7 @@ import { useLoading } from "@/contexts/LoadingContext";
 import { usePlayQueue } from "@/contexts/PlayQueueContext";
 import { useVideoPlayback } from "@/hooks/useVideoPlayback";
 import { logger } from "@/utils/logger";
+import { playbackController } from "@/services/playbackController";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -98,10 +99,30 @@ export default function VideoPlayerScreen() {
   }, [isQueueMode, hasNext, advanceToNext, clear, currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
-  const { videoRef, sourceUri, paused, videoCallbacks, state, showLoadingOverlay, pause, retry } = useVideoPlayback({
+  const { videoRef, sourceUri, paused, videoCallbacks, state, showLoadingOverlay, pause, play, retry } = useVideoPlayback({
     videoId: params.videoId,
     onPlaybackEnd: handlePlaybackEnd,
   });
+
+  // Register player controls with PlaybackController so bridge commands reach this player
+  useEffect(() => {
+    playbackController.registerPlayer({
+      pause: () => pause(),
+      resume: () => play(),
+      stop: () => { pause(); router.back(); },
+      seek: (seconds: number) => { videoRef.current?.seek(seconds); },
+      next: () => handlePlaybackEnd(),
+      getState: () => ({
+        status: paused ? 'paused' : (state.type === 'PLAYING' ? 'playing' : state.type === 'ERROR' ? 'error' : 'buffering'),
+        jellyfinId: params.videoId ?? null,
+        positionSeconds: 0,
+        durationSeconds: 0,
+      }),
+    });
+    return () => { playbackController.unregisterPlayer(); };
+  // Register once per videoId mount — handlers close over stable refs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.videoId]);
 
   // Hide global loader when component mounts
   useEffect(() => {
