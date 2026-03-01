@@ -2290,3 +2290,151 @@ export function getSubtitleUrl(itemId: string, streamIndex: number, format: stri
   // VTT format is preferred as it works better with HTML5 video players
   return `${cachedConfig.server}/Videos/${itemId}/${itemId}/Subtitles/${streamIndex}/Stream.${format}?api_key=${cachedConfig.apiKey}`;
 }
+
+/**
+ * Get backdrop (fanart) image URL for a specific item
+ * Backdrops are wide landscape images, ideal for hero sections
+ * Returns empty string if config not yet loaded
+ */
+export function getBackdropUrl(itemId: string, maxWidth = 1920): string {
+  if (!cachedConfig.server || !cachedConfig.apiKey) return "";
+  return `${cachedConfig.server}/Items/${itemId}/Images/Backdrop?api_key=${cachedConfig.apiKey}&maxWidth=${maxWidth}`;
+}
+
+/**
+ * Fetch recently added items for the current user
+ * Returns up to 20 items sorted by date added (newest first)
+ */
+export async function getRecentlyAdded(): Promise<JellyfinItem[]> {
+  try {
+    const config = await getConfig();
+    const url = `${config.server}/Users/${config.userId}/Items/Latest?Limit=20&Fields=Overview,Genres,MediaStreams,BackdropImageTags&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop`;
+
+    return await retryWithBackoff(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `MediaBrowser Token="${config.apiKey}"`,
+            },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            logger.warn("Failed to fetch recently added", { service: "JellyfinAPI", status: response.status });
+            return [];
+          }
+
+          const data: JellyfinItem[] = await response.json();
+          return data || [];
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      },
+      { maxAttempts: 2 },
+    );
+  } catch (error) {
+    logger.warn("Error fetching recently added", error, { service: "JellyfinAPI" });
+    return [];
+  }
+}
+
+/**
+ * Fetch items the user has started watching but not finished
+ * Returns up to 20 in-progress video items
+ */
+export async function getContinueWatching(): Promise<JellyfinItem[]> {
+  try {
+    const config = await getConfig();
+    const url = `${config.server}/Users/${config.userId}/Items/Resume?MediaTypes=Video&Limit=20&Fields=Overview,Genres,MediaStreams,BackdropImageTags&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop`;
+
+    return await retryWithBackoff(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `MediaBrowser Token="${config.apiKey}"`,
+            },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            logger.warn("Failed to fetch continue watching", { service: "JellyfinAPI", status: response.status });
+            return [];
+          }
+
+          const data: { Items: JellyfinItem[] } = await response.json();
+          return data.Items || [];
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      },
+      { maxAttempts: 2 },
+    );
+  } catch (error) {
+    logger.warn("Error fetching continue watching", error, { service: "JellyfinAPI" });
+    return [];
+  }
+}
+
+/**
+ * Fetch next up episodes for TV shows the user is currently watching
+ * Returns up to 20 next-episode suggestions
+ */
+export async function getNextUp(): Promise<JellyfinItem[]> {
+  try {
+    const config = await getConfig();
+    const url = `${config.server}/Shows/NextUp?UserId=${config.userId}&Limit=20&Fields=Overview,Genres,MediaStreams,BackdropImageTags&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&apikey=${config.apiKey}`;
+
+    return await retryWithBackoff(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `MediaBrowser Token="${config.apiKey}"`,
+            },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            logger.warn("Failed to fetch next up", { service: "JellyfinAPI", status: response.status });
+            return [];
+          }
+
+          const data: { Items: JellyfinItem[] } = await response.json();
+          return data.Items || [];
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      },
+      { maxAttempts: 2 },
+    );
+  } catch (error) {
+    logger.warn("Error fetching next up", error, { service: "JellyfinAPI" });
+    return [];
+  }
+}

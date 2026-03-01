@@ -1,8 +1,8 @@
 import { DESIGN } from "@/constants/app";
 import { getFolderThumbnailUrl } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
-import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
+import { SmartGlassView } from "@/components/SmartGlassView";
 import { Ionicons } from "@expo/vector-icons";
 import React, { forwardRef, useCallback, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -81,7 +81,7 @@ const FolderGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpac
           {/* Info overlay - only show on focus like video items */}
           {focused &&
             (thumbnailUrl ? (
-              <BlurView intensity={80} style={styles.infoOverlay} tint="dark">
+              <SmartGlassView style={styles.infoOverlay}>
                 <MarqueeText active={focused} style={styles.folderName}>
                   {folder.Name}
                 </MarqueeText>
@@ -90,7 +90,7 @@ const FolderGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpac
                     {itemCount} {itemCount === 1 ? "item" : "items"}
                   </Text>
                 )}
-              </BlurView>
+              </SmartGlassView>
             ) : (
               <View style={styles.infoOverlayNoBlur}>
                 <MarqueeText active={focused} style={styles.folderName}>
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
     aspectRatio: 2 / 3,
     borderRadius: DESIGN.BORDER_RADIUS_CARD,
     overflow: "hidden",
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#0A0A0A",
   },
   borderOverlay: {
     position: "absolute",
@@ -151,12 +151,11 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.15)",
   },
   borderOverlayFocused: {
-    borderColor: "rgba(250, 196, 0, 0.5)",
-    shadowColor: "#fff",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
-    elevation: 12,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    shadowColor: "#FFC312",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
   },
   poster: {
     width: "100%",
@@ -167,7 +166,7 @@ const styles = StyleSheet.create({
     height: "100%",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#0A0A0A",
     padding: IS_TV ? 20 : 12,
   },
   placeholderText: {

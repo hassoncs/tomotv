@@ -48,6 +48,7 @@ export interface JellyfinVideoItem {
   ImageTags?: {
     Primary?: string;
   };
+  BackdropImageTags?: string[];
   PrimaryImageAspectRatio?: number;
 }
 

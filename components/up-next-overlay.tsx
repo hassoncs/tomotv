@@ -1,3 +1,4 @@
+import { SmartGlassView } from "@/components/SmartGlassView";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect } from "react";
 import { Dimensions, Platform, StyleSheet, Text, View } from "react-native";
@@ -25,7 +26,7 @@ export function UpNextOverlay({ nextVideoName, progress, onSkip, visible, upNext
 
   return (
     <View style={styles.container} pointerEvents={visible ? "auto" : "none"}>
-      <View style={styles.card}>
+      <SmartGlassView style={styles.card}>
         <View style={styles.header}>
           <Ionicons name="play-skip-forward" size={Platform.isTV ? 28 : 20} color="#FFC312" />
           <Text style={styles.headerText}>Up Next</Text>
@@ -40,7 +41,7 @@ export function UpNextOverlay({ nextVideoName, progress, onSkip, visible, upNext
         </Text>
 
         {progress ? <Text style={styles.progress}>{progress}</Text> : null}
-      </View>
+      </SmartGlassView>
     </View>
   );
 }
@@ -53,7 +54,6 @@ const styles = StyleSheet.create({
     zIndex: 200,
   },
   card: {
-    backgroundColor: "rgba(28, 28, 30, 0.65)",
     borderRadius: 23,
     padding: Platform.isTV ? 28 : 20,
     minWidth: Platform.isTV ? 400 : 280,

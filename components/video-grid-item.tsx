@@ -1,8 +1,8 @@
 import { DESIGN } from "@/constants/app";
 import { getPosterUrl, hasPoster } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
-import { BlurView } from "expo-blur";
 import { Image } from "expo-image";
+import { SmartGlassView } from "@/components/SmartGlassView";
 import React, { forwardRef, useCallback, useMemo, useState } from "react";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { MarqueeText } from "./MarqueeText";
@@ -139,7 +139,7 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
           {focused &&
             metadata &&
             (posterUrl ? (
-              <BlurView intensity={80} style={styles.infoOverlay} tint="dark">
+              <SmartGlassView style={styles.infoOverlay}>
                 <Text style={styles.infoValue}>
                   {metadata.videoCodec} / {metadata.audioCodec}
                 </Text>
@@ -148,7 +148,7 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
                 <MarqueeText active={focused} style={styles.infoValueTitle}>
                   {video?.Name || "Unknown"}
                 </MarqueeText>
-              </BlurView>
+              </SmartGlassView>
             ) : (
               <View style={styles.infoOverlay}>
                 <Text style={styles.infoValue}>
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     aspectRatio: 2 / 3, // Standard movie poster aspect ratio
     borderRadius: DESIGN.BORDER_RADIUS_CARD,
     overflow: "hidden",
-    backgroundColor: "#2C2C2E", // Elevated card color - provides backdrop for landscape images
+    backgroundColor: "#0A0A0A",
   },
   borderOverlay: {
     position: "absolute",
@@ -223,12 +223,11 @@ const styles = StyleSheet.create({
     borderColor: "rgba(255, 255, 255, 0.15)",
   },
   borderOverlayFocused: {
-    borderColor: "rgba(250, 196, 0, 0.5)",
-    shadowColor: "#fff",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.6,
-    shadowRadius: 24,
-    elevation: 12,
+    borderColor: "rgba(255, 255, 255, 0.3)",
+    shadowColor: "#FFC312",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
   },
   poster: {
     width: "100%",

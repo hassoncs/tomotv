@@ -1,4 +1,5 @@
 import { FocusableButton } from "@/components/FocusableButton";
+import { SmartGlassView } from "@/components/SmartGlassView";
 import { UpNextOverlay } from "@/components/up-next-overlay";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
@@ -198,7 +199,9 @@ export default function VideoPlayerScreen() {
       return (
         <View style={styles.container}>
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <SmartGlassView style={styles.loadingPill}>
+              <ActivityIndicator size="large" color="#FFC312" />
+            </SmartGlassView>
           </View>
         </View>
       );
@@ -207,14 +210,16 @@ export default function VideoPlayerScreen() {
     // Only show error UI if retry is not possible or has already failed
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
-        <Text style={styles.errorTitle}>Unable to Play</Text>
-        <Text style={styles.errorText}>{state.error}</Text>
+        <SmartGlassView style={styles.errorGlassPanel}>
+          <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
+          <Text style={styles.errorTitle}>Unable to Play</Text>
+          <Text style={styles.errorText}>{state.error}</Text>
 
-        <View style={styles.buttonGroup}>
-          <FocusableButton title="Retry" onPress={retry} variant="retry" style={styles.button} hasTVPreferredFocus={true} />
-          <FocusableButton title="Go Back" onPress={handleBack} variant="secondary" style={styles.button} />
-        </View>
+          <View style={styles.buttonGroup}>
+            <FocusableButton title="Retry" onPress={retry} variant="retry" style={styles.button} hasTVPreferredFocus={true} />
+            <FocusableButton title="Go Back" onPress={handleBack} variant="secondary" style={styles.button} />
+          </View>
+        </SmartGlassView>
       </View>
     );
   }
@@ -243,7 +248,9 @@ export default function VideoPlayerScreen() {
       {/* Loading Overlay */}
       {showLoadingOverlay && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
+          <SmartGlassView style={styles.loadingPill}>
+            <ActivityIndicator size="large" color="#FFC312" />
+          </SmartGlassView>
         </View>
       )}
 
@@ -274,8 +281,13 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#000000",
+    backgroundColor: "transparent",
     zIndex: 100,
+  },
+  loadingPill: {
+    paddingHorizontal: 48,
+    paddingVertical: 32,
+    borderRadius: 20,
   },
   iosBackButton: {
     position: "absolute",
@@ -295,6 +307,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 40,
+  },
+  errorGlassPanel: {
+    borderRadius: 24,
+    padding: Platform.isTV ? 48 : 32,
+    alignItems: "center",
+    maxWidth: 600,
   },
   errorTitle: {
     marginTop: 16,

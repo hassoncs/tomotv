@@ -1,4 +1,5 @@
 import { FocusableButton } from "@/components/FocusableButton";
+import { SmartGlassView } from "@/components/SmartGlassView";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
@@ -39,7 +40,7 @@ const SearchHeader = React.memo(
 
     return (
       <View style={styles.searchContainer}>
-        <View style={[styles.searchInputWrapper, isInputFocused && styles.searchInputWrapperFocused]}>
+        <SmartGlassView effect="clear" style={[styles.searchInputWrapper, isInputFocused && styles.searchInputWrapperFocused]}>
           <TextInput
             ref={inputRef}
             placeholder="Search by title, path, or year (e.g. action 2023)"
@@ -56,7 +57,7 @@ const SearchHeader = React.memo(
             returnKeyType="search"
             nextFocusDown={nextFocusDown}
           />
-        </View>
+        </SmartGlassView>
       </View>
     );
   },
@@ -515,11 +516,11 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#0A0A0A",
   },
   nativeSearchView: {
     flex: 1,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#0A0A0A",
   },
   emptyContainer: {
     flex: 1,
@@ -535,8 +536,6 @@ const styles = StyleSheet.create({
     maxWidth: 800,
     borderRadius: Platform.isTV ? 28 : 25,
     overflow: "hidden",
-    borderWidth: 2,
-    borderColor: "#3A3A3C",
   },
   searchInputWrapperFocused: {
     borderColor: "#FFC312",
@@ -544,7 +543,7 @@ const styles = StyleSheet.create({
   searchInput: {
     width: "100%",
     minHeight: Platform.isTV ? 56 : 50,
-    backgroundColor: "#2C2C2E",
+    backgroundColor: "transparent",
     paddingHorizontal: Platform.isTV ? 28 : 20,
     fontSize: Platform.isTV ? 28 : 20,
     color: "#FFFFFF",

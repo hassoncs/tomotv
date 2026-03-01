@@ -2,17 +2,19 @@ import { BackGridItem } from "@/components/back-grid-item";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { FocusableButton } from "@/components/FocusableButton";
 import { FolderGridItem } from "@/components/folder-grid-item";
+import { HeroBillboard } from "@/components/HeroBillboard";
 import { VideoGridItem } from "@/components/video-grid-item";
+import { VideoShelf } from "@/components/VideoShelf";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { usePlayQueue } from "@/contexts/PlayQueueContext";
-import { connectToDemoServer, isFolder } from "@/services/jellyfinApi";
+import { connectToDemoServer, getContinueWatching, getNextUp, getRecentlyAdded, isFolder } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, Dimensions, FlatList, Platform, StyleSheet, Text, View, useTVEventHandler } from "react-native";
+import { ActivityIndicator, Alert, BackHandler, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View, useTVEventHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Special marker for the ".." back navigation item
@@ -47,6 +49,13 @@ export default function VideoLibraryScreen() {
   const { buildQueue } = usePlayQueue();
   const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
+  const [homeData, setHomeData] = useState<{
+    recentlyAdded: JellyfinItem[];
+    continueWatching: JellyfinItem[];
+    nextUp: JellyfinItem[];
+  } | null>(null);
+  const [isLoadingHomeData, setIsLoadingHomeData] = useState(false);
+
   // Handle TV menu button for back navigation
   useTVEventHandler((event) => {
     if (event.eventType === "menu" && folderStack.length > 0) {
@@ -68,9 +77,28 @@ export default function VideoLibraryScreen() {
     return () => subscription.remove();
   }, [folderStack, navigateBack]);
 
+  useEffect(() => {
+    if (folderStack.length === 0) {
+      setIsLoadingHomeData(true);
+      Promise.all([
+        getRecentlyAdded(),
+        getContinueWatching(),
+        getNextUp(),
+      ])
+        .then(([recentlyAdded, continueWatching, nextUp]) => {
+          setHomeData({ recentlyAdded, continueWatching, nextUp });
+        })
+        .catch((err) => {
+          logger.warn("Failed to load home screen data", err, { service: "LibraryScreen" });
+        })
+        .finally(() => {
+          setIsLoadingHomeData(false);
+        });
+    }
+  }, [folderStack.length]);
+
   const handleItemPress = useCallback(
     (item: JellyfinItem) => {
-      // Debug logging to diagnose playlist item issues
       logger.debug("Item pressed", {
         service: "LibraryScreen",
         itemId: item.Id,
@@ -89,7 +117,6 @@ export default function VideoLibraryScreen() {
           type: item.Type === "Playlist" ? "playlist" : "folder",
         });
       } else if (currentFolder) {
-        // Inside a folder — build a queue of all videos under this folder
         const folderType = currentFolder.type === "playlist" ? "playlist" : "folder";
         buildQueue(currentFolder.id, currentFolder.name, item.Id, folderType);
         showGlobalLoader();
@@ -98,7 +125,6 @@ export default function VideoLibraryScreen() {
           params: { videoId: item.Id, videoName: item.Name, queueMode: "true" },
         });
       } else {
-        // At library root — play standalone (no queue)
         showGlobalLoader();
         router.push({
           pathname: "/player" as const,
@@ -143,12 +169,10 @@ export default function VideoLibraryScreen() {
 
   const renderItem = useCallback(
     ({ item, index }: { item: GridItem; index: number }) => {
-      // Handle back navigation item
       if ("_isBackItem" in item && item._isBackItem) {
         return <BackGridItem onPress={navigateBack} hasTVPreferredFocus={index === 0} isLoading={isLoading} />;
       }
 
-      // Handle regular items
       const jellyfinItem = item as JellyfinItem;
       if (isFolder(jellyfinItem)) {
         return <FolderGridItem folder={jellyfinItem} onPress={handleItemPress} index={index} hasTVPreferredFocus={index === 0} />;
@@ -178,7 +202,7 @@ export default function VideoLibraryScreen() {
   }, [hasMoreResults, isLoadingMore, isLoading, loadMore]);
 
   const handleTryDemo = useCallback(async () => {
-    if (isConnectingToDemo) return; // Prevent double-click
+    if (isConnectingToDemo) return;
 
     setIsConnectingToDemo(true);
     let connected = false;
@@ -188,7 +212,6 @@ export default function VideoLibraryScreen() {
       await connectToDemoServer();
       connected = true;
 
-      // Refresh folder navigation to load demo content
       await refresh();
 
       hideGlobalLoader();
@@ -198,10 +221,8 @@ export default function VideoLibraryScreen() {
       hideGlobalLoader();
 
       if (connected) {
-        // Connection succeeded but refresh failed
         Alert.alert("Connected to Demo", "Connected to demo server, but couldn't load the library. Please check your internet connection and try navigating again.", [{ text: "OK" }]);
       } else {
-        // Connection failed
         Alert.alert("Connection Failed", error instanceof Error ? error.message : "Unable to connect to demo server", [{ text: "OK" }]);
       }
     } finally {
@@ -256,33 +277,87 @@ export default function VideoLibraryScreen() {
 
   return (
     <View style={styles.container}>
-      {items.length === 0 && !showBackItem ? (
-        renderEmpty()
+      {folderStack.length === 0 ? (
+        <>
+          {isLoadingHomeData || !homeData ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="small" color="#FFC312" />
+              <Text style={styles.loadingText}>Loading...</Text>
+            </View>
+          ) : error ? (
+            renderEmpty()
+          ) : homeData.recentlyAdded.length === 0 && homeData.continueWatching.length === 0 ? (
+            renderEmpty()
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.homeScrollContent}
+            >
+              {homeData.recentlyAdded.length > 0 && (
+                <HeroBillboard
+                  items={homeData.recentlyAdded.slice(0, 5)}
+                  onPlay={handleItemPress}
+                  onInfo={handleItemPress}
+                />
+              )}
+              {homeData.continueWatching.length > 0 && (
+                <VideoShelf
+                  title="Continue Watching"
+                  items={homeData.continueWatching}
+                  onItemPress={handleItemPress}
+                  cardStyle="landscape"
+                />
+              )}
+              {homeData.nextUp.length > 0 && (
+                <VideoShelf
+                  title="Next Up"
+                  items={homeData.nextUp}
+                  onItemPress={handleItemPress}
+                  cardStyle="landscape"
+                />
+              )}
+              {homeData.recentlyAdded.length > 0 && (
+                <VideoShelf
+                  title="Recently Added"
+                  items={homeData.recentlyAdded}
+                  onItemPress={handleItemPress}
+                  cardStyle="poster"
+                />
+              )}
+            </ScrollView>
+          )}
+        </>
       ) : (
-        <FlatList
-          testID="library-list"
-          data={gridData}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.Id}
-          numColumns={numColumns}
-          key={numColumns}
-          extraData={currentFolder?.id}
-          contentContainerStyle={gridContentStyle}
-          columnWrapperStyle={styles.columnWrapper}
-          getItemLayout={getItemLayout}
-          showsVerticalScrollIndicator={true}
-          updateCellsBatchingPeriod={50}
-          initialNumToRender={Platform.isTV ? 15 : 12}
-          maxToRenderPerBatch={Platform.isTV ? 15 : 12}
-          windowSize={5}
-          contentInsetAdjustmentBehavior="never"
-          removeClippedSubviews={false}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={renderFooter}
-        />
+        <>
+          {items.length === 0 && !showBackItem ? (
+            renderEmpty()
+          ) : (
+            <FlatList
+              testID="library-list"
+              data={gridData}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.Id}
+              numColumns={numColumns}
+              key={numColumns}
+              extraData={currentFolder?.id}
+              contentContainerStyle={gridContentStyle}
+              columnWrapperStyle={styles.columnWrapper}
+              getItemLayout={getItemLayout}
+              showsVerticalScrollIndicator={true}
+              updateCellsBatchingPeriod={50}
+              initialNumToRender={Platform.isTV ? 15 : 12}
+              maxToRenderPerBatch={Platform.isTV ? 15 : 12}
+              windowSize={5}
+              contentInsetAdjustmentBehavior="never"
+              removeClippedSubviews={false}
+              onEndReached={handleLoadMore}
+              onEndReachedThreshold={0.5}
+              ListFooterComponent={renderFooter}
+            />
+          )}
+          <Breadcrumb stack={folderStack} />
+        </>
       )}
-      <Breadcrumb stack={folderStack} />
     </View>
   );
 }
@@ -290,7 +365,7 @@ export default function VideoLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "#0A0A0A",
   },
   gridContent: {
     paddingLeft: Platform.isTV ? 80 : 60,
@@ -351,5 +426,8 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 400,
     alignItems: "center",
+  },
+  homeScrollContent: {
+    paddingBottom: TAB_BAR_HEIGHT + 40,
   },
 });
