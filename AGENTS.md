@@ -1,19 +1,86 @@
-# Repository Guidelines
+# TommoTV
 
-## Project Structure & Module Organization
-Tomotv is an Expo Router TV app. Platform scaffolding lives in `android/`, `ios/`, and `Images.xcassets/`, while routed screens sit in `app/`. Shared UI primitives belong in `components/`, hooks in `hooks/`, and global state in `contexts/`. Playback and catalog clients live in `services/`; helpers and types stay in `utils/` and `types/`. Tests mirror their targets (e.g., `services/__tests__/libraryManager.test.ts`). Media assets live in `assets/`, and docs in `docs/`.
+Custom Apple TV media and smart home application. Forked from [keiver/tomotv](https://github.com/keiver/tomotv).
 
-## Build, Test, and Development Commands
-Install dependencies with `npm install`. `npm run start` launches the Expo dev server. `npm run android` / `npm run ios` build and deploy to the respective simulators. Run `npm run lint` (ESLint + Prettier autofix) before pushing. Execute `npm run test`, `npm run test:watch`, or `npm run test:coverage` to validate logic, and use `npm run prebuild` or `npm run prebuild:tv` (sets `EXPO_TV=1`) when regenerating native projects.
+**Project Status:** Jellyfin client (MVP) → Media discovery (Seerr) → Smart home (HA) → AI SDUI.
 
-## Coding Style & Naming Conventions
-The codebase is TypeScript-first with strict ESLint and Prettier configs—use 2-space indentation, semicolons, and single quotes inside TS/TSX. Components and hooks follow `PascalCase` filenames (`VideoShelf.tsx`, `usePlayback.ts`). Utilities and services use `camelCase`. Keep styles beside components, prefer `StyleSheet.create`, and avoid editing generated outputs inside `android/` or `ios/` unless performing a native patch.
+## Project Overview
 
-## Testing Guidelines
-Jest (via `jest-expo`) drives the suite. Place specs in local `__tests__` folders and suffix files with `.test.ts(x)` or `.threading.test.ts(x)` for concurrency helpers. Mock network I/O within services, lean on `react-test-renderer` harnesses for hooks/contexts (RTL is not wired up here), and aim for ≥80% statement coverage when running `npm run test:coverage`. Every bugfix should ship with a regression test.
+TommoTV is a video streaming application optimized for Apple TV (tvOS). It connects to a Jellyfin media server and intelligently handles video playback by direct-playing compatible formats (H.264, HEVC) and automatically transcoding unsupported ones.
 
-## Commit & Pull Request Guidelines
-Follow the existing `type: concise summary` format (e.g., `fix: clear player queue`) and keep commits scope-limited. Reference issue IDs when applicable and bundle related asset/config updates with the code. Pull requests should include: a short purpose statement, testing steps (commands + expected outcome), screenshots or recordings for UI changes, and any follow-up tasks. Request reviews from platform owners when touching `services/` or device-specific modules.
+## Tech Stack
 
-## Security & Configuration Tips
-Never commit secrets; rely on secure store APIs and Expo config values. Configure your Jellyfin server URL in `.env.local` for development. For TV builds, set `EXPO_TV=1` locally and verify the Apple/Android TV asset sets (`TVOS_ICONS.md`, `Images.xcassets/`) stay in sync with feature work.
+- **Framework:** Expo 54 (React Native tvOS 0.81.4-0)
+- **Routing:** Expo Router 6.0.14 (File-based)
+- **Playback:** react-native-video 6.19.0 / Expo Video 3.0.14
+- **Language:** TypeScript 5.9.2
+- **Native:** Swift (MultiAudioResourceLoader), SwiftUI (expo-tvos-search)
+
+## Project Structure
+
+| Directory | Description |
+|-----------|-------------|
+| `app/` | Expo Router screens and file-based routes |
+| `components/` | Reusable UI components (VideoGridItem, VideoShelf) |
+| `contexts/` | React Context providers and singleton manager wrappers |
+| `hooks/` | Custom hooks (useVideoPlayback, useAppStateRefresh) |
+| `services/` | API integration (Jellyfin) and singleton state managers |
+| `native/` | **Source of truth** for native Swift/Kotlin modules |
+| `memories/` | Project-specific documentation and lessons learned |
+| `plugins/` | Expo config plugins |
+| `types/` | TypeScript type definitions |
+| `utils/` | Utility functions (logger, retry, formatting) |
+
+## Build & Dev Commands
+
+```bash
+npm install           # Install dependencies
+npm start             # Start Expo dev server
+npm run prebuild:tv   # Regenerate native projects (sets EXPO_TV=1)
+npm run ios           # Build and run on Apple TV simulator
+npm test              # Run Jest test suite
+npm run lint          # Run ESLint and Prettier check
+```
+
+## Key Architecture Patterns
+
+- **File-based Routing:** Uses `NativeTabs` for an optimized tvOS tab experience.
+- **State Management:** Singleton Manager + Context wrapper pattern for global state.
+- **Streaming Strategy:** Direct Play first for H.264/HEVC; HLS Transcode fallback for others.
+- **Native Modules:** Custom Swift modules for multi-audio track switching and native search.
+- **CRITICAL:** Always edit files in `native/`, NOT `ios/`. The `ios/` folder is deleted and regenerated during `prebuild:tv`.
+
+## Git Workflow
+
+- **Origin:** `github.com/hassoncs/tomotv` (Our fork)
+- **Upstream:** `github.com/keiver/tomotv` (Original)
+- **Sync Upstream:** `git fetch upstream && git merge upstream/main`
+- **Commits:** Conventional format (`feat:`, `fix:`, `chore:`, `docs:`)
+
+## Environment Configuration
+
+Create a `.env.local` file for development:
+- `EXPO_PUBLIC_DEV_JELLYFIN_SERVER`: `http://192.168.1.202:8096`
+- `EXPO_PUBLIC_DEV_API_KEY`: Your Jellyfin API Key
+- `EXPO_PUBLIC_DEV_USER_ID`: Your Jellyfin User ID
+
+## Roadmap
+
+- **Phase 1 (MVP):** Jellyfin library browser and playback (Current)
+- **Phase 2:** Seerr integration for media discovery and requests
+- **Phase 3:** Home Assistant bridge for smart home control
+- **Phase 4:** AI-powered Server-Driven UI (SDUI)
+
+## Coding Style
+
+- **TypeScript:** Strict mode, no `any` without justification.
+- **Formatting:** 2-space indent, single quotes, semicolons.
+- **Naming:** `PascalCase` for components/hooks, `camelCase` for services/utils.
+- **Styles:** Prefer `StyleSheet.create` located beside the component.
+
+## Testing
+
+- **Framework:** Jest via `jest-expo`.
+- **Location:** `__tests__` directories mirroring the target file.
+- **Target:** ≥80% statement coverage.
+- **Tools:** `react-test-renderer` for hooks and contexts.

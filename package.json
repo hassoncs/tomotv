@@ -1,18 +1,18 @@
 {
-  "name": "tomotv",
+  "name": "tommotv",
   "version": "1.3.1",
-  "description": "Stream videos from your Jellyfin server on Apple TV with automatic transcoding",
+  "description": "Custom Apple TV media client — Jellyfin, media discovery, smart home, AI-powered UI",
   "main": "expo-router/entry",
-  "author": "Keiver Hernandez <contact@keiver.dev>",
+  "author": "Chris Hasson",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/keiver/tomotv.git"
+    "url": "https://github.com/hassoncs/tomotv.git"
   },
   "bugs": {
-    "url": "https://github.com/keiver/tomotv/issues"
+    "url": "https://github.com/hassoncs/tomotv/issues"
   },
-  "homepage": "https://keiver.dev/lab/tomotv",
+  "homepage": "https://github.com/hassoncs/tomotv",
   "keywords": [
     "jellyfin",
     "tvos",
