@@ -16,6 +16,7 @@ interface HeroBillboardProps {
   items: JellyfinItem[];
   onPlay: (item: JellyfinItem) => void;
   onInfo?: (item: JellyfinItem) => void;
+  onItemChange?: (item: JellyfinItem) => void;
 }
 
 function formatDurationFromTicks(ticks: number): string {
@@ -26,7 +27,7 @@ function formatDurationFromTicks(ticks: number): string {
   return `${Math.floor(secs / 60)}m`;
 }
 
-export function HeroBillboard({ items, onPlay, onInfo }: HeroBillboardProps) {
+export function HeroBillboard({ items, onPlay, onInfo, onItemChange }: HeroBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -43,6 +44,12 @@ export function HeroBillboard({ items, onPlay, onInfo }: HeroBillboardProps) {
       }
     };
   }, [advance, items.length]);
+
+  useEffect(() => {
+    if (items.length > 0) {
+      onItemChange?.(items[currentIndex]);
+    }
+  }, [currentIndex, items, onItemChange]);
 
   if (items.length === 0) return null;
 
