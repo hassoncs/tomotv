@@ -36,9 +36,9 @@ function RootLayoutContent({ bridgeConnected }: { bridgeConnected: boolean }) {
   const { currentImageSource } = useBackground();
 
   return (
-    <>
+    <View style={styles.root}>
       <DynamicBackground source={currentImageSource} />
-      <Stack>
+      <Stack screenOptions={{ contentStyle: { backgroundColor: "transparent" } }}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
           name="player"
@@ -59,7 +59,7 @@ function RootLayoutContent({ bridgeConnected }: { bridgeConnected: boolean }) {
           </Text>
         </View>
       )}
-    </>
+    </View>
   );
 }
 
@@ -134,6 +134,10 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#0A0A0A",
+  },
   bridgeDot: {
     position: "absolute",
     top: 24,

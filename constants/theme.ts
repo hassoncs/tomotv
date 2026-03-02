@@ -1,5 +1,3 @@
-import { isLiquidGlassSupported } from "@callstack/liquid-glass";
-
 export const COLORS = {
   background: "#0A0A0A",
   backgroundElevated: "#1C1C1E",
@@ -40,7 +38,7 @@ export const TYPOGRAPHY = {
 } as const;
 
 export const GLASS = {
-  isSupported: isLiquidGlassSupported,
+  isSupported: false,
   fallbackBlurIntensity: 60,
   fallbackBlurTint: "dark" as const,
 } as const;
