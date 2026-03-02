@@ -49,6 +49,14 @@ function RootLayoutContent({ bridgeConnected }: { bridgeConnected: boolean }) {
           }}
         />
         <Stack.Screen name="sdui" options={{ headerShown: false, presentation: "transparentModal" }} />
+        <Stack.Screen
+          name="detail"
+          options={{
+            headerShown: false,
+            presentation: "fullScreenModal",
+            animation: "slide_from_bottom",
+          }}
+        />
       </Stack>
       <StatusBar style="light" backgroundColor="transparent" translucent={true} />
       {SHOW_BRIDGE_STATUS && (

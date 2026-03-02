@@ -49,6 +49,14 @@ export default function VideoLibraryScreen() {
   const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore, refresh } = useFolderNavigation();
   const { buildQueue } = usePlayQueue();
   const { setBackdropUrl, setScreenContext } = useBackground();
+
+  const handleMoreInfo = useCallback(
+    (item: JellyfinItem) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push({ pathname: "/detail" as any, params: { itemId: item.Id, itemName: item.Name } });
+    },
+    [router],
+  );
   const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
   const [homeData, setHomeData] = useState<{
@@ -320,7 +328,7 @@ export default function VideoLibraryScreen() {
                 <HeroBillboard
                   items={homeData.recentlyAdded.slice(0, 5)}
                   onPlay={handleItemPress}
-                  onInfo={handleItemPress}
+                  onInfo={handleMoreInfo}
                   onItemChange={handleHeroItemChange}
                 />
               )}
