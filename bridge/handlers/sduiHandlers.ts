@@ -1,14 +1,10 @@
-import { z } from 'zod';
-
 import type { HandlerDispatcher } from '@/bridge/types';
+import { uiRenderParamsSchema } from '@/bridge/protocol';
 import { componentRegistry } from '@/services/componentRegistry';
 
 export function registerHandlers(dispatcher: HandlerDispatcher): void {
   dispatcher.register('ui.render', async (params: unknown) => {
-    const parsed = z.object({
-      component: z.string().min(1),
-      props: z.record(z.string(), z.unknown()).optional().default({}),
-    }).parse(params);
+    const parsed = uiRenderParamsSchema.parse(params);
 
     const manifest = componentRegistry.getManifest();
     const knownComponent = manifest.find((c) => c.name === parsed.component);
@@ -16,11 +12,16 @@ export function registerHandlers(dispatcher: HandlerDispatcher): void {
       throw new Error(`Unknown SDUI component: ${parsed.component}. Available: ${manifest.map((c) => c.name).join(', ')}`);
     }
 
-    componentRegistry.dispatchRender(parsed.component, parsed.props as Record<string, unknown>);
+    componentRegistry.dispatchRender(
+      parsed.component,
+      parsed.props as Record<string, unknown>,
+      { target: parsed.target, navigateToTab: parsed.navigateToTab }
+    );
 
     return {
       ok: true,
       component: parsed.component,
+      target: parsed.target,
     };
   });
 

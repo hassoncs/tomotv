@@ -3,9 +3,9 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { componentRegistry } from '@/services/componentRegistry';
+import type { SduiRenderPayload } from '@/services/componentRegistry';
 import { logger } from '@/utils/logger';
 
-// Components are registered in _layout.tsx at app startup
 interface RenderedComponent {
   id: string;
   element: React.ReactElement;
@@ -13,15 +13,17 @@ interface RenderedComponent {
 
 let nextId = 0;
 
+/** Overlay-only SDUI host. Only renders components with target='overlay'. */
 export default function SduiScreen() {
   const router = useRouter();
   const [components, setComponents] = useState<RenderedComponent[]>([]);
 
-  const handleRender = useCallback((name: string, props: Record<string, unknown>) => {
-    logger.info('SDUI: rendering component', { service: 'SduiScreen', name });
-    const element = componentRegistry.render(name, props);
+  const handleRender = useCallback((payload: SduiRenderPayload) => {
+    if (payload.target !== 'overlay') return;
+    logger.info('SDUI overlay: rendering component', { service: 'SduiScreen', name: payload.name });
+    const element = componentRegistry.render(payload.name, payload.props);
     if (!element) {
-      logger.warn('SDUI: render returned null', { service: 'SduiScreen', name });
+      logger.warn('SDUI overlay: render returned null', { service: 'SduiScreen', name: payload.name });
       return;
     }
     const id = String(nextId++);
@@ -29,17 +31,15 @@ export default function SduiScreen() {
   }, []);
 
   useEffect(() => {
-    // Drain any renders that fired before this screen mounted (router.push race)
+    // Drain any overlay renders that fired before this screen mounted
     const pending = componentRegistry.drainPending();
     if (pending.length > 0) {
-      pending.forEach(({ name, props }) => handleRender(name, props));
+      pending.forEach((payload) => handleRender(payload));
     }
-    // Subscribe for future renders
     const unsub = componentRegistry.onRender(handleRender);
     return unsub;
   }, [handleRender]);
 
-  // Dismiss the overlay when all components are cleared
   const dismiss = useCallback(() => {
     setComponents([]);
     router.back();

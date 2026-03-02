@@ -23,15 +23,26 @@ export interface RegisteredComponent<TProps = any> {
   focusConfig?: ComponentManifestEntry['focusConfig'];
 }
 
-export type SduiRenderListener = (name: string, props: Record<string, unknown>) => void;
+export interface SduiRenderPayload {
+  name: string;
+  props: Record<string, unknown>;
+  target: 'overlay' | 'canvas';
+  navigateToTab: boolean;
+}
+
+export type SduiRenderListener = (payload: SduiRenderPayload) => void;
+
+export interface SduiRenderOptions {
+  target?: 'overlay' | 'canvas';
+  navigateToTab?: boolean;
+}
 
 class ComponentRegistry {
   private static instance: ComponentRegistry;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private components = new Map<string, RegisteredComponent<any>>();
-  private pendingRenders: Array<{ name: string; props: Record<string, unknown> }> = [];
+  private pendingRenders: SduiRenderPayload[] = [];
   private renderListeners = new Set<SduiRenderListener>();
 
   private constructor() {}
@@ -92,17 +103,23 @@ class ComponentRegistry {
 
   /**
    * Called by the bridge handler when a `ui.render` command arrives from the relay.
-   * Dispatches to all registered render listeners (i.e. the SDUI canvas screen).
+   * Dispatches to all registered render listeners (i.e. overlay host or AI tab canvas).
    */
-  dispatchRender(name: string, props: Record<string, unknown>): void {
-    logger.info('SDUI render queued', { service: 'ComponentRegistry', name });
-    // Queue so SduiScreen can drain on mount — avoids the race with router.push
-    this.pendingRenders.push({ name, props });
-    this.renderListeners.forEach((listener) => listener(name, props));
+  dispatchRender(name: string, props: Record<string, unknown>, options: SduiRenderOptions = {}): void {
+    const payload: SduiRenderPayload = {
+      name,
+      props,
+      target: options.target ?? 'canvas',
+      navigateToTab: options.navigateToTab ?? true,
+    };
+    logger.info('SDUI render queued', { service: 'ComponentRegistry', name, target: payload.target });
+    // Queue so AI tab / overlay can drain on mount — avoids the race with router.push
+    this.pendingRenders.push(payload);
+    this.renderListeners.forEach((listener) => listener(payload));
   }
 
-  /** Drain all renders that arrived before SduiScreen mounted. */
-  drainPending(): Array<{ name: string; props: Record<string, unknown> }> {
+  /** Drain all renders that arrived before the canvas/overlay screen mounted. */
+  drainPending(): SduiRenderPayload[] {
     const pending = [...this.pendingRenders];
     this.pendingRenders = [];
     return pending;

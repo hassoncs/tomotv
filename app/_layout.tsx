@@ -59,8 +59,12 @@ export default function RootLayout() {
     });
 
     // Auto-navigate to the SDUI canvas whenever a render command arrives
-    const unsubSdui = componentRegistry.onRender(() => {
-      router.push('/sdui' as any);
+    const unsubSdui = componentRegistry.onRender((payload) => {
+      if (payload.target === 'canvas' && payload.navigateToTab) {
+        router.push('/(tabs)/ai' as any);
+      } else if (payload.target === 'overlay') {
+        router.push('/sdui' as any);
+      }
     });
 
     // Re-connect immediately when app returns to foreground
