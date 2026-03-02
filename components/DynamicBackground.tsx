@@ -1,53 +1,74 @@
 import { Image } from "expo-image";
-import React, { useEffect, useRef, useState } from "react";
-import { Animated, StyleSheet, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+
+import type { ImageSource } from "@/contexts/BackgroundContext";
 
 interface DynamicBackgroundProps {
-  imageUrl?: string;
+  source?: ImageSource;
+  blurRadius?: number;
+  overlayOpacity?: number;
 }
 
-export function DynamicBackground({ imageUrl }: DynamicBackgroundProps) {
-  const [currentUrl, setCurrentUrl] = useState<string | undefined>(imageUrl);
-  const [previousUrl, setPreviousUrl] = useState<string | undefined>(undefined);
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+function getSourceKey(source?: ImageSource): string {
+  if (!source) return "";
+  if (typeof source === "number") return String(source);
+  return source.uri;
+}
+
+export function DynamicBackground({ source, blurRadius = 50, overlayOpacity = 0.55 }: DynamicBackgroundProps) {
+  const [currentSource, setCurrentSource] = useState<ImageSource | undefined>(source);
+  const [previousSource, setPreviousSource] = useState<ImageSource | undefined>(undefined);
+  const fadeAnim = useSharedValue(1);
 
   useEffect(() => {
-    if (imageUrl === currentUrl) return;
+    const currentKey = getSourceKey(currentSource);
+    const newKey = getSourceKey(source);
+    if (currentKey === newKey) return;
 
-    setPreviousUrl(currentUrl);
-    setCurrentUrl(imageUrl);
-    fadeAnim.setValue(0);
+    setPreviousSource(currentSource);
+    setCurrentSource(source);
+    fadeAnim.value = 0;
+    fadeAnim.value = withTiming(1, { duration: 500 });
+  }, [source, currentSource, fadeAnim]);
 
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  }, [imageUrl, currentUrl, fadeAnim]);
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: fadeAnim.value,
+  }));
 
   return (
-    <View style={styles.container}>
-      {previousUrl && (
+    <View style={styles.container} pointerEvents="none">
+      {previousSource && (
         <Image
-          source={{ uri: previousUrl }}
+          source={previousSource}
           style={styles.layer}
-          blurRadius={40}
+          blurRadius={blurRadius}
           contentFit="cover"
           cachePolicy="disk"
         />
       )}
-      <Animated.View style={[styles.layer, { opacity: fadeAnim }]}>
-        {currentUrl && (
+      <Animated.View style={[styles.layer, animatedStyle]}>
+        {currentSource && (
           <Image
-            source={{ uri: currentUrl }}
+            source={currentSource}
             style={styles.layerFill}
-            blurRadius={40}
+            blurRadius={blurRadius}
             contentFit="cover"
             cachePolicy="disk"
           />
         )}
       </Animated.View>
-      <View style={styles.overlay} />
+      <LinearGradient
+        colors={[
+          `rgba(10,10,10,${(overlayOpacity * 0.3).toFixed(3)})`,
+          `rgba(10,10,10,${overlayOpacity.toFixed(3)})`,
+          `rgba(10,10,10,${overlayOpacity.toFixed(3)})`,
+        ]}
+        locations={[0, 0.4, 1]}
+        style={StyleSheet.absoluteFillObject}
+      />
     </View>
   );
 }
@@ -69,9 +90,5 @@ const styles = StyleSheet.create({
   layerFill: {
     width: "100%",
     height: "100%",
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.55)",
   },
 });
