@@ -8,7 +8,8 @@ import { VideoShelf } from "@/components/VideoShelf";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { usePlayQueue } from "@/contexts/PlayQueueContext";
-import { connectToDemoServer, getContinueWatching, getNextUp, getRecentlyAdded, isFolder } from "@/services/jellyfinApi";
+import { useBackground } from "@/contexts/BackgroundContext";
+import { connectToDemoServer, getBackdropUrl, getContinueWatching, getNextUp, getRecentlyAdded, isFolder } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
@@ -47,6 +48,7 @@ export default function VideoLibraryScreen() {
   const { showGlobalLoader, hideGlobalLoader } = useLoading();
   const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore, refresh } = useFolderNavigation();
   const { buildQueue } = usePlayQueue();
+  const { setBackdropUrl, setScreenContext } = useBackground();
   const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
   const [homeData, setHomeData] = useState<{
@@ -96,6 +98,27 @@ export default function VideoLibraryScreen() {
         });
     }
   }, [folderStack.length]);
+
+  useEffect(() => {
+    setScreenContext("home");
+  }, [setScreenContext]);
+
+  useEffect(() => {
+    if (folderStack.length > 0) {
+      setBackdropUrl(undefined);
+    }
+  }, [folderStack.length, setBackdropUrl]);
+
+  const handleHeroItemChange = useCallback(
+    (item: JellyfinItem) => {
+      const url =
+        item.BackdropImageTags && item.BackdropImageTags.length > 0
+          ? getBackdropUrl(item.Id)
+          : undefined;
+      setBackdropUrl(url);
+    },
+    [setBackdropUrl],
+  );
 
   const handleItemPress = useCallback(
     (item: JellyfinItem) => {
@@ -298,6 +321,7 @@ export default function VideoLibraryScreen() {
                   items={homeData.recentlyAdded.slice(0, 5)}
                   onPlay={handleItemPress}
                   onInfo={handleItemPress}
+                  onItemChange={handleHeroItemChange}
                 />
               )}
               {homeData.continueWatching.length > 0 && (
@@ -365,7 +389,7 @@ export default function VideoLibraryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0A0A0A",
+    backgroundColor: "transparent",
   },
   gridContent: {
     paddingLeft: Platform.isTV ? 80 : 60,

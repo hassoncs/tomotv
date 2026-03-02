@@ -5,6 +5,7 @@ import { settingsStyles as styles } from "@/components/settings/styles";
 import { UsernamePasswordSection } from "@/components/settings/UsernamePasswordSection";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
+import { useBackground } from "@/contexts/BackgroundContext";
 import {
   authenticateByName,
   checkQuickConnectEnabled,
@@ -71,6 +72,12 @@ export default function SettingsScreen() {
       };
     }, []),
   );
+
+  const { setScreenContext, setBackdropUrl } = useBackground();
+  React.useEffect(() => {
+    setScreenContext("settings");
+    setBackdropUrl(undefined);
+  }, [setScreenContext, setBackdropUrl]);
 
   React.useEffect(() => {
     if (quickConnect.status === "AUTHENTICATED" && quickConnect.authResult) {
@@ -336,7 +343,7 @@ export default function SettingsScreen() {
 const screenStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#1C1C1E",
+    backgroundColor: "transparent",
   },
   scrollView: {
     flex: 1,

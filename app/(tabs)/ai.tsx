@@ -1,79 +1,200 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Platform, ScrollView } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { SmartGlassView } from '@/components/SmartGlassView';
-import { remoteBridgeService } from '@/services/remoteBridgeService';
-import { ExpoTvosDictationView } from 'expo-tvos-dictation';
-import { Ionicons } from '@expo/vector-icons';
-import { SmartGlassView } from '@/components/SmartGlassView';
-import { remoteBridgeService } from '@/services/remoteBridgeService';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useBackground } from "@/contexts/BackgroundContext";
+import {
+  View,
+  StyleSheet,
+  TVEventControl,
+  ScrollView,
+  Platform,
+} from 'react-native';
+import { isNativeSearchAvailable, TvosSearchView } from 'expo-tvos-search';
 
+// expo-tvos-search renders RN children below the native search bar and accepts
+// a `mode` prop, but neither are in the upstream TS types (patched library).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const TvosSearchViewWithChildren = TvosSearchView as React.ComponentType<any>;
 import { componentRegistry } from '@/services/componentRegistry';
 import type { SduiRenderPayload } from '@/services/componentRegistry';
+import { sendChatMessage, OpenClawError } from '@/services/openclawApi';
+import { ChatMessage } from '@/components/sdui/ChatMessage';
 import { logger } from '@/utils/logger';
+import { useFocusEffect } from 'expo-router';
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+/** Debounce delay before auto-submitting a query to OpenClaw. */
+const SUBMIT_DEBOUNCE_MS = 1500;
+
+/** Minimum query length to trigger a submission. */
+const MIN_QUERY_LENGTH = 2;
+
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 interface RenderedComponent {
   id: string;
   element: React.ReactElement;
 }
 
-let nextId = 0;
+// ─── Component ──────────────────────────────────────────────────────────────
 
-const TV = Platform.isTV;
+let nextComponentId = 0;
+let nextQueryId = 0;
 
-interface StatusRow {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  statusColor: string;
-}
-
-const STATUS_ROWS: StatusRow[] = [
-  { icon: 'wifi', label: 'Home Assistant', value: '—', statusColor: '#8E8E93' },
-  { icon: 'bulb-outline', label: 'Lights', value: '—', statusColor: '#8E8E93' },
-  { icon: 'thermometer-outline', label: 'Climate', value: '—', statusColor: '#8E8E93' },
-  { icon: 'musical-notes-outline', label: 'Speakers', value: '—', statusColor: '#8E8E93' },
-  { icon: 'tv-outline', label: 'Apple TV', value: '—', statusColor: '#8E8E93' },
-];
-
-interface QuickActionItem {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-}
-
-const QUICK_ACTIONS: QuickActionItem[] = [
-  { icon: 'moon-outline', label: 'Goodnight' },
-  { icon: 'sunny-outline', label: 'Good Morning' },
-  { icon: 'film-outline', label: 'Cinema Mode' },
-  { icon: 'home-outline', label: 'Away' },
-];
-/** AI tab — SDUI canvas host for rich content (MediaGrid, ConfirmationCard, InfoCard, etc.). */
+/** AI tab — native search bar (keyboard + mic) for voice commands to OpenClaw. */
 export default function AiScreen() {
+  // Query / request state
+  const [currentQuery, setCurrentQuery] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [responseText, setResponseText] = useState('');
+  const [errorText, setErrorText] = useState('');
+  const submittedQueryRef = useRef('');
+
+  // Track the current query's ID so stale SDUI renders from old queries are ignored.
+  const activeQueryIdRef = useRef(-1);
+
+  // Whether SDUI canvas components have arrived for the current query.
+  // When true the raw text response card is suppressed (the bot already
+  // rendered richer content; showing both would be redundant).
+  const [hasSduiContent, setHasSduiContent] = useState(false);
+
+  // SDUI canvas components (from WebSocket ui.render)
   const [components, setComponents] = useState<RenderedComponent[]>([]);
-  const [command, setCommand] = useState('');
-  const [isInputFocused, setIsInputFocused] = useState(false);
 
-  const handleCommandSubmit = (text: string) => {
-    const trimmed = text.trim();
-    if (!trimmed) return;
+  // Abort controller for in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-    remoteBridgeService.sendNotification('input.text', { text: trimmed });
-    setCommand('');
-  };
+  // Debounce timer
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Gesture handler management (tvOS keyboard compat) ───────────────────
+
+  const handleSearchFieldFocused = useCallback(() => {
+    TVEventControl?.disableGestureHandlersCancelTouches?.();
+  }, []);
+
+  const handleSearchFieldBlurred = useCallback(() => {
+    TVEventControl?.enableGestureHandlersCancelTouches?.();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      TVEventControl?.enableGestureHandlersCancelTouches?.();
+    }, []),
+  );
+
+  const { setScreenContext, setBackdropUrl } = useBackground();
+  useEffect(() => {
+    setScreenContext("home");
+    setBackdropUrl(undefined);
+  }, [setScreenContext, setBackdropUrl]);
+
+  // ── Submit to OpenClaw ──────────────────────────────────────────────────
+
+  const submitQuery = useCallback(async (query: string) => {
+    const trimmed = query.trim();
+    if (trimmed.length < MIN_QUERY_LENGTH) return;
+
+    // Skip if same query already submitted
+    if (trimmed === submittedQueryRef.current) return;
+    submittedQueryRef.current = trimmed;
+
+    // Cancel any in-flight request
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
+    // Stamp a new query ID — SDUI renders that arrive with a different ID are dropped.
+    const queryId = nextQueryId++;
+    activeQueryIdRef.current = queryId;
+
+    // Clear previous results
+    setResponseText('');
+    setErrorText('');
+    setComponents([]);
+    setHasSduiContent(false);
+    setIsLoading(true);
+
+    logger.info('AI tab: submitting query', { service: 'AiScreen', query: trimmed });
+
+    try {
+      const result = await sendChatMessage(trimmed, controller.signal);
+      if (controller.signal.aborted) return;
+      // Only set the text if this query is still the active one.
+      if (activeQueryIdRef.current === queryId) {
+        setResponseText(result.text);
+      }
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      const message =
+        err instanceof OpenClawError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Something went wrong';
+      logger.error('AI tab: query failed', err, { service: 'AiScreen', query: trimmed });
+      if (activeQueryIdRef.current === queryId) {
+        setErrorText(message);
+      }
+    } finally {
+      if (!controller.signal.aborted && activeQueryIdRef.current === queryId) {
+        setIsLoading(false);
+      }
+    }
+  }, []);
+
+  // ── Debounced search handler ────────────────────────────────────────────
+
+  const handleSearch = useCallback(
+    (event: { nativeEvent: { query: string } }) => {
+      const query = event.nativeEvent.query;
+      setCurrentQuery(query);
+
+      // Clear previous debounce timer
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+
+      const trimmed = query.trim();
+      if (trimmed.length < MIN_QUERY_LENGTH) return;
+
+      // Debounce: submit after user stops typing
+      debounceTimerRef.current = setTimeout(() => {
+        submitQuery(query);
+      }, SUBMIT_DEBOUNCE_MS);
+    },
+    [submitQuery],
+  );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  // ── SDUI canvas render handling ─────────────────────────────────────────
+
   const handleRender = useCallback((payload: SduiRenderPayload) => {
     if (payload.target !== 'canvas') return;
-    logger.info('AI tab: rendering canvas component', { service: 'AiScreen', name: payload.name });
+    logger.info('AI tab: rendering canvas component', {
+      service: 'AiScreen',
+      name: payload.name,
+    });
     const element = componentRegistry.render(payload.name, payload.props);
     if (!element) {
       logger.warn('AI tab: render returned null', { service: 'AiScreen', name: payload.name });
       return;
     }
-    const id = String(nextId++);
+    const id = String(nextComponentId++);
     setComponents((prev) => [...prev, { id, element }]);
+    // Mark that the bot sent SDUI content — suppress the plain text card.
+    setHasSduiContent(true);
   }, []);
 
   useEffect(() => {
-    // Drain any canvas renders that arrived before this screen mounted
     const pending = componentRegistry.drainPending();
     if (pending.length > 0) {
       pending.forEach((payload) => handleRender(payload));
@@ -82,332 +203,99 @@ export default function AiScreen() {
     return unsub;
   }, [handleRender]);
 
-  if (components.length === 0) {
+  // ── Render ──────────────────────────────────────────────────────────────
+
+  // Show the ChatMessage text bubble only when:
+  // - we have a text response, AND
+  // - no richer SDUI components arrived (those already convey the bot's intent).
+  const showTextResponse = responseText.length > 0 && !hasSduiContent;
+
+  // Show error card regardless of SDUI content (errors should always be visible).
+  const hasAnyContent = isLoading || errorText.length > 0 || showTextResponse || components.length > 0;
+
+  if (isNativeSearchAvailable()) {
     return (
-      <View style={styles.container}>
-        <View style={styles.glowTopRight} />
-        <View style={styles.glowBottomLeft} />
-
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-          focusable={false}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerIcon}>
-              <Ionicons name="home" size={TV ? 48 : 32} color="#FFC312" />
-            </View>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Radbot</Text>
-              <Text style={styles.headerSubtitle}>Home Assistant</Text>
-            </View>
-          </View>
-
-          {/* Voice Command Input */}
-          <View style={styles.commandContainer}>
-            <SmartGlassView effect="clear" style={[styles.commandInputWrapper, isInputFocused && styles.commandInputWrapperFocused]}>
-              <ExpoTvosDictationView
-                placeholder="Hold Siri button to speak a command"
-                placeholderTextColor="#A1A1A6"
-                textColor="#FFFFFF"
-                text={command}
-                onTextChange={(e) => setCommand(e.nativeEvent.text)}
-                onFocus={() => setIsInputFocused(true)}
-                onBlur={() => setIsInputFocused(false)}
-                onSubmit={(e) => handleCommandSubmit(e.nativeEvent.text)}
-                style={styles.commandInput}
+      <TvosSearchViewWithChildren
+        mode="input"
+        results={[]}
+        placeholder="Ask me anything..."
+        colorScheme="dark"
+        topInset={140}
+        onSearch={handleSearch}
+        onSelectItem={() => {}}
+        onSearchFieldFocused={handleSearchFieldFocused}
+        onSearchFieldBlurred={handleSearchFieldBlurred}
+        style={styles.nativeView}
+      >
+        {/* Results area — rendered as RN children below the native search bar */}
+        {hasAnyContent && (
+          <ScrollView
+            style={styles.resultsContainer}
+            contentContainerStyle={styles.resultsContent}
+          >
+            {/* Loading indicator — shown while waiting for either text or SDUI */}
+            {isLoading && components.length === 0 && (
+              <ChatMessage
+                text="Thinking…"
+                role="assistant"
+                variant="default"
               />
-              <Ionicons
-                name="mic"
-                size={TV ? 28 : 20}
-                color={isInputFocused ? '#FFC312' : 'rgba(255, 255, 255, 0.3)'}
-                style={styles.micIcon}
+            )}
+
+            {/* Error message */}
+            {errorText.length > 0 && (
+              <ChatMessage
+                text={errorText}
+                role="system"
+                variant="error"
               />
-            </SmartGlassView>
-          </View>
-          </View>
+            )}
 
-          {/* Status Section */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>SYSTEM STATUS</Text>
-          </View>
+            {/* Text-only response (suppressed when SDUI components are present) */}
+            {showTextResponse && (
+              <ChatMessage
+                text={responseText}
+                role="assistant"
+                variant="default"
+              />
+            )}
 
-          <View style={styles.card}>
-            {STATUS_ROWS.map((row, index) => (
-              <View
-                key={row.label}
-                style={[styles.statusRow, index < STATUS_ROWS.length - 1 && styles.statusRowBorder]}
-              >
-                <View style={styles.statusLeft}>
-                  <Ionicons name={row.icon} size={TV ? 24 : 18} color="#8E8E93" />
-                  <Text style={styles.statusLabel}>{row.label}</Text>
-                </View>
-                <View style={styles.statusRight}>
-                  <View style={[styles.statusDot, { backgroundColor: row.statusColor }]} />
-                  <Text style={styles.statusValue}>{row.value}</Text>
-                </View>
+            {/* SDUI components from ui.render */}
+            {components.map((rc) => (
+              <View key={rc.id} style={styles.componentWrapper}>
+                {rc.element}
               </View>
             ))}
-          </View>
-
-          {/* Quick Actions Section */}
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionLabel}>QUICK ACTIONS</Text>
-          </View>
-
-          <View style={styles.actionsGrid}>
-            {QUICK_ACTIONS.map((action) => (
-              <View key={action.label} style={styles.actionCard}>
-                <Ionicons name={action.icon} size={TV ? 32 : 22} color="#FFC312" />
-                <Text style={styles.actionLabel}>{action.label}</Text>
-              </View>
-            ))}
-          </View>
-
-          {/* Placeholder notice */}
-          <View style={styles.notice}>
-            <Ionicons name="construct-outline" size={TV ? 20 : 14} color="#48484A" />
-            <Text style={styles.noticeText}>Home Assistant integration coming soon</Text>
-          </View>
-        </ScrollView>
-      </View>
+          </ScrollView>
+        )}
+      </TvosSearchViewWithChildren>
     );
   }
 
-  return (
-    <View style={styles.canvas}>
-      {components.map((rc) => (
-        <View key={rc.id} style={styles.componentWrapper}>
-          {rc.element}
-        </View>
-      ))}
-    </View>
-  );
+  // Fallback for non-tvOS (shouldn't happen in production)
+  return <View style={styles.fallback} />;
 }
 
+// ─── Styles ─────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  empty: {
+  nativeView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#1C1C1E',
+    backgroundColor: 'transparent',
+  },
+  resultsContainer: {
+    flex: 1,
+  },
+  resultsContent: {
+    padding: Platform.isTV ? 48 : 16,
     gap: 16,
-    padding: 64,
-  },
-  emptyIcon: {
-    fontSize: 72,
-    color: '#FFC312',
-  },
-  emptyTitle: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  emptySubtitle: {
-    fontSize: 28,
-    color: '#98989D',
-    textAlign: 'center',
-    maxWidth: 800,
-  },
-  canvas: {
-    flex: 1,
-    backgroundColor: '#1C1C1E',
-    padding: 48,
-    gap: 24,
+    paddingBottom: Platform.isTV ? 120 : 40,
   },
   componentWrapper: {
     width: '100%',
   },
-  container: {
+  fallback: {
     flex: 1,
-    backgroundColor: '#0D0D0F',
-  },
-  glowTopRight: {
-    position: 'absolute',
-    top: -200,
-    right: -200,
-    width: 600,
-    height: 600,
-    borderRadius: 300,
-    backgroundColor: 'rgba(255, 195, 18, 0.05)',
-  },
-  glowBottomLeft: {
-    position: 'absolute',
-    bottom: -300,
-    left: -200,
-    width: 700,
-    height: 700,
-    borderRadius: 350,
-    backgroundColor: 'rgba(10, 132, 255, 0.04)',
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: TV ? 100 : 48,
-    paddingTop: TV ? 80 : 48,
-    paddingBottom: TV ? 120 : 80,
-    maxWidth: TV ? 1000 : 600,
-    alignSelf: 'center',
-    width: '100%',
-  },
-  // Header
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: TV ? 28 : 18,
-    marginBottom: TV ? 40 : 28,
-  },
-  headerIcon: {
-    width: TV ? 88 : 60,
-    height: TV ? 88 : 60,
-    borderRadius: TV ? 44 : 30,
-    backgroundColor: 'rgba(255, 195, 18, 0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 195, 18, 0.25)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTextContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: TV ? 56 : 36,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: -1.5,
-  },
-  headerSubtitle: {
-    fontSize: TV ? 22 : 15,
-    fontWeight: '500',
-    color: '#6E6E73',
-    marginTop: TV ? 4 : 2,
-  },
-  // Command Input
-  commandContainer: {
-    marginBottom: TV ? 60 : 40,
-  },
-  commandInputWrapper: {
-    width: '100%',
-    borderRadius: TV ? 28 : 20,
-    overflow: 'hidden',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingRight: TV ? 28 : 20,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  },
-  commandInputWrapperFocused: {
-    borderColor: '#FFC312',
-    backgroundColor: 'rgba(255, 195, 18, 0.08)',
-  },
-  commandInput: {
-    flex: 1,
-    minHeight: TV ? 64 : 50,
     backgroundColor: 'transparent',
-    paddingHorizontal: TV ? 28 : 20,
-    fontSize: TV ? 28 : 20,
-    color: '#FFFFFF',
-    fontWeight: '500',
-  },
-  micIcon: {
-    marginLeft: 16,
-  },
-  // Section headers
-  sectionHeader: {
-    paddingHorizontal: TV ? 4 : 2,
-    paddingBottom: TV ? 14 : 10,
-    paddingTop: TV ? 8 : 4,
-  },
-  sectionLabel: {
-    fontSize: TV ? 14 : 11,
-    fontWeight: '700',
-    color: '#48484A',
-    letterSpacing: 2,
-  },
-  // Status card
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: TV ? 20 : 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    marginBottom: TV ? 48 : 32,
-    overflow: 'hidden',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: TV ? 28 : 18,
-    paddingVertical: TV ? 20 : 14,
-  },
-  statusRowBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255,255,255,0.06)',
-  },
-  statusLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: TV ? 16 : 10,
-  },
-  statusLabel: {
-    fontSize: TV ? 22 : 15,
-    fontWeight: '500',
-    color: '#EBEBF5',
-  },
-  statusRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: TV ? 10 : 7,
-  },
-  statusDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statusValue: {
-    fontSize: TV ? 20 : 14,
-    fontWeight: '500',
-    color: '#8E8E93',
-  },
-  // Quick actions
-  actionsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: TV ? 16 : 10,
-    marginBottom: TV ? 60 : 40,
-  },
-  actionCard: {
-    flex: 1,
-    minWidth: TV ? 180 : 120,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: TV ? 18 : 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.07)',
-    paddingVertical: TV ? 28 : 18,
-    paddingHorizontal: TV ? 20 : 14,
-    alignItems: 'center',
-    gap: TV ? 12 : 8,
-  },
-  actionLabel: {
-    fontSize: TV ? 18 : 12,
-    fontWeight: '600',
-    color: '#8E8E93',
-    textAlign: 'center',
-  },
-  // Notice
-  notice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: TV ? 10 : 6,
-  },
-  noticeText: {
-    fontSize: TV ? 16 : 11,
-    color: '#48484A',
-    fontWeight: '500',
   },
 });
