@@ -296,7 +296,7 @@ Bot: radmedia remote select    # D-pad select on the focused item
 | `radmedia/components/sdui/EpisodeList.tsx` | Add `useRouter()` navigation on episode press → player |
 | `radmedia/components/sdui/registerComponents.ts` | Register 3 new components |
 | `radmedia/app/(tabs)/ai.tsx` | Response arbitration (text vs SDUI), query tracking, ChatMessage fallback |
-| `chrisbot/skills/radmedia-control/SKILL.md` | Add workflow examples, document native navigation behavior |
+| `chrisbot/skills/tv/SKILL.md` | Add workflow examples, document native navigation behavior |
 | `evals/prompts/ha-chat.json` | Sync bot prompt with SDUI rendering rules |
 | `evals/tests/radmedia.yaml` | Add eval cases for all workflows |
 

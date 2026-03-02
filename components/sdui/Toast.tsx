@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Platform } from 'react-native';
 import { z } from 'zod';
 
 export const toastPropsSchema = z.object({
@@ -9,6 +9,8 @@ export const toastPropsSchema = z.object({
 });
 
 export type ToastProps = z.infer<typeof toastPropsSchema>;
+
+const TV = Platform.isTV;
 
 const BORDER_COLORS: Record<ToastProps['style'], string> = {
   info: '#007AFF',
@@ -30,16 +32,18 @@ export function Toast({ text, style = 'info' }: ToastProps) {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'rgba(30,30,30,0.95)',
-    borderLeftWidth: 4,
-    borderRadius: 12,
-    paddingHorizontal: 32,
-    paddingVertical: 20,
-    maxWidth: 800,
+    borderLeftWidth: TV ? 5 : 4,
+    borderRadius: TV ? 16 : 12,
+    paddingHorizontal: TV ? 40 : 24,
+    paddingVertical: TV ? 28 : 16,
+    maxWidth: TV ? 1000 : 600,
     alignSelf: 'center',
+    width: '100%',
   },
   text: {
     color: '#FFFFFF',
-    fontSize: 28,
+    fontSize: TV ? 28 : 18,
     fontWeight: '500',
+    lineHeight: TV ? 40 : 26,
   },
 });

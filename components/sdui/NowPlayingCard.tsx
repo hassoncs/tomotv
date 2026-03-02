@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, Platform } from 'react-native';
 import { z } from 'zod';
 
 export const nowPlayingCardPropsSchema = z.object({
@@ -12,6 +12,8 @@ export const nowPlayingCardPropsSchema = z.object({
 });
 
 export type NowPlayingCardProps = z.infer<typeof nowPlayingCardPropsSchema>;
+
+const TV = Platform.isTV;
 
 function formatTime(seconds: number): string {
   const h = Math.floor(seconds / 3600);
@@ -57,53 +59,55 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     backgroundColor: 'rgba(28,28,30,0.95)',
-    borderRadius: 20,
-    padding: 24,
-    gap: 24,
+    borderRadius: TV ? 20 : 16,
+    padding: TV ? 32 : 20,
+    gap: TV ? 28 : 16,
     alignItems: 'center',
-    maxWidth: 900,
+    maxWidth: TV ? 1100 : undefined,
     alignSelf: 'center',
+    width: '100%',
   },
   poster: {
-    width: 100,
-    height: 150,
-    borderRadius: 8,
+    width: TV ? 140 : 80,
+    height: TV ? 210 : 120,
+    borderRadius: TV ? 12 : 8,
   },
   posterPlaceholder: {
     backgroundColor: '#3A3A3C',
   },
   info: {
     flex: 1,
-    gap: 8,
+    gap: TV ? 10 : 6,
   },
   series: {
     color: '#FFC312',
-    fontSize: 18,
+    fontSize: TV ? 22 : 14,
     fontWeight: '600',
+    letterSpacing: 0.5,
   },
   title: {
     color: '#FFFFFF',
-    fontSize: 32,
+    fontSize: TV ? 36 : 24,
     fontWeight: '700',
   },
   meta: {
     color: '#8E8E93',
-    fontSize: 20,
+    fontSize: TV ? 22 : 15,
   },
   progressBar: {
-    height: 4,
+    height: TV ? 6 : 4,
     backgroundColor: '#3A3A3C',
-    borderRadius: 2,
+    borderRadius: 3,
     overflow: 'hidden',
-    marginTop: 8,
+    marginTop: TV ? 12 : 6,
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#FFC312',
-    borderRadius: 2,
+    borderRadius: 3,
   },
   time: {
     color: '#636366',
-    fontSize: 18,
+    fontSize: TV ? 20 : 14,
   },
 });

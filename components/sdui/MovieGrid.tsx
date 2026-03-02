@@ -17,6 +17,9 @@ export const movieGridPropsSchema = z.object({
 export type MovieGridProps = z.infer<typeof movieGridPropsSchema>;
 export type MovieGridItem = MovieGridProps['movies'][number];
 
+const TV = Platform.isTV;
+const CARD_WIDTH = TV ? 240 : 140;
+
 export function MovieGrid({ movies, columns = 4 }: MovieGridProps) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
@@ -59,23 +62,21 @@ export function MovieGrid({ movies, columns = 4 }: MovieGridProps) {
   );
 }
 
-const CARD_WIDTH = Platform.isTV ? 220 : 140;
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'rgba(28,28,30,0.95)',
-    borderRadius: 20,
-    padding: 24,
-    maxHeight: 700,
+    borderRadius: TV ? 20 : 16,
+    padding: TV ? 32 : 20,
+    maxHeight: TV ? 800 : 500,
   },
   grid: {
-    gap: 16,
+    gap: TV ? 20 : 12,
   },
   card: {
     width: CARD_WIDTH,
-    marginHorizontal: 8,
-    borderRadius: 12,
+    marginHorizontal: TV ? 12 : 8,
+    borderRadius: TV ? 14 : 10,
     overflow: 'hidden',
     backgroundColor: '#2C2C2E',
     borderWidth: 2,
@@ -93,14 +94,14 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#FFFFFF',
-    fontSize: Platform.isTV ? 18 : 13,
+    fontSize: TV ? 22 : 13,
     fontWeight: '600',
-    padding: 8,
+    padding: TV ? 12 : 8,
   },
   meta: {
     color: '#8E8E93',
-    fontSize: Platform.isTV ? 15 : 11,
-    paddingHorizontal: 8,
-    paddingBottom: 8,
+    fontSize: TV ? 18 : 11,
+    paddingHorizontal: TV ? 12 : 8,
+    paddingBottom: TV ? 12 : 8,
   },
 });

@@ -189,7 +189,7 @@ export default function AiScreen() {
       return;
     }
     const id = String(nextComponentId++);
-    setComponents((prev) => [...prev, { id, element }]);
+    setComponents([{ id, element }]);
     // Mark that the bot sent SDUI content — suppress the plain text card.
     setHasSduiContent(true);
   }, []);
@@ -288,8 +288,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   resultsContent: {
-    padding: Platform.isTV ? 48 : 16,
-    gap: 16,
+    paddingTop: Platform.isTV ? 160 : 16,
+    paddingHorizontal: Platform.isTV ? 80 : 16,
+    gap: Platform.isTV ? 24 : 16,
     paddingBottom: Platform.isTV ? 120 : 40,
     backgroundColor: 'transparent',
   },

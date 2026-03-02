@@ -24,8 +24,8 @@ HA Voice → OpenClaw (N100) → radmedia CLI → WS Relay (openclaw.lan:9091) �
 ### Layer 1: Integration Glue (OpenClaw Skill)
 
 **Files:**
-- `chrisbot/skills/radmedia-control/SKILL.md` — tool definition for the LLM
-- `chrisbot/skills/radmedia-control/scripts/radmedia` — bash CLI wrapping the relay API
+- `chrisbot/skills/tv/SKILL.md` — tool definition for the LLM
+- `chrisbot/skills/tv/scripts/tv` — bash CLI wrapping the relay API
 
 **radmedia CLI commands:**
 | Command | What It Does |
@@ -175,7 +175,7 @@ Bot decides to render UI:
 | `index.ts` | ✅ Done | WS relay server on port 9091 |
 | `package.json` | ✅ Done | Node.js + ws dependency |
 
-### OpenClaw Skill (`chrisbot/skills/radmedia-control/`)
+### OpenClaw Skill (`chrisbot/skills/tv/`)
 | File | Status | Purpose |
 |------|--------|---------|
 | `SKILL.md` | ✅ Done | Tool definitions + command reference |
@@ -213,7 +213,7 @@ HA webhook URL: `http://ha.lan:8123/api/webhook/radmedia_playback_event`
 
 ### OpenClaw Skill
 ```bash
-./scripts/n100-sync.sh skills  # syncs all skills including radmedia-control
+./scripts/n100-sync.sh skills  # syncs all skills including tv
 ```
 
 ### RadmediaTV App

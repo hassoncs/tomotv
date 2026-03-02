@@ -16,6 +16,8 @@ export const searchResultsPropsSchema = z.object({
 export type SearchResultsProps = z.infer<typeof searchResultsPropsSchema>;
 export type SearchResultItem = SearchResultsProps['results'][number];
 
+const TV = Platform.isTV;
+
 const TYPE_ICONS: Record<SearchResultItem['type'], string> = {
   Movie: '🎬',
   Series: '📺',
@@ -69,34 +71,34 @@ export function SearchResults({ results, title = 'Results' }: SearchResultsProps
   );
 }
 
-const THUMB_SIZE = Platform.isTV ? 80 : 56;
+const THUMB_SIZE = TV ? 90 : 56;
 
 const styles = StyleSheet.create({
   container: {
     backgroundColor: 'rgba(28,28,30,0.95)',
-    borderRadius: 20,
-    padding: 24,
-    maxWidth: 800,
-    maxHeight: 600,
+    borderRadius: TV ? 20 : 16,
+    padding: TV ? 32 : 20,
+    maxWidth: TV ? 1100 : 600,
+    maxHeight: TV ? 800 : 500,
     alignSelf: 'center',
     width: '100%',
   },
   header: {
     color: '#FFFFFF',
-    fontSize: Platform.isTV ? 28 : 20,
+    fontSize: TV ? 32 : 20,
     fontWeight: '700',
-    marginBottom: 16,
+    marginBottom: TV ? 20 : 12,
   },
   list: {
-    gap: 8,
+    gap: TV ? 12 : 8,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
+    gap: TV ? 20 : 12,
     backgroundColor: '#2C2C2E',
-    borderRadius: 10,
-    padding: 12,
+    borderRadius: TV ? 14 : 10,
+    padding: TV ? 16 : 12,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -107,7 +109,7 @@ const styles = StyleSheet.create({
   thumb: {
     width: THUMB_SIZE,
     height: THUMB_SIZE,
-    borderRadius: 6,
+    borderRadius: TV ? 10 : 6,
   },
   thumbPlaceholder: {
     backgroundColor: '#3A3A3C',
@@ -115,29 +117,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   typeIcon: {
-    fontSize: 28,
+    fontSize: TV ? 36 : 24,
   },
   rowInfo: {
     flex: 1,
-    gap: 4,
+    gap: TV ? 6 : 4,
   },
   rowHeader: {
     flexDirection: 'row',
-    gap: 8,
+    gap: TV ? 10 : 6,
   },
   typeLabel: {
     color: '#FFC312',
-    fontSize: Platform.isTV ? 16 : 12,
+    fontSize: TV ? 18 : 12,
     fontWeight: '600',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   rowTitle: {
     color: '#FFFFFF',
-    fontSize: Platform.isTV ? 22 : 16,
+    fontSize: TV ? 26 : 16,
     fontWeight: '600',
   },
   rowSubtitle: {
     color: '#8E8E93',
-    fontSize: Platform.isTV ? 18 : 13,
+    fontSize: TV ? 20 : 13,
   },
 });
