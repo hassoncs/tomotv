@@ -9,6 +9,7 @@ import { TextMessage, textMessagePropsSchema } from './TextMessage';
 import { NowPlayingCard, nowPlayingCardPropsSchema } from './NowPlayingCard';
 import { MovieGrid, movieGridPropsSchema } from './MovieGrid';
 import { SearchResults, searchResultsPropsSchema } from './SearchResults';
+import { MediaGrid, mediaGridPropsSchema } from './MediaGrid';
 
 componentRegistry.register({
   name: 'Toast',
@@ -45,4 +46,12 @@ componentRegistry.register({
   component: SearchResults,
   propsSchema: searchResultsPropsSchema,
   focusConfig: { focusDirection: 'vertical' },
+});
+
+componentRegistry.register({
+  name: 'MediaGrid',
+  description: 'Focusable poster grid for displaying Jellyfin video items. Consolidates movie grid and search results into one reusable component. Use for any list of media items the user should browse and select. Pass full Jellyfin item objects in the items array.',
+  component: MediaGrid,
+  propsSchema: mediaGridPropsSchema,
+  focusConfig: { focusDirection: 'grid' },
 });
