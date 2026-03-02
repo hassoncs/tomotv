@@ -43,7 +43,9 @@ export const inputTextParamsSchema = z.object({
 
 export const uiRenderParamsSchema = z.object({
   component: z.string().min(1),
-  props: z.record(z.string(), z.unknown()).optional().default({})
+  props: z.record(z.string(), z.unknown()).optional().default({}),
+  target: z.enum(['overlay', 'canvas']).default('canvas'),
+  navigateToTab: z.boolean().default(true)
 });
 
 const noParamsSchema = z.undefined();
@@ -93,7 +95,10 @@ export const bridgeRequestMethodSchema = z.enum([
 export const bridgeEventMethodSchema = z.enum([
   'event.playback',
   'event.navigation',
-  'event.queue'
+  'event.queue',
+  'event.ui.select',
+  'event.ui.action',
+  'event.ui.dismiss'
 ]);
 
 const jsonRpcIdSchema = z.union([z.string(), z.number(), z.null()]);
@@ -224,10 +229,31 @@ export const fullAppStateSchema = z.object({
   library: libraryStateSchema
 }) satisfies z.ZodType<FullAppState>;
 
+export const uiSelectEventSchema = z.object({
+  component: z.string().min(1),
+  itemId: z.string().min(1),
+  itemType: z.string().optional(),
+  title: z.string().optional(),
+});
+
+export const uiActionEventSchema = z.object({
+  component: z.string().min(1),
+  actionId: z.string().min(1),
+  value: z.string().optional(),
+});
+
+export const uiDismissEventSchema = z.object({
+  component: z.string().optional(),
+  source: z.enum(['overlay', 'canvas']),
+});
+
 export const eventPayloadSchemaMap = {
   'event.playback': playbackStateSchema,
   'event.navigation': navigationStateSchema,
-  'event.queue': queueStateSchema
+  'event.queue': queueStateSchema,
+  'event.ui.select': uiSelectEventSchema,
+  'event.ui.action': uiActionEventSchema,
+  'event.ui.dismiss': uiDismissEventSchema,
 } satisfies Record<BridgeEventMethod, z.ZodType<unknown>>;
 
 export const jsonRpcEventNotificationSchema = z.object({

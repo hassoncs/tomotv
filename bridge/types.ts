@@ -28,7 +28,10 @@ export type BridgeRequestMethod =
 export type BridgeEventMethod =
   | 'event.playback'
   | 'event.navigation'
-  | 'event.queue';
+  | 'event.queue'
+  | 'event.ui.select'
+  | 'event.ui.action'
+  | 'event.ui.dismiss';
 
 export interface HandlerDispatcher {
   register(method: BridgeRequestMethod, handler: HandlerFn): void;
