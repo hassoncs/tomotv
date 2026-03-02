@@ -1,0 +1,11 @@
+{
+  "name": "expo-tvos-dictation",
+  "version": "1.0.0",
+  "description": "Native tvOS dictation text field for Expo",
+  "main": "src/index.ts",
+  "peerDependencies": {
+    "expo": "*",
+    "react": "*",
+    "react-native": "*"
+  }
+}

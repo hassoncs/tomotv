@@ -20,12 +20,10 @@ radbot → tommo ui:render → WebSocket relay → sduiHandlers.ts → component
 ## Current Tab Structure
 
 ```
-Library  |  Search  |  Settings  |  Help
+Library  |  Search  |  Settings  |  AI
 ```
 
-**Plan:** Replace **Help** with **AI** tab. The AI tab becomes the dedicated canvas for all dynamic SDUI content. When the bot needs to show something, it navigates the user to the AI tab and renders there — not as an overlay on top of everything.
-
-The Help tab is just a static about/QR screen — low-value real estate.
+The **Help** tab has been replaced with the **AI** tab. The AI tab is the dedicated canvas for all dynamic SDUI content. When the bot needs to show something, it navigates the user to the AI tab and renders there — not as an overlay on top of everything.
 
 ---
 
@@ -92,11 +90,10 @@ interface JellyfinVideoItem {
 
 ---
 
-## Current SDUI Components (4)
+## Current SDUI Components (7)
 
-### 1. Toast (currently named TextMessage)
-**File:** `components/sdui/TextMessage.tsx`
-**Rename to:** `Toast`
+### 1. Toast (primary) / TextMessage (deprecated alias)
+**File:** `components/sdui/Toast.tsx`
 
 Pops over everything — this is the one component that _should_ be an overlay. Quick notifications, confirmations, errors.
 
@@ -106,165 +103,98 @@ Pops over everything — this is the one component that _should_ be an overlay. 
 | `style` | `info \| success \| warning \| error` | `info` | Color-coded left border |
 | `duration` | number | `5` | Auto-dismiss seconds (0 = persistent) |
 
-**Verdict:** Keep as overlay. Rename to Toast. Good as-is for MVP.
+**Verdict:** Keep as overlay. Primary notification component.
 
 ### 2. NowPlayingCard
 **File:** `components/sdui/NowPlayingCard.tsx`
 
-Poster + title + series info + progress bar. **Not used anywhere else in the app.** The player screen (`app/player.tsx`) has its own playback UI — this is purely for the "what's playing?" SDUI query.
+Poster + title + series info + progress bar. Renders on the AI tab canvas.
 
-**Verdict:** Keep. It's a standalone info display — the bot assembles the data from `tommo status` and renders it. Renders on the AI tab, not as overlay.
+### 3. MediaGrid (primary) / MovieGrid & SearchResults (deprecated aliases)
+**File:** `components/sdui/MediaGrid.tsx`
 
-### 3. MovieGrid ← **Replace with reusable MediaGrid**
-**File:** `components/sdui/MovieGrid.tsx`
-
-Custom grid that duplicates what `VideoGridItem` + `FlatList` already do in the app. Uses its own card styling, its own poster rendering, its own focus handling — all inferior to the battle-tested `VideoGridItem`.
-
-**Problems:**
-- Duplicates `VideoGridItem` functionality
-- Own data shape (`{id, title, year?, rating?, posterUrl?}`) instead of `JellyfinVideoItem`
-- Selection does nothing (no `onPress` → play)
-- Named "MovieGrid" but displays any media
-
-**Verdict:** Delete. Replace with a single `MediaGrid` that wraps the existing `VideoGridItem` and `FlatList` pattern from the library/search screens. Accepts `JellyfinVideoItem[]`.
-
-### 4. SearchResults ← **Merge into MediaGrid**
-**File:** `components/sdui/SearchResults.tsx`
-
-Vertical list of mixed results. Different visual from MovieGrid (row-based vs poster grid), but same fundamental purpose: "here are items, pick one."
-
-**Verdict:** Merge into MediaGrid. One component, one data shape. The grid vs list distinction can be a layout prop if needed, but for MVP a poster grid covers both use cases.
-
----
-
-## Revised Component Plan
-
-### Rendering Model Change
-
-**Before (current):** All SDUI components render as overlays via `sdui.tsx` backdrop.
-**After:** Two rendering modes:
-
-| Mode | When | Where |
-|------|------|-------|
-| **Toast** | Quick notifications, confirmations | Overlay on top of current screen |
-| **Canvas** | Rich content (grids, cards, info displays) | AI tab — full screen real estate |
-
-When the bot triggers a canvas component, the app navigates to the AI tab (if not already there) and renders the component. The AI tab is the dedicated space for bot-driven interactions.
-
----
-
-### Phase 0: Foundation
-
-#### 0a. Add the AI Tab
-Replace Help tab with AI tab in `app/(tabs)/_layout.tsx`. Route: `app/(tabs)/ai.tsx`.
-
-The AI tab:
-- Subscribes to `componentRegistry.onRender()` (like `sdui.tsx` does today)
-- Renders canvas components in a scrollable container
-- Shows a nice empty state when no active content ("Ask me anything")
-- Auto-navigates here when bot triggers a canvas render
-
-#### 0b. Rename TextMessage → Toast, Keep as Overlay
-Toast stays in the overlay system. Everything else moves to the AI tab canvas.
-
-#### 0c. Wire up Selection → Playback
-When user presses Select on any media item in an SDUI component:
-1. Emit `event.ui.select` back through the bridge with the `jellyfinId`
-2. The bot receives it and can call `tommo play <id>`
-3. OR the component directly calls the existing `handleItemPress` pattern (navigate to `/player`)
-
----
-
-### Phase 1: Core Components (MVP)
-
-#### MediaGrid
-**One component to replace MovieGrid + SearchResults.**
-
-Reuses the app's existing `VideoGridItem` component in a `FlatList` grid. Same poster cards, same focus behavior, same press-to-play pattern the user is already used to from the Library and Search tabs.
+Focusable poster grid for displaying Jellyfin video items. Consolidates movie grid and search results into one reusable component. Wraps the app's existing `VideoGridItem`.
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `items` | `JellyfinVideoItem[]` | Media items to display (same type the whole app uses) |
-| `title` | string? | Optional header text |
-| `columns` | number? | Grid columns (default: 5 on TV) |
+| `items` | `JellyfinVideoItem[]` | Media items to display |
+| `title` | string? | Optional header title |
+| `columns` | number? | Grid columns (default: 5) |
 
-**Why this works:** The bot already gets Jellyfin data via `seedbox library:search`. Instead of transforming it into a custom SDUI shape, pass the raw `JellyfinVideoItem[]` straight through. The existing `VideoGridItem` handles poster URLs, focus, metadata — all of it.
+**Selection:** Emits `event.ui.select` with `itemId`.
 
-**Selection:** `onPress` navigates to `/player` with the selected item, same as the Library tab does.
+### 4. ConfirmationCard
+**File:** `components/sdui/ConfirmationCard.tsx`
 
-#### ConfirmationCard
-**"Should I do this?" — yes/no with context.**
+Modal-style card with confirm and cancel buttons. Use when the bot needs explicit user approval.
 
 | Prop | Type | Description |
 |------|------|-------------|
 | `title` | string | Question/action |
 | `message` | string? | Additional context |
-| `confirmLabel` | string | e.g. "Play", "Download", "Yes" |
-| `cancelLabel` | string? | e.g. "Cancel", "No" (default: "Cancel") |
-| `style` | `default \| destructive`? | Visual treatment |
+| `confirmLabel` | string | Label for confirm button |
+| `cancelLabel` | string | Label for cancel button |
 
-Selection emits `event.ui.confirm` or `event.ui.cancel` back through the bridge.
+**Selection:** Emits `event.ui.action` with `actionId` "confirm" or "cancel".
 
----
+### 5. InfoCard
+**File:** `components/sdui/InfoCard.tsx`
 
-### Phase 2: Rich Display
-
-#### InfoCard (Generic Rich Display)
-**The "Nest Hub" component — show text + image for any kind of answer.**
-
-Instead of a highly structured MediaDetailCard with 13 typed props, keep this intentionally flexible. Think of it as "the bot wants to show you something interesting."
+Rich info card with title, body text, optional image, and action buttons. Generic display for any rich content.
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `title` | string | Main heading |
-| `body` | string? | Paragraph text (could be a synopsis, an answer, instructions, etc.) |
-| `imageUrl` | string? | Optional image (poster, photo, diagram, etc.) |
-| `subtitle` | string? | Secondary line (year, genre, metadata) |
-| `badges` | string[]? | Small tags (e.g. ["4K", "HDR", "2024"]) |
-| `actions` | `{label: string, id: string}[]`? | Optional action buttons |
+| `title` | string | Card heading |
+| `body` | string? | Body text or description |
+| `imageUrl` | string? | Optional image URL |
+| `actions` | `action[]` | List of `{label, actionId}` buttons |
 
-**Use cases:**
-- "Tell me about Andor" → title + poster + overview + "Play" action
-- "What's the weather?" → title + body (if we ever add that)
-- "Show me the download status of X" → title + body with progress info
-- Bot wants to explain something → title + body text
+**Selection:** Buttons emit `event.ui.action` with the `actionId`.
 
-Actions emit `event.ui.action` with the action `id` back through the bridge.
+### 6. EpisodeList
+**File:** `components/sdui/EpisodeList.tsx`
 
-#### EpisodeList
-**"Show me Severance episodes" → Season tabs + episode rows → Select to play.**
+Scrollable list of TV episodes with season/episode labels. Use after fetching episodes for a series.
 
 | Prop | Type | Description |
 |------|------|-------------|
-| `showName` | string | Series title |
-| `episodes` | `JellyfinVideoItem[]` | All episodes (component groups by season using `ParentIndexNumber`) |
+| `episodes` | `episode[]` | List of `{id, title, episodeNumber, seasonNumber, overview, durationMinutes}` |
+| `seriesTitle` | string? | Series name shown as header |
 
-Uses the existing `JellyfinVideoItem` type. The component groups episodes by `ParentIndexNumber` (season number) and shows `IndexNumber` (episode number). Selecting an episode navigates to `/player`.
+**Selection:** Emits `event.ui.select` with `itemId`.
 
 ---
 
-### Phase 3: Future (not MVP)
+## Rendering Model
+
+Two rendering modes:
+
+| Mode | When | Where | `target` param |
+|------|------|-------|----------------|
+| **Overlay** | Quick notifications (Toast) | Floats over current screen | `"overlay"` |
+| **Canvas** | Rich content (grids, cards, lists) | AI tab — full screen | `"canvas"` |
+
+When `target: "canvas"` and `navigateToTab: true`, the app auto-navigates to `/(tabs)/ai` before rendering.
+
+### `ui.render` Params
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `component` | string | Registered component name |
+| `props` | object | Component-specific props |
+| `target` | `overlay \| canvas` | Where to render (default: `"canvas"`) |
+| `navigateToTab` | boolean | Auto-navigate to AI tab (default: `true` when canvas) |
+
+---
+
+## Future Components (Phase 3)
 
 | Component | Idea | Notes |
 |-----------|------|-------|
-| **ContinueWatchingShelf** | "What was I watching?" | Fun but not MVP. Could reuse `VideoShelf` with landscape cards. |
-| **HomeStatusCard** | Generic smart home display | Deferred — unclear what this looks like yet. |
-| **QueueView** | Current playback queue | Nice-to-have polish. |
-| **LoadingCard** | "Searching..." spinner with context | Useful when bot is doing slow work (Sonarr search, etc.) |
-
----
-
-## Build Order
-
-```
-Phase 0:  AI Tab + Toast rename + Selection wiring
-Phase 1:  MediaGrid + ConfirmationCard
-Phase 2:  InfoCard + EpisodeList
-Phase 3:  Future components as needed
-```
-
-Phase 0 + 1 unlocks the core loop: **bot shows content → user selects → thing happens.**
-Phase 2 adds richness: detail views, episode browsing.
+| **ContinueWatchingShelf** | "What was I watching?" | Reuse `VideoShelf` with landscape cards |
+| **HomeStatusCard** | Generic smart home display | Deferred |
+| **QueueView** | Current playback queue | Nice-to-have polish |
+| **LoadingCard** | "Searching..." spinner | Useful for slow bot operations |
 
 ---
 

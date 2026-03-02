@@ -1,0 +1,5 @@
+{
+  "name": "expo-tvos-dictation",
+  "platforms": ["ios", "tvos"],
+  "modules": ["ExpoTvosDictationModule"]
+}
