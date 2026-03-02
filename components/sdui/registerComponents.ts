@@ -13,6 +13,7 @@ import { EpisodeList, episodeListPropsSchema } from './EpisodeList';
 import { ChatMessage, chatMessagePropsSchema } from './ChatMessage';
 import { LoadingCard, loadingCardPropsSchema } from './LoadingCard';
 import { SeriesDetail, seriesDetailPropsSchema } from './SeriesDetail';
+import { TaskList, taskListPropsSchema } from './TaskList';
 componentRegistry.register({
   name: 'NowPlayingCard',
   description: 'Rich now-playing card showing title, series info, poster art, progress bar, and playback position. Use when the user asks what is playing.',
@@ -81,4 +82,12 @@ componentRegistry.register({
   component: SeriesDetail,
   propsSchema: seriesDetailPropsSchema,
   focusConfig: { focusDirection: 'vertical' },
+});
+
+componentRegistry.register({
+  name: 'TaskList',
+  description:
+    'Agentic task checklist. Shows a live todo list with animated status icons and optional per-item progress bars. Use when executing multi-step plans so the user can see what the bot is working on. Re-render with the same task IDs to update statuses in place.',
+  component: TaskList,
+  propsSchema: taskListPropsSchema,
 });
