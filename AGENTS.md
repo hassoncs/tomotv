@@ -50,25 +50,27 @@ npm run lint          # Run ESLint and Prettier check
 # 1. Prebuild (regenerates ios/ from native/)
 EXPO_TV=1 expo prebuild --clean
 
-# 2. Build for device
-xcodebuild -workspace ios/RadBot.xcworkspace -scheme RadBot \
-  -destination 'id=3E2E1550-1549-58F4-8690-DA1CDA2BB713' \
+# 2. Build for device (xcodebuild uses its own device ID, not the CoreDevice UUID)
+xcodebuild -workspace ios/RadMedia.xcworkspace -scheme RadMedia \
+  -destination 'id=96e38ba14a39565bc83898eb7adcc66436e640d3' \
   -configuration Debug build
 
-# 3. Install on Apple TV
+# 3. Install on Apple TV (devicectl uses the CoreDevice UUID)
 xcrun devicectl device install app \
   --device 3E2E1550-1549-58F4-8690-DA1CDA2BB713 \
-  ~/Library/Developer/Xcode/DerivedData/RadBot-*/Build/Products/Debug-appletvos/RadBot.app
+  ~/Library/Developer/Xcode/DerivedData/RadMedia-*/Build/Products/Debug-appletvos/RadMedia.app
 
 # 4. Launch
 xcrun devicectl device process launch \
   --device 3E2E1550-1549-58F4-8690-DA1CDA2BB713 \
-  com.hassoncs.radbot
+  com.hasson.radmedia
 ```
 
-**Device:** Apple TV Living Room — `3E2E1550-1549-58F4-8690-DA1CDA2BB713`
-**Bundle ID:** `com.hassoncs.radbot`
-**Scheme:** `RadBot` (workspace: `ios/RadBot.xcworkspace`)
+**Device:** Apple TV Living Room
+- **CoreDevice UUID (devicectl):** `3E2E1550-1549-58F4-8690-DA1CDA2BB713`
+- **xcodebuild destination ID:** `96e38ba14a39565bc83898eb7adcc66436e640d3`
+**Bundle ID:** `com.hasson.radmedia` (simulator) / `com.hassoncs.radbot` (physical device via TestFlight)
+**Scheme:** `RadMedia` (workspace: `ios/RadMedia.xcworkspace`)
 
 ## Key Architecture Patterns
 
