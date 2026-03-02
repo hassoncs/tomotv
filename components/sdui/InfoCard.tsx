@@ -60,55 +60,53 @@ const TV = Platform.isTV;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(28,28,30,0.97)',
-    borderRadius: 20,
-    maxWidth: 1000,
-    alignSelf: 'center',
+    backgroundColor: 'transparent',
     width: '100%',
     overflow: 'hidden',
   },
   image: {
     width: '100%',
-    height: TV ? 400 : 240,
+    height: TV ? 280 : 180,
+    borderRadius: TV ? 16 : 10,
+    marginBottom: TV ? 32 : 16,
   },
   body: {
-    maxHeight: TV ? 300 : 200,
+    maxHeight: TV ? 200 : 160,
   },
   bodyContent: {
-    padding: TV ? 40 : 24,
     gap: TV ? 16 : 10,
   },
   title: {
     color: '#FFFFFF',
-    fontSize: TV ? 40 : 26,
+    fontSize: TV ? 40 : 24,
     fontWeight: '700',
   },
   bodyText: {
-    color: '#D1D1D6',
-    fontSize: TV ? 26 : 16,
-    lineHeight: TV ? 38 : 24,
+    color: '#8E8E93',
+    fontSize: TV ? 28 : 16,
+    lineHeight: TV ? 42 : 24,
   },
   actions: {
     flexDirection: 'row',
-    gap: 16,
-    padding: TV ? 32 : 20,
+    gap: TV ? 16 : 12,
+    marginTop: TV ? 32 : 16,
     flexWrap: 'wrap',
   },
   actionBtn: {
-    paddingVertical: TV ? 16 : 10,
-    paddingHorizontal: TV ? 40 : 24,
-    backgroundColor: '#3A3A3C',
-    borderRadius: 12,
+    paddingVertical: TV ? 18 : 10,
+    paddingHorizontal: TV ? 44 : 24,
+    backgroundColor: '#2C2C2E',
+    borderRadius: TV ? 14 : 10,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   actionBtnFocused: {
     borderColor: '#FFC312',
-    backgroundColor: '#48484A',
+    backgroundColor: '#1C1C1E',
   },
   actionText: {
     color: '#FFFFFF',
-    fontSize: TV ? 24 : 16,
+    fontSize: TV ? 26 : 16,
     fontWeight: '600',
   },
 });

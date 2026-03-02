@@ -472,8 +472,8 @@ class RemoteBridgeService {
     this.sendPayload({ jsonrpc: '2.0', method: 'event.ui.action', params: validated });
   }
 
-  /** Emit a UI dismiss event (overlay or canvas closed). */
-  public emitUiDismiss(payload: { component?: string; source: 'overlay' | 'canvas' }): void {
+  /** Emit a UI dismiss event (canvas closed). */
+  public emitUiDismiss(payload: { component?: string; source: 'canvas' }): void {
     const validated = uiDismissEventSchema.parse(payload);
     this.sendPayload({ jsonrpc: '2.0', method: 'event.ui.dismiss', params: validated });
   }

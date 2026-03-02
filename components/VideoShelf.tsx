@@ -1,6 +1,6 @@
 import { SmartGlassView } from "@/components/SmartGlassView";
 import { COLORS, SPACING, TYPOGRAPHY } from "@/constants/theme";
-import { getPosterUrl, hasPoster } from "@/services/jellyfinApi";
+import { getPosterUrl } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
 import { Image } from "expo-image";
 import { MarqueeText } from "@/components/MarqueeText";
@@ -27,7 +27,7 @@ function ShelfCard({ item, onPress, cardStyle, index }: ShelfCardProps) {
   const cardWidth = cardStyle === "poster" ? POSTER_CARD_WIDTH : LANDSCAPE_CARD_WIDTH;
   const aspectRatio = cardStyle === "poster" ? 2 / 3 : 16 / 9;
   const posterSize = cardStyle === "poster" ? POSTER_CARD_WIDTH : LANDSCAPE_CARD_WIDTH;
-  const posterUrl = hasPoster(item) ? getPosterUrl(item.Id, posterSize) : undefined;
+  const posterUrl = item.Id ? getPosterUrl(item.Id, posterSize) : undefined;
 
   const handlePress = useCallback(() => {
     onPress(item);

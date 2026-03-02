@@ -140,7 +140,8 @@ export function SeriesDetail({
             data={seasons}
             keyExtractor={(s) => s.id ?? String(s.seasonNumber)}
             renderItem={renderSeason}
-            scrollEnabled={seasons.length > 4}
+            scrollEnabled={false}
+            removeClippedSubviews={false}
             contentContainerStyle={styles.seasonList}
           />
         </>
@@ -151,58 +152,56 @@ export function SeriesDetail({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 20,
-    padding: TV ? 40 : 24,
-    gap: TV ? 28 : 18,
-    maxWidth: 1100,
-    alignSelf: 'center',
+    backgroundColor: 'transparent',
+    paddingVertical: TV ? 24 : 16,
+    gap: TV ? 32 : 18,
     width: '100%',
   },
   header: {
     flexDirection: 'row',
-    gap: TV ? 32 : 20,
+    gap: TV ? 40 : 20,
     alignItems: 'flex-start',
   },
   poster: {
-    width: TV ? 160 : 100,
-    height: TV ? 240 : 150,
-    borderRadius: 12,
+    width: TV ? 200 : 100,
+    height: TV ? 300 : 150,
+    borderRadius: TV ? 16 : 10,
   },
   posterPlaceholder: {
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#1C1C1E',
   },
   info: {
     flex: 1,
-    gap: TV ? 12 : 8,
+    gap: TV ? 14 : 8,
   },
   title: {
     color: '#FFFFFF',
-    fontSize: TV ? 40 : 26,
+    fontSize: TV ? 52 : 26,
     fontWeight: '700',
-    lineHeight: TV ? 50 : 34,
+    lineHeight: TV ? 60 : 34,
   },
   meta: {
     color: '#8E8E93',
-    fontSize: TV ? 20 : 14,
+    fontSize: TV ? 24 : 14,
     fontWeight: '500',
   },
   overview: {
-    color: '#D1D1D6',
-    fontSize: TV ? 22 : 15,
-    lineHeight: TV ? 34 : 22,
+    color: '#8E8E93',
+    fontSize: TV ? 26 : 15,
+    lineHeight: TV ? 38 : 22,
+    marginTop: TV ? 8 : 4,
   },
   actionsRow: {
     flexDirection: 'row',
-    gap: 12,
+    gap: TV ? 16 : 10,
     flexWrap: 'wrap',
-    marginTop: TV ? 8 : 4,
+    marginTop: TV ? 16 : 8,
   },
   actionBtn: {
-    paddingVertical: TV ? 14 : 10,
-    paddingHorizontal: TV ? 36 : 22,
+    paddingVertical: TV ? 16 : 10,
+    paddingHorizontal: TV ? 40 : 22,
     backgroundColor: '#FFC312',
-    borderRadius: 12,
+    borderRadius: TV ? 14 : 10,
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -212,40 +211,46 @@ const styles = StyleSheet.create({
   },
   actionText: {
     color: '#000000',
-    fontSize: TV ? 22 : 15,
+    fontSize: TV ? 24 : 15,
     fontWeight: '700',
   },
   seasonsHeader: {
     color: '#FFFFFF',
-    fontSize: TV ? 28 : 18,
+    fontSize: TV ? 32 : 18,
     fontWeight: '700',
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.06)',
+    paddingTop: TV ? 32 : 16,
   },
   seasonList: {
-    gap: TV ? 8 : 6,
+    gap: TV ? 4 : 2,
   },
   seasonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#2C2C2E',
-    borderRadius: 12,
-    paddingVertical: TV ? 18 : 12,
+    backgroundColor: 'transparent',
+    borderRadius: TV ? 14 : 10,
+    paddingVertical: TV ? 20 : 12,
     paddingHorizontal: TV ? 24 : 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   seasonRowFocused: {
     borderColor: '#FFC312',
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#1C1C1E',
+    borderBottomColor: 'transparent',
   },
   seasonLabel: {
     flex: 1,
     color: '#FFFFFF',
-    fontSize: TV ? 26 : 17,
-    fontWeight: '600',
+    fontSize: TV ? 28 : 17,
+    fontWeight: '500',
   },
   seasonEpCount: {
-    color: '#8E8E93',
-    fontSize: TV ? 20 : 13,
+    color: '#636366',
+    fontSize: TV ? 22 : 13,
     marginRight: TV ? 16 : 10,
   },
   seasonChevron: {

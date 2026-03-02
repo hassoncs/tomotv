@@ -213,7 +213,7 @@ When `target: "canvas"` and `navigateToTab: true`, the app auto-navigates to `/(
 1. Create `components/sdui/YourComponent.tsx` with Zod `propsSchema` export
 2. Register in `components/sdui/registerComponents.ts` with name + description
 3. The bot auto-discovers it via `tv ui:components`
-4. Update `chrisbot/skills/tv/SKILL.md` with usage examples
+4. Update `openclaw/skills/tv/SKILL.md` with usage examples
 5. Test via `tv ui:render '{"component":"YourComponent","props":{...}}'`
 6. If canvas component: ensure AI tab renders it properly
 7. If interactive: wire `event.ui.*` emission back through bridge

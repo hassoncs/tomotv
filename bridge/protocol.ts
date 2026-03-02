@@ -44,7 +44,7 @@ export const inputTextParamsSchema = z.object({
 export const uiRenderParamsSchema = z.object({
   component: z.string().min(1),
   props: z.record(z.string(), z.unknown()).optional().default({}),
-  target: z.enum(['overlay', 'canvas']).default('canvas'),
+  target: z.literal('canvas').default('canvas'),
   navigateToTab: z.boolean().default(true)
 });
 
@@ -244,7 +244,7 @@ export const uiActionEventSchema = z.object({
 
 export const uiDismissEventSchema = z.object({
   component: z.string().optional(),
-  source: z.enum(['overlay', 'canvas']),
+  source: z.literal('canvas'),
 });
 
 export const eventPayloadSchemaMap = {

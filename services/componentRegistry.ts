@@ -26,14 +26,12 @@ export interface RegisteredComponent<TProps = any> {
 export interface SduiRenderPayload {
   name: string;
   props: Record<string, unknown>;
-  target: 'overlay' | 'canvas';
   navigateToTab: boolean;
 }
 
 export type SduiRenderListener = (payload: SduiRenderPayload) => void;
 
 export interface SduiRenderOptions {
-  target?: 'overlay' | 'canvas';
   navigateToTab?: boolean;
 }
 
@@ -103,22 +101,21 @@ class ComponentRegistry {
 
   /**
    * Called by the bridge handler when a `ui.render` command arrives from the relay.
-   * Dispatches to all registered render listeners (i.e. overlay host or AI tab canvas).
+   * Dispatches to all registered render listeners (AI tab canvas).
    */
   dispatchRender(name: string, props: Record<string, unknown>, options: SduiRenderOptions = {}): void {
     const payload: SduiRenderPayload = {
       name,
       props,
-      target: options.target ?? 'canvas',
       navigateToTab: options.navigateToTab ?? true,
     };
-    logger.info('SDUI render queued', { service: 'ComponentRegistry', name, target: payload.target });
-    // Queue so AI tab / overlay can drain on mount — avoids the race with router.push
+    logger.info('SDUI render queued', { service: 'ComponentRegistry', name });
+    // Queue so AI tab can drain on mount — avoids the race with router.push
     this.pendingRenders.push(payload);
     this.renderListeners.forEach((listener) => listener(payload));
   }
 
-  /** Drain all renders that arrived before the canvas/overlay screen mounted. */
+  /** Drain all renders that arrived before the AI tab screen mounted. */
   drainPending(): SduiRenderPayload[] {
     const pending = [...this.pendingRenders];
     this.pendingRenders = [];

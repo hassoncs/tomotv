@@ -65,7 +65,8 @@ export function SearchResults({ results, title = 'Results' }: SearchResultsProps
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        scrollEnabled
+        scrollEnabled={false}
+        removeClippedSubviews={false}
       />
     </View>
   );
@@ -75,12 +76,8 @@ const THUMB_SIZE = TV ? 90 : 56;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(28,28,30,0.95)',
-    borderRadius: TV ? 20 : 16,
-    padding: TV ? 32 : 20,
-    maxWidth: TV ? 1100 : 600,
-    maxHeight: TV ? 800 : 500,
-    alignSelf: 'center',
+    backgroundColor: 'transparent',
+    paddingVertical: TV ? 16 : 8,
     width: '100%',
   },
   header: {
@@ -90,21 +87,25 @@ const styles = StyleSheet.create({
     marginBottom: TV ? 20 : 12,
   },
   list: {
-    gap: TV ? 12 : 8,
+    gap: TV ? 4 : 2,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: TV ? 20 : 12,
-    backgroundColor: '#2C2C2E',
+    gap: TV ? 24 : 12,
+    backgroundColor: 'transparent',
     borderRadius: TV ? 14 : 10,
-    padding: TV ? 16 : 12,
+    paddingVertical: TV ? 20 : 12,
+    paddingHorizontal: TV ? 24 : 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   rowFocused: {
     borderColor: '#FFC312',
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#1C1C1E',
+    borderBottomColor: 'transparent',
   },
   thumb: {
     width: THUMB_SIZE,
@@ -112,7 +113,7 @@ const styles = StyleSheet.create({
     borderRadius: TV ? 10 : 6,
   },
   thumbPlaceholder: {
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#1C1C1E',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -136,11 +137,11 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     color: '#FFFFFF',
-    fontSize: TV ? 26 : 16,
-    fontWeight: '600',
+    fontSize: TV ? 28 : 16,
+    fontWeight: '500',
   },
   rowSubtitle: {
     color: '#8E8E93',
-    fontSize: TV ? 20 : 13,
+    fontSize: TV ? 22 : 13,
   },
 });

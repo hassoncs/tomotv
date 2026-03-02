@@ -4,10 +4,7 @@
  * available for LLM-driven rendering via `radmedia ui:render`.
  */
 import { componentRegistry } from '@/services/componentRegistry';
-import { Toast, toastPropsSchema } from './Toast';
-import { TextMessage, textMessagePropsSchema } from './TextMessage';
 import { NowPlayingCard, nowPlayingCardPropsSchema } from './NowPlayingCard';
-import { MovieGrid, movieGridPropsSchema } from './MovieGrid';
 import { SearchResults, searchResultsPropsSchema } from './SearchResults';
 import { MediaGrid, mediaGridPropsSchema } from './MediaGrid';
 import { ConfirmationCard, confirmationCardPropsSchema } from './ConfirmationCard';
@@ -17,33 +14,12 @@ import { ChatMessage, chatMessagePropsSchema } from './ChatMessage';
 import { LoadingCard, loadingCardPropsSchema } from './LoadingCard';
 import { SeriesDetail, seriesDetailPropsSchema } from './SeriesDetail';
 componentRegistry.register({
-  name: 'Toast',
-  description: 'Overlay toast notification. Displays a brief text message on screen. Use for simple announcements, confirmations, or alerts. Renders as overlay — does not navigate to AI tab.',
-  component: Toast,
-  propsSchema: toastPropsSchema,
-});
-
-componentRegistry.register({
-  name: 'TextMessage',
-  description: '@deprecated — use Toast instead. Backward-compatible alias kept for existing bot prompts.',
-  component: TextMessage,
-  propsSchema: textMessagePropsSchema,
-});
-
-componentRegistry.register({
   name: 'NowPlayingCard',
   description: 'Rich now-playing card showing title, series info, poster art, progress bar, and playback position. Use when the user asks what is playing.',
   component: NowPlayingCard,
   propsSchema: nowPlayingCardPropsSchema,
 });
 
-componentRegistry.register({
-  name: 'MovieGrid',
-  description: 'Focusable poster grid for displaying a curated list of movies or shows. Each item is selectable to start playback. Use for "show me X movies" requests.',
-  component: MovieGrid,
-  propsSchema: movieGridPropsSchema,
-  focusConfig: { focusDirection: 'grid' },
-});
 
 componentRegistry.register({
   name: 'SearchResults',
@@ -94,7 +70,7 @@ componentRegistry.register({
 
 componentRegistry.register({
   name: 'LoadingCard',
-  description: 'Progress indicator for slow bot operations. Show this before a long seedbox search or multi-step action, then replace with a result component or Toast when done. Renders on the AI tab canvas.',
+  description: 'Progress indicator for slow bot operations. Show this before a long seedbox search or multi-step action, then replace with a result component when done. Renders on the AI tab canvas.',
   component: LoadingCard,
   propsSchema: loadingCardPropsSchema,
 });

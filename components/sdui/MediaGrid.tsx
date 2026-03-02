@@ -97,8 +97,11 @@ export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProp
           />
         )}
         contentContainerStyle={styles.grid}
-        scrollEnabled={items.length > columns * 2}
+        scrollEnabled={false}
+        removeClippedSubviews={false}
       />
+        scrollEnabled={false}
+        removeClippedSubviews={false}
     </View>
   );
 }
@@ -106,16 +109,16 @@ export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1C1C1E',
+    backgroundColor: 'transparent',
   },
   header: {
     color: '#FFFFFF',
     fontSize: Platform.isTV ? 36 : 24,
     fontWeight: '700',
-    marginBottom: 16,
+    marginBottom: Platform.isTV ? 20 : 12,
     paddingHorizontal: 8,
   },
   grid: {
-    paddingBottom: 32,
+    paddingBottom: Platform.isTV ? 48 : 24,
   },
 });

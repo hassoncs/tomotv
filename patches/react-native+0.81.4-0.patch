@@ -1,0 +1,72 @@
+diff --git a/node_modules/react-native/React/Fabric/Mounting/ComponentViews/ScrollView/RCTScrollViewComponentView.mm b/node_modules/react-native/React/Fabric/Mounting/ComponentViews/ScrollView/RCTScrollViewComponentView.mm
+index 6df7370..a866f66 100644
+--- a/node_modules/react-native/React/Fabric/Mounting/ComponentViews/ScrollView/RCTScrollViewComponentView.mm
++++ b/node_modules/react-native/React/Fabric/Mounting/ComponentViews/ScrollView/RCTScrollViewComponentView.mm
+@@ -1171,7 +1171,14 @@ static inline UIViewAnimationOptions animationOptionsWithCurve(UIViewAnimationCu
+         BOOL isScrollingToTrailing = (isMovingTowardsTrailingEdge && self.scrollView.contentOffset.x < self.scrollView.contentSize.width - MAX(self.scrollView.visibleSize.width, 1));
+ 
+         if (isScrollingToLeading || isScrollingToTrailing) {
+-            return (context.nextFocusedItem && [UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]);
++            if (!context.nextFocusedItem) {
++                return NO;
++            }
++            if ([UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]) {
++                return YES;
++            }
++            // Target exists but OUTSIDE scroll view — defer to parent hierarchy
++            return [super shouldUpdateFocusInContext:context];
+         }
+     } else {
+         // Handle vertical scrolling as before
+@@ -1179,7 +1186,14 @@ static inline UIViewAnimationOptions animationOptionsWithCurve(UIViewAnimationCu
+         BOOL isMovingDown = (context.focusHeading == UIFocusHeadingDown && self.scrollView.contentOffset.y < self.scrollView.contentSize.height - MAX(self.scrollView.visibleSize.height, 1));
+ 
+         if (isMovingUp || isMovingDown) {
+-            return (context.nextFocusedItem && [UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]);
++            if (!context.nextFocusedItem) {
++                return NO;
++            }
++            if ([UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]) {
++                return YES;
++            }
++            // Target exists but OUTSIDE scroll view — defer to parent hierarchy
++            return [super shouldUpdateFocusInContext:context];
+         }
+     }
+     return [super shouldUpdateFocusInContext:context];
+diff --git a/node_modules/react-native/React/Views/ScrollView/RCTScrollView.m b/node_modules/react-native/React/Views/ScrollView/RCTScrollView.m
+index 7454385..dd0dfae 100644
+--- a/node_modules/react-native/React/Views/ScrollView/RCTScrollView.m
++++ b/node_modules/react-native/React/Views/ScrollView/RCTScrollView.m
+@@ -1141,7 +1141,14 @@ RCT_SCROLL_EVENT_HANDLER(scrollViewDidScrollToTop, onScrollToTop)
+         BOOL isScrollingToTrailing = (isMovingTowardsTrailingEdge && self.scrollView.contentOffset.x < self.scrollView.contentSize.width - MAX(self.scrollView.visibleSize.width, 1));
+ 
+         if (isScrollingToLeading || isScrollingToTrailing) {
+-            return (context.nextFocusedItem && [UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]);
++            if (!context.nextFocusedItem) {
++                return NO;
++            }
++            if ([UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]) {
++                return YES;
++            }
++            // Target exists but OUTSIDE scroll view — defer to parent hierarchy
++            return [super shouldUpdateFocusInContext:context];
+         }
+     } else {
+         // Handle vertical scrolling as before
+@@ -1149,7 +1156,14 @@ RCT_SCROLL_EVENT_HANDLER(scrollViewDidScrollToTop, onScrollToTop)
+         BOOL isMovingDown = (context.focusHeading == UIFocusHeadingDown && self.scrollView.contentOffset.y < self.scrollView.contentSize.height - MAX(self.scrollView.visibleSize.height, 1));
+ 
+         if (isMovingUp || isMovingDown) {
+-            return (context.nextFocusedItem && [UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]);
++            if (!context.nextFocusedItem) {
++                return NO;
++            }
++            if ([UIFocusSystem environment:self containsEnvironment:context.nextFocusedItem]) {
++                return YES;
++            }
++            // Target exists but OUTSIDE scroll view — defer to parent hierarchy
++            return [super shouldUpdateFocusInContext:context];
+         }
+     }
+     return [super shouldUpdateFocusInContext:context];

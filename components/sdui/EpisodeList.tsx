@@ -86,7 +86,8 @@ export function EpisodeList({ episodes, seriesTitle, component = 'EpisodeList' }
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        scrollEnabled
+        scrollEnabled={false}
+        removeClippedSubviews={false}
       />
     </View>
   );
@@ -96,10 +97,9 @@ const TV = Platform.isTV;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(28,28,30,0.97)',
-    borderRadius: 20,
-    padding: TV ? 32 : 20,
-    maxHeight: TV ? 700 : 500,
+    backgroundColor: 'transparent',
+    paddingVertical: TV ? 16 : 8,
+    // maxHeight removed: scrollEnabled=false means outer ScrollView handles all scrolling
   },
   header: {
     color: '#FFFFFF',
@@ -108,21 +108,25 @@ const styles = StyleSheet.create({
     marginBottom: TV ? 20 : 12,
   },
   list: {
-    gap: TV ? 8 : 6,
+    gap: TV ? 4 : 2,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: TV ? 20 : 12,
-    backgroundColor: '#2C2C2E',
-    borderRadius: 12,
-    padding: TV ? 20 : 14,
+    gap: TV ? 24 : 12,
+    backgroundColor: 'transparent',
+    borderRadius: TV ? 14 : 10,
+    paddingVertical: TV ? 20 : 14,
+    paddingHorizontal: TV ? 24 : 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.06)',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   rowFocused: {
     borderColor: '#FFC312',
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#1C1C1E',
+    borderBottomColor: 'transparent',
   },
   epLabel: {
     color: '#FFC312',
@@ -136,15 +140,15 @@ const styles = StyleSheet.create({
   },
   rowTitle: {
     color: '#FFFFFF',
-    fontSize: TV ? 26 : 17,
-    fontWeight: '600',
+    fontSize: TV ? 28 : 17,
+    fontWeight: '500',
   },
   rowOverview: {
     color: '#8E8E93',
-    fontSize: TV ? 20 : 13,
+    fontSize: TV ? 22 : 13,
   },
   duration: {
-    color: '#8E8E93',
-    fontSize: TV ? 20 : 13,
+    color: '#636366',
+    fontSize: TV ? 22 : 13,
   },
 });

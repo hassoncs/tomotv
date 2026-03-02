@@ -7,16 +7,11 @@ import {
   uiDismissEventSchema,
 } from '../protocol';
 
-describe('ui.render — render target params', () => {
-  it('accepts component + props with no target (defaults to canvas)', () => {
-    const result = uiRenderParamsSchema.parse({ component: 'Toast', props: {} });
+describe('ui.render — render params', () => {
+  it('accepts component + props with default target=canvas', () => {
+    const result = uiRenderParamsSchema.parse({ component: 'ChatMessage', props: {} });
     expect(result.target).toBe('canvas');
     expect(result.navigateToTab).toBe(true);
-  });
-
-  it('accepts explicit target=overlay', () => {
-    const result = uiRenderParamsSchema.parse({ component: 'Toast', target: 'overlay' });
-    expect(result.target).toBe('overlay');
   });
 
   it('accepts explicit target=canvas with navigateToTab=false', () => {
@@ -30,7 +25,7 @@ describe('ui.render — render target params', () => {
   });
 
   it('rejects unknown target value', () => {
-    expect(() => uiRenderParamsSchema.parse({ component: 'Toast', target: 'popup' })).toThrow();
+    expect(() => uiRenderParamsSchema.parse({ component: 'ChatMessage', target: 'popup' })).toThrow();
   });
 
   it('is backward-compatible — component-only still parses', () => {
@@ -39,7 +34,7 @@ describe('ui.render — render target params', () => {
   });
 });
 
-describe('bridgeEventMethodSchema — new UI event methods', () => {
+describe('bridgeEventMethodSchema — UI event methods', () => {
   it('accepts event.ui.select', () => {
     expect(() => bridgeEventMethodSchema.parse('event.ui.select')).not.toThrow();
   });
@@ -99,9 +94,9 @@ describe('uiActionEventSchema', () => {
 });
 
 describe('uiDismissEventSchema', () => {
-  it('parses required source field', () => {
-    const result = uiDismissEventSchema.parse({ source: 'overlay' });
-    expect(result.source).toBe('overlay');
+  it('parses canvas source', () => {
+    const result = uiDismissEventSchema.parse({ source: 'canvas' });
+    expect(result.source).toBe('canvas');
   });
 
   it('parses optional component field', () => {
@@ -114,7 +109,7 @@ describe('uiDismissEventSchema', () => {
   });
 });
 
-describe('eventPayloadSchemaMap — covers new event methods', () => {
+describe('eventPayloadSchemaMap — covers event methods', () => {
   it('has entry for event.ui.select', () => {
     expect(eventPayloadSchemaMap['event.ui.select']).toBeDefined();
   });

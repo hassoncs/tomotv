@@ -15,13 +15,12 @@ export function registerHandlers(dispatcher: HandlerDispatcher): void {
     componentRegistry.dispatchRender(
       parsed.component,
       parsed.props as Record<string, unknown>,
-      { target: parsed.target, navigateToTab: parsed.navigateToTab }
+      { navigateToTab: parsed.navigateToTab }
     );
 
     return {
       ok: true,
       component: parsed.component,
-      target: parsed.target,
     };
   });
 

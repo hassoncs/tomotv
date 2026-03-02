@@ -2,12 +2,17 @@ import React, { useState } from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { z } from 'zod';
 
+import { AnimatedProgressBar } from './AnimatedProgressBar';
+
 import { remoteBridgeService } from '@/services/remoteBridgeService';
 
 export const loadingCardPropsSchema = z.object({
   title: z.string().describe('Loading state description, e.g. "Searching Sonarr..."'),
   subtitle: z.string().optional().describe('Additional context, e.g. the search term'),
   progress: z.number().min(0).max(1).optional().describe('Progress 0–1 for a determinate bar. Omit for indeterminate spinner.'),
+  estimatedDurationSeconds: z.number().positive().optional().describe(
+    'If provided, animates the determinate progress bar from `progress` to 100% over this many seconds. Requires `progress` to be set.',
+  ),
   cancellable: z.boolean().default(false).describe('Show a Cancel button that emits event.ui.action actionId=cancel'),
   component: z.string().default('LoadingCard').describe('Component name for event routing'),
 });
@@ -20,6 +25,7 @@ export function LoadingCard({
   title,
   subtitle,
   progress,
+  estimatedDurationSeconds,
   cancellable = false,
   component = 'LoadingCard',
 }: LoadingCardProps) {
@@ -43,9 +49,10 @@ export function LoadingCard({
       </View>
 
       {hasDeterminateBar && (
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${Math.round(progress! * 100)}%` as `${number}%` }]} />
-        </View>
+        <AnimatedProgressBar
+          progress={progress!}
+          durationToCompleteSeconds={estimatedDurationSeconds}
+        />
       )}
 
       {cancellable && (
@@ -66,18 +73,20 @@ export function LoadingCard({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#1C1C1E',
-    borderRadius: 20,
-    padding: TV ? 40 : 24,
-    gap: TV ? 24 : 16,
-    maxWidth: 900,
+    backgroundColor: 'rgba(28, 28, 30, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: TV ? 24 : 16,
+    padding: TV ? 48 : 24,
+    gap: TV ? 28 : 16,
+    maxWidth: TV ? 900 : undefined,
     alignSelf: 'center',
     width: '100%',
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: TV ? 24 : 16,
+    gap: TV ? 28 : 16,
   },
   textBlock: {
     flex: 1,
@@ -85,30 +94,19 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#FFFFFF',
-    fontSize: TV ? 30 : 20,
+    fontSize: TV ? 32 : 20,
     fontWeight: '600',
   },
   subtitle: {
     color: '#8E8E93',
-    fontSize: TV ? 22 : 15,
-  },
-  progressTrack: {
-    height: TV ? 6 : 4,
-    backgroundColor: '#3A3A3C',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FFC312',
-    borderRadius: 3,
+    fontSize: TV ? 24 : 15,
   },
   cancelBtn: {
     alignSelf: 'center',
-    paddingVertical: TV ? 16 : 10,
-    paddingHorizontal: TV ? 48 : 28,
-    borderRadius: 12,
-    backgroundColor: '#3A3A3C',
+    paddingVertical: TV ? 18 : 10,
+    paddingHorizontal: TV ? 52 : 28,
+    borderRadius: TV ? 14 : 10,
+    backgroundColor: '#2C2C2E',
     borderWidth: 2,
     borderColor: 'transparent',
   },
@@ -117,7 +115,7 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     color: '#FFFFFF',
-    fontSize: TV ? 24 : 16,
+    fontSize: TV ? 26 : 16,
     fontWeight: '600',
   },
 });

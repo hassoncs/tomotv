@@ -205,7 +205,7 @@ New:
 **Files:**
 - Rename: `radmedia/components/sdui/TextMessage.tsx` -> `radmedia/components/sdui/Toast.tsx`
 - Modify: `radmedia/components/sdui/registerComponents.ts`
-- Modify: `chrisbot/skills/tv/SKILL.md`
+- Modify: `openclaw/skills/tv/SKILL.md`
 - Test: `radmedia/components/sdui/__tests__/toast.schema.test.ts`
 
 **Step 1: Write failing test**
@@ -301,7 +301,7 @@ New:
 ## Task 8: Wire Bot Skill Docs and Examples
 
 **Files:**
-- Modify: `chrisbot/skills/tv/SKILL.md`
+- Modify: `openclaw/skills/tv/SKILL.md`
 - Modify: `radmedia/docs/sdui-component-audit.md`
 
 **Step 1: Update component list**

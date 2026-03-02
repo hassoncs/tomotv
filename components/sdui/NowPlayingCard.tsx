@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, Platform } from 'react-native';
 import { z } from 'zod';
 
+import { AnimatedProgressBar } from './AnimatedProgressBar';
+
 export const nowPlayingCardPropsSchema = z.object({
   title: z.string().describe('Title of the currently playing item'),
   seriesName: z.string().optional().describe('TV show name if applicable'),
@@ -9,6 +11,9 @@ export const nowPlayingCardPropsSchema = z.object({
   positionSeconds: z.number().nonnegative().default(0).describe('Current playback position in seconds'),
   durationSeconds: z.number().nonnegative().default(0).describe('Total duration in seconds'),
   posterUrl: z.string().optional().describe('URL of the poster/thumbnail image'),
+  playbackRate: z.number().positive().default(1).describe(
+    'Playback speed multiplier (1 = real-time, 2 = 2x). Drives the progress bar forward animation without needing re-renders.',
+  ),
 });
 
 export type NowPlayingCardProps = z.infer<typeof nowPlayingCardPropsSchema>;
@@ -30,8 +35,11 @@ export function NowPlayingCard({
   positionSeconds = 0,
   durationSeconds = 0,
   posterUrl,
+  playbackRate = 1,
 }: NowPlayingCardProps) {
-  const progress = durationSeconds > 0 ? Math.min(positionSeconds / durationSeconds, 1) : 0;
+  const progressFraction = durationSeconds > 0 ? Math.min(positionSeconds / durationSeconds, 1) : 0;
+  // Normalized rate: fraction of total progress per second at the given playback speed.
+  const progressPerSecond = durationSeconds > 0 ? playbackRate / durationSeconds : undefined;
 
   return (
     <View style={styles.container}>
@@ -44,9 +52,10 @@ export function NowPlayingCard({
         {seriesName && <Text style={styles.series}>{seriesName}</Text>}
         <Text style={styles.title}>{title}</Text>
         {seasonEpisode && <Text style={styles.meta}>{seasonEpisode}</Text>}
-        <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
-        </View>
+        <AnimatedProgressBar
+          progress={progressFraction}
+          progressPerSecond={progressPerSecond}
+        />
         <Text style={styles.time}>
           {formatTime(positionSeconds)} / {formatTime(durationSeconds)}
         </Text>
@@ -58,56 +67,42 @@ export function NowPlayingCard({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(28,28,30,0.95)',
-    borderRadius: TV ? 20 : 16,
-    padding: TV ? 32 : 20,
-    gap: TV ? 28 : 16,
+    backgroundColor: 'transparent',
+    paddingVertical: TV ? 32 : 16,
+    gap: TV ? 40 : 16,
     alignItems: 'center',
-    maxWidth: TV ? 1100 : undefined,
-    alignSelf: 'center',
     width: '100%',
   },
   poster: {
-    width: TV ? 140 : 80,
-    height: TV ? 210 : 120,
-    borderRadius: TV ? 12 : 8,
+    width: TV ? 160 : 80,
+    height: TV ? 240 : 120,
+    borderRadius: TV ? 16 : 8,
   },
   posterPlaceholder: {
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#1C1C1E',
   },
   info: {
     flex: 1,
-    gap: TV ? 10 : 6,
+    gap: TV ? 12 : 6,
   },
   series: {
     color: '#FFC312',
-    fontSize: TV ? 22 : 14,
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    fontSize: TV ? 24 : 14,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   title: {
     color: '#FFFFFF',
-    fontSize: TV ? 36 : 24,
+    fontSize: TV ? 44 : 24,
     fontWeight: '700',
   },
   meta: {
     color: '#8E8E93',
-    fontSize: TV ? 22 : 15,
-  },
-  progressBar: {
-    height: TV ? 6 : 4,
-    backgroundColor: '#3A3A3C',
-    borderRadius: 3,
-    overflow: 'hidden',
-    marginTop: TV ? 12 : 6,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: '#FFC312',
-    borderRadius: 3,
+    fontSize: TV ? 24 : 15,
   },
   time: {
     color: '#636366',
-    fontSize: TV ? 20 : 14,
+    fontSize: TV ? 22 : 14,
   },
 });

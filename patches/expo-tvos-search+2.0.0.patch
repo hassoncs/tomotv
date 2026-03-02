@@ -1,5 +1,5 @@
 diff --git a/node_modules/expo-tvos-search/ios/ExpoTvosSearchView.swift b/node_modules/expo-tvos-search/ios/ExpoTvosSearchView.swift
-index 17f95ce..e79f174 100644
+index 17f95ce..f1a20cc 100644
 --- a/node_modules/expo-tvos-search/ios/ExpoTvosSearchView.swift
 +++ b/node_modules/expo-tvos-search/ios/ExpoTvosSearchView.swift
 @@ -341,6 +341,10 @@ class ExpoTvosSearchView: ExpoView {
@@ -13,7 +13,76 @@ index 17f95ce..e79f174 100644
          addSubview(container)
          rnContentContainer = container
  
-@@ -437,6 +441,11 @@ class ExpoTvosSearchView: ExpoView {
+@@ -375,11 +379,10 @@ class ExpoTvosSearchView: ExpoView {
+     }
+ 
+     private func teardownInputMode() {
+-        // Move RN children back to self before removing container
++        // Remove the RN content container. Any Fabric-managed children still
++        // inside will be removed from the view hierarchy; Fabric will remount
++        // them via mountChildComponentView when the new mode's view is ready.
+         if let container = rnContentContainer {
+-            for subview in container.subviews {
+-                addSubview(subview)
+-            }
+             container.removeFromSuperview()
+         }
+         rnContentContainer = nil
+@@ -406,8 +409,40 @@ class ExpoTvosSearchView: ExpoView {
+         NotificationCenter.default.removeObserver(self)
+     }
+ 
+-    /// In input mode, reparent RN children into the content container below the search bar.
+-    /// React Native adds children directly to `self` — we intercept and move them.
++    // MARK: - Fabric Child Management (Input Mode)
++    //
++    // In input mode, Fabric-managed RN children must go into `rnContentContainer`
++    // (not `self`) so they appear below the native search bar. We intercept Fabric's
++    // mount/unmount calls to redirect children to the container while keeping index
++    // bookkeeping consistent. This avoids the crash caused by `layoutSubviews()`
++    // reparenting (which breaks Fabric's `unmountChildComponentView:index:` assertions).
++
++    override func mountChildComponentView(_ childComponentView: UIView, index: Int) {
++        if currentMode == "input", let container = rnContentContainer {
++            container.insertSubview(childComponentView, at: index)
++            container.isUserInteractionEnabled = true
++            // Update focus guide to bridge from search bar to RN content
++            if let guide = focusGuide {
++                guide.preferredFocusEnvironments = container.subviews.compactMap { $0 as? UIFocusEnvironment }
++            }
++        } else {
++            super.mountChildComponentView(childComponentView, index: index)
++        }
++    }
++
++    override func unmountChildComponentView(_ childComponentView: UIView, index: Int) {
++        if currentMode == "input", let container = rnContentContainer {
++            childComponentView.removeFromSuperview()
++            container.isUserInteractionEnabled = !container.subviews.isEmpty
++            // Update focus guide
++            if let guide = focusGuide {
++                guide.preferredFocusEnvironments = container.subviews.compactMap { $0 as? UIFocusEnvironment }
++            }
++        } else {
++            super.unmountChildComponentView(childComponentView, index: index)
++        }
++    }
++
+     override func layoutSubviews() {
+         super.layoutSubviews()
+ 
+@@ -424,8 +459,8 @@ class ExpoTvosSearchView: ExpoView {
+             height: bounds.height - searchBarHeight
+         )
+ 
+-        // Move RN-managed children into the container.
+-        // Skip the hosting controller view and the container itself.
++        // Safety: catch any children that ended up on self (e.g., from a mode switch)
++        // and redirect them to the container without breaking Fabric's bookkeeping.
+         let hostingView = inputHostingController?.view
+         for subview in subviews {
+             if subview !== hostingView && subview !== container {
+@@ -437,6 +472,11 @@ class ExpoTvosSearchView: ExpoView {
          if let guide = focusGuide {
              guide.preferredFocusEnvironments = container.subviews.compactMap { $0 as? UIFocusEnvironment }
          }
@@ -26,10 +95,10 @@ index 17f95ce..e79f174 100644
  
      private func setupView() {
 diff --git a/node_modules/expo-tvos-search/ios/InputModeContentView.swift b/node_modules/expo-tvos-search/ios/InputModeContentView.swift
-index e5e31aa..4b7ef79 100644
+index e5e31aa..a5545bd 100644
 --- a/node_modules/expo-tvos-search/ios/InputModeContentView.swift
 +++ b/node_modules/expo-tvos-search/ios/InputModeContentView.swift
-@@ -6,16 +6,27 @@ import SwiftUI
+@@ -6,17 +6,30 @@ import SwiftUI
  /// Provides ONLY the native `.searchable` search bar (with keyboard + mic button)
  /// over a transparent background. React Native children fill the space below
  /// via UIKit layout in ExpoTvosSearchView.
@@ -55,10 +124,13 @@ index e5e31aa..4b7ef79 100644
 +            }
 +            .buttonStyle(.plain)
 +            .frame(maxWidth: .infinity, maxHeight: .infinity)
++            .background(Color.clear)
 +            .searchable(text: $viewModel.searchText, prompt: viewModel.placeholder)
 +            .onChange(of: viewModel.searchText) { newValue in
 +                viewModel.onSearch?(newValue)
 +            }
          }
++        .background(Color.clear)
          .tint(viewModel.accentColor)
          .modifier(TopInsetModifier(topInset: viewModel.topInset))
+     }

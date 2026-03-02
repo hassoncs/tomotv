@@ -44,7 +44,7 @@ export function ConfirmationCard({
           isTVSelectable
           activeOpacity={0.8}
         >
-          <Text style={styles.btnText}>{confirmLabel}</Text>
+          <Text style={[styles.btnText, styles.confirmBtnText]}>{confirmLabel}</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.btn, styles.cancelBtn, focusedBtn === 'cancel' && styles.btnFocused]}
@@ -65,42 +65,50 @@ const TV = Platform.isTV;
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: 'rgba(28,28,30,0.97)',
-    borderRadius: 20,
-    padding: TV ? 48 : 32,
-    maxWidth: 900,
+    backgroundColor: 'rgba(28, 28, 30, 0.85)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.06)',
+    borderRadius: TV ? 24 : 16,
+    paddingVertical: TV ? 64 : 32,
+    paddingHorizontal: TV ? 80 : 40,
+    alignItems: 'center',
     alignSelf: 'center',
+    maxWidth: TV ? 900 : undefined,
     width: '100%',
-    gap: TV ? 32 : 20,
+    gap: TV ? 24 : 16,
   },
   title: {
     color: '#FFFFFF',
-    fontSize: TV ? 40 : 28,
-    fontWeight: '700',
+    fontSize: TV ? 44 : 28,
+    fontWeight: '600',
     textAlign: 'center',
   },
   message: {
-    color: '#98989D',
-    fontSize: TV ? 28 : 18,
+    color: '#8E8E93',
+    fontSize: TV ? 30 : 18,
     textAlign: 'center',
+    lineHeight: TV ? 42 : 26,
+    marginBottom: TV ? 24 : 12,
   },
   buttons: {
     flexDirection: 'row',
-    gap: 24,
+    gap: TV ? 24 : 16,
     justifyContent: 'center',
   },
   btn: {
-    paddingVertical: TV ? 20 : 14,
-    paddingHorizontal: TV ? 56 : 36,
-    borderRadius: 14,
+    paddingVertical: TV ? 22 : 14,
+    paddingHorizontal: TV ? 60 : 36,
+    borderRadius: TV ? 14 : 10,
     borderWidth: 2,
     borderColor: 'transparent',
+    minWidth: TV ? 240 : 120,
+    alignItems: 'center',
   },
   confirmBtn: {
     backgroundColor: '#FFC312',
   },
   cancelBtn: {
-    backgroundColor: '#3A3A3C',
+    backgroundColor: '#2C2C2E',
   },
   btnFocused: {
     borderColor: '#FFFFFF',
@@ -108,6 +116,9 @@ const styles = StyleSheet.create({
   btnText: {
     color: '#FFFFFF',
     fontSize: TV ? 28 : 18,
-    fontWeight: '700',
+    fontWeight: '600',
+  },
+  confirmBtnText: {
+    color: '#000000',
   },
 });

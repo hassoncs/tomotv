@@ -3,6 +3,11 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 export default function TabLayout() {
   return (
     <NativeTabs blurEffect="dark">
+      <NativeTabs.Trigger name="ai">
+        <Icon sf="sparkles" />
+        <Label>AI</Label>
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="index">
         <Icon sf="film.fill" />
         <Label>Library</Label>
@@ -16,11 +21,6 @@ export default function TabLayout() {
       <NativeTabs.Trigger name="settings">
         <Icon sf="gearshape.fill" />
         <Label>Settings</Label>
-      </NativeTabs.Trigger>
-
-      <NativeTabs.Trigger name="ai">
-        <Icon sf="sparkles" />
-        <Label>AI</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

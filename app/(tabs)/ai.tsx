@@ -2,9 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useBackground } from "@/contexts/BackgroundContext";
 import {
   View,
+  Text,
   StyleSheet,
   TVEventControl,
   ScrollView,
+  ActivityIndicator,
   Platform,
 } from 'react-native';
 import { isNativeSearchAvailable, TvosSearchView } from 'expo-tvos-search';
@@ -17,6 +19,7 @@ import { componentRegistry } from '@/services/componentRegistry';
 import type { SduiRenderPayload } from '@/services/componentRegistry';
 import { sendChatMessage, OpenClawError } from '@/services/openclawApi';
 import { ChatMessage } from '@/components/sdui/ChatMessage';
+import { AnimatedEntrance } from '@/components/sdui/AnimatedEntrance';
 import { logger } from '@/utils/logger';
 import { useFocusEffect } from 'expo-router';
 
@@ -31,7 +34,10 @@ const MIN_QUERY_LENGTH = 2;
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 interface RenderedComponent {
+  /** Component name — used as React key to preserve instance across same-type re-renders. */
   id: string;
+  /** Incrementing counter — changes on every ui.render to replay the entrance animation. */
+  triggerId: string;
   element: React.ReactElement;
 }
 
@@ -47,6 +53,7 @@ export default function AiScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [responseText, setResponseText] = useState('');
   const [errorText, setErrorText] = useState('');
+  const [hasQueried, setHasQueried] = useState(false);
   const submittedQueryRef = useRef('');
 
   // Track the current query's ID so stale SDUI renders from old queries are ignored.
@@ -112,6 +119,7 @@ export default function AiScreen() {
     setErrorText('');
     setComponents([]);
     setHasSduiContent(false);
+    setHasQueried(true);
     setIsLoading(true);
 
     logger.info('AI tab: submitting query', { service: 'AiScreen', query: trimmed });
@@ -175,11 +183,10 @@ export default function AiScreen() {
     };
   }, []);
 
-  // ── SDUI canvas render handling ─────────────────────────────────────────
+  // ── SDUI render handling ───────────────────────────────────────────────────────
 
   const handleRender = useCallback((payload: SduiRenderPayload) => {
-    if (payload.target !== 'canvas') return;
-    logger.info('AI tab: rendering canvas component', {
+    logger.info('AI tab: rendering component', {
       service: 'AiScreen',
       name: payload.name,
     });
@@ -188,9 +195,10 @@ export default function AiScreen() {
       logger.warn('AI tab: render returned null', { service: 'AiScreen', name: payload.name });
       return;
     }
-    const id = String(nextComponentId++);
-    setComponents([{ id, element }]);
-    // Mark that the bot sent SDUI content — suppress the plain text card.
+    // Stable id = component name so React updates props in-place (preserves animation state).
+    // triggerId = incrementing so AnimatedEntrance replays on every new ui.render.
+    const triggerId = String(nextComponentId++);
+    setComponents([{ id: payload.name, triggerId, element }]);
     setHasSduiContent(true);
   }, []);
 
@@ -210,8 +218,6 @@ export default function AiScreen() {
   // - no richer SDUI components arrived (those already convey the bot's intent).
   const showTextResponse = responseText.length > 0 && !hasSduiContent;
 
-  // Show error card regardless of SDUI content (errors should always be visible).
-  const hasAnyContent = isLoading || errorText.length > 0 || showTextResponse || components.length > 0;
 
   if (isNativeSearchAvailable()) {
     return (
@@ -227,19 +233,26 @@ export default function AiScreen() {
         onSearchFieldBlurred={handleSearchFieldBlurred}
         style={styles.nativeView}
       >
-        {/* Results area — rendered as RN children below the native search bar */}
+        {/* Results area — always mounted so Fabric children stay stable */}
         <ScrollView
-          style={[styles.resultsContainer, !hasAnyContent && styles.hidden]}
+          style={styles.resultsContainer}
           contentContainerStyle={styles.resultsContent}
+          removeClippedSubviews={false}
+          scrollEnabled
         >
           <View style={styles.contentWrapper}>
-            {/* Loading indicator — shown while waiting for either text or SDUI */}
+            {/* Empty state — shown before the first query */}
+            {!hasQueried && !isLoading && components.length === 0 && (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>Ask me anything about your media library</Text>
+              </View>
+            )}
+
+            {/* Spinner — shown while waiting for a response */}
             {isLoading && components.length === 0 && (
-              <ChatMessage
-                text="Thinking…"
-                role="assistant"
-                variant="default"
-              />
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#FFC312" />
+              </View>
             )}
 
             {/* Error message */}
@@ -262,9 +275,11 @@ export default function AiScreen() {
 
             {/* SDUI components from ui.render */}
             {components.map((rc) => (
-              <View key={rc.id} style={styles.componentWrapper}>
-                {rc.element}
-              </View>
+              <AnimatedEntrance key={rc.id} triggerKey={rc.triggerId}>
+                <View style={styles.componentWrapper}>
+                  {rc.element}
+                </View>
+              </AnimatedEntrance>
             ))}
           </View>
         </ScrollView>
@@ -294,9 +309,19 @@ const styles = StyleSheet.create({
     paddingBottom: Platform.isTV ? 120 : 40,
     backgroundColor: 'transparent',
   },
-  hidden: {
-    display: 'none',
-    opacity: 0,
+  emptyState: {
+    paddingTop: Platform.isTV ? 80 : 40,
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: Platform.isTV ? 28 : 17,
+    fontWeight: '300',
+    textAlign: 'center',
+  },
+  loadingContainer: {
+    paddingTop: Platform.isTV ? 80 : 40,
+    alignItems: 'center',
   },
   contentWrapper: {
     width: '100%',

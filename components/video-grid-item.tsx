@@ -1,5 +1,5 @@
 import { DESIGN } from "@/constants/app";
-import { getPosterUrl, hasPoster } from "@/services/jellyfinApi";
+import { getPosterUrl } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { Image } from "expo-image";
 import { SmartGlassView } from "@/components/SmartGlassView";
@@ -42,10 +42,11 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
 ) {
   const [focused, setFocused] = useState(false);
 
-  // Only compute poster URL - this is always needed for display
+  // Always attempt poster URL if we have an Id — Jellyfin serves images
+  // even when ImageTags metadata wasn't included (e.g. SDUI payloads from the bot)
   const posterUrl = useMemo(
-    () => (hasPoster(video) ? getPosterUrl(video.Id, POSTER_SIZE) : undefined),
-    [video], // Only video ID needed, not entire video object
+    () => (video.Id ? getPosterUrl(video.Id, POSTER_SIZE) : undefined),
+    [video.Id],
   );
 
   const contentFit = useMemo(() => {

@@ -71,10 +71,10 @@ describe('remoteBridgeService — UI event emission', () => {
   });
 
   it('emitUiDismiss sends method event.ui.dismiss', () => {
-    service.emitUiDismiss({ source: 'overlay' });
+    service.emitUiDismiss({ source: 'canvas' });
     const msg = JSON.parse(transport.sent[0]);
     expect(msg.method).toBe('event.ui.dismiss');
-    expect(msg.params.source).toBe('overlay');
+    expect(msg.params.source).toBe('canvas');
   });
 
   it('emitUiDismiss includes optional component', () => {

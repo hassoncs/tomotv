@@ -22,7 +22,6 @@ jest.mock('@/components/video-grid-item', () => ({
 
 jest.mock('@/services/jellyfinApi', () => ({
   getPosterUrl: () => 'https://example.com/poster.jpg',
-  hasPoster: () => true,
   isFolder: () => false,
 }));
 
