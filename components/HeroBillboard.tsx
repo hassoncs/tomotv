@@ -7,6 +7,7 @@ import { SmartGlassView } from "@/components/SmartGlassView";
 import { COLORS, SPACING, TYPOGRAPHY } from "@/constants/theme";
 import { getBackdropUrl, getPosterUrl } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
+import { useBackground } from "@/contexts/BackgroundContext";
 
 const WINDOW_HEIGHT = Dimensions.get("window").height;
 const HERO_HEIGHT = WINDOW_HEIGHT * 0.62;
@@ -29,6 +30,7 @@ function formatDurationFromTicks(ticks: number): string {
 
 export function HeroBillboard({ items, onPlay, onInfo, onItemChange }: HeroBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const { accentColor } = useBackground();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const advance = useCallback(() => {
@@ -79,7 +81,7 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange }: HeroBillb
       />
 
       <View style={[styles.metadataContainer, { left: SPACING.screenPadding }]}>
-        <SmartGlassView style={styles.glassPanelStyle}>
+        <SmartGlassView style={styles.glassPanelStyle} tintColor={accentColor}>
           <Text style={styles.title} numberOfLines={2}>
             {item.Name}
           </Text>

@@ -2440,3 +2440,73 @@ export async function getNextUp(): Promise<JellyfinItem[]> {
     return [];
   }
 }
+
+/**
+ * Fetch seasons for a TV series
+ */
+export async function getSeasons(seriesId: string): Promise<JellyfinItem[]> {
+  try {
+    const config = await getConfig();
+    const url = `${config.server}/Shows/${seriesId}/Seasons?UserId=${config.userId}&Fields=Overview,BackdropImageTags&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&api_key=${config.apiKey}`;
+
+    return await retryWithBackoff(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: { Accept: "application/json", Authorization: `MediaBrowser Token="${config.apiKey}"` },
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          if (!response.ok) return [];
+          const data: { Items: JellyfinItem[] } = await response.json();
+          return data.Items || [];
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      },
+      { maxAttempts: 2 },
+    );
+  } catch (error) {
+    logger.warn("Error fetching seasons", error, { service: "JellyfinAPI" });
+    return [];
+  }
+}
+
+/**
+ * Fetch episodes for a specific season
+ */
+export async function getEpisodes(seriesId: string, seasonId: string): Promise<JellyfinItem[]> {
+  try {
+    const config = await getConfig();
+    const url = `${config.server}/Shows/${seriesId}/Episodes?SeasonId=${seasonId}&UserId=${config.userId}&Fields=Overview,MediaStreams,BackdropImageTags&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&api_key=${config.apiKey}`;
+
+    return await retryWithBackoff(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: { Accept: "application/json", Authorization: `MediaBrowser Token="${config.apiKey}"` },
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+          if (!response.ok) return [];
+          const data: { Items: JellyfinItem[] } = await response.json();
+          return data.Items || [];
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      },
+      { maxAttempts: 2 },
+    );
+  } catch (error) {
+    logger.warn("Error fetching episodes", error, { service: "JellyfinAPI" });
+    return [];
+  }
+}
