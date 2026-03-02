@@ -239,6 +239,7 @@ export default function AiScreen() {
           contentContainerStyle={styles.resultsContent}
           removeClippedSubviews={false}
           scrollEnabled
+          focusable={false}
         >
           <View style={styles.contentWrapper}>
             {/* Empty state — shown before the first query */}
