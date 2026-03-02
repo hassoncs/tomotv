@@ -1,0 +1,13 @@
+diff --git a/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm b/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm
+index 174ee45..b4d07a9 100644
+--- a/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm
++++ b/node_modules/react-native-screens/ios/bottom-tabs/RNSBottomTabsScreenComponentView.mm
+@@ -67,7 +67,7 @@ namespace react = facebook::react;
+   // This is a temporary workaround to avoid UIScrollEdgeEffect glitch
+   // when changing tabs when ScrollView is present.
+   // TODO: don't hardcode color here
+-  self.backgroundColor = [UIColor whiteColor];
++  self.backgroundColor = [UIColor clearColor];
+ 
+   [self resetProps];
+ }

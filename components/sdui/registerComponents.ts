@@ -1,7 +1,7 @@
 /**
  * Registers all built-in SDUI components with the ComponentRegistry.
  * Import this module once at app startup (in _layout.tsx) to make all components
- * available for LLM-driven rendering via `tommo ui:render`.
+ * available for LLM-driven rendering via `radmedia ui:render`.
  */
 import { componentRegistry } from '@/services/componentRegistry';
 import { Toast, toastPropsSchema } from './Toast';

@@ -2,8 +2,8 @@
 # Process generated Ernie assets: convert, resize, remove backgrounds, place into app
 set -euo pipefail
 
-GEN="/Users/hassoncs/Workspaces/Personal/automation/tomotv/generated-assets"
-APP="/Users/hassoncs/Workspaces/Personal/automation/tomotv"
+GEN="/Users/hassoncs/Workspaces/Personal/automation/radmedia/generated-assets"
+APP="/Users/hassoncs/Workspaces/Personal/automation/radmedia"
 PROCESSED="$GEN/processed"
 mkdir -p "$PROCESSED"
 

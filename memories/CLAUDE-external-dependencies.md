@@ -6,14 +6,14 @@
 **Category:** Implementation
 **Keywords:** expo-tvos-search, native search, external packages, dependencies, Swift module
 
-External packages and repositories maintained separately from the main TomoTV codebase, including expo-tvos-search.
+External packages and repositories maintained separately from the main RadMedia codebase, including expo-tvos-search.
 
 ## Related Documentation
 - [`CLAUDE-multi-audio.md`](./CLAUDE-multi-audio.md) - Usage in multi-audio feature
 
 ---
 
-This document tracks external packages and repositories maintained separately from the main TomoTV codebase.
+This document tracks external packages and repositories maintained separately from the main RadMedia codebase.
 
 ---
 
@@ -28,7 +28,7 @@ The native tvOS search functionality is maintained in a **separate repository**.
 - **Package reference:** `"expo-tvos-search": "^1.3.1"` (npm registry)
 - **Demo app:** Local clone at `~/@keiver/expo-tvos-search-demo`
 
-**Note:** The package at `~/@keiver/expo-tvos-search` is for reference only. TomoTV uses the npm registry version, not a local file dependency.
+**Note:** The package at `~/@keiver/expo-tvos-search` is for reference only. RadMedia uses the npm registry version, not a local file dependency.
 
 ### GitHub Dependency Syntax
 
@@ -73,7 +73,7 @@ npm run prebuild:tv
 - **Status:** Stable, production-ready
 - **Local modifications:** None needed
 
-### Usage in TomoTV
+### Usage in RadMedia
 
 ```typescript
 import { TvosSearchView, isNativeSearchAvailable } from 'expo-tvos-search';
@@ -110,7 +110,7 @@ To contribute to the search package:
 
 4. Submit PR to repository
 
-5. After merge, update TomoTV:
+5. After merge, update RadMedia:
    ```bash
    npm install expo-tvos-search@latest
    npm run prebuild:tv && npm run ios
@@ -119,7 +119,7 @@ To contribute to the search package:
 ### Why Separate Repository?
 
 - **Reusability:** Can be used in other Expo tvOS projects
-- **Independent versioning:** Package updates don't require TomoTV releases
+- **Independent versioning:** Package updates don't require RadMedia releases
 - **Testing:** Has its own demo app for isolated testing
 - **npm distribution:** Easy installation for other developers
 
@@ -147,7 +147,7 @@ When adding new external packages, document them here:
 - **Status:** [stable/beta/experimental]
 - **Local modifications:** [none/list]
 
-### Usage in TomoTV
+### Usage in RadMedia
 ```typescript
 // Example code
 ```

@@ -16,7 +16,7 @@ Security architecture with credential storage, network security, input validatio
 
 ---
 
-This document describes the security architecture, known limitations, and mitigations for the TomoTV app.
+This document describes the security architecture, known limitations, and mitigations for the RadMedia app.
 
 ---
 
@@ -118,7 +118,7 @@ API keys appear in URLs for certain requests:
 **Technical Constraint:**
 Native components (`<Image>`, `react-native-video` player) cannot add custom HTTP headers. Jellyfin API requires authentication for these resources, so the API key **must** be in the query string.
 
-**This is a Jellyfin API design constraint, not a bug in TomoTV.**
+**This is a Jellyfin API design constraint, not a bug in RadMedia.**
 
 ### Risk Assessment: LOW
 
@@ -135,7 +135,7 @@ Native components (`<Image>`, `react-native-video` player) cannot add custom HTT
 - Use HTTPS for remote servers (encrypts URLs in transit)
 
 **Recommended:**
-- Create dedicated API key for TomoTV with minimal permissions
+- Create dedicated API key for RadMedia with minimal permissions
 - Rotate API keys periodically
 - Monitor Jellyfin server access logs
 
@@ -379,7 +379,7 @@ Non-fatal validation warnings emitted as events (not crashes).
 
 1. **Use HTTPS:** Always configure Jellyfin with SSL/TLS certificate
 2. **Strong API Keys:** Let Jellyfin generate keys (32+ character random)
-3. **Dedicated API Key:** Create separate key for TomoTV with limited permissions
+3. **Dedicated API Key:** Create separate key for RadMedia with limited permissions
 4. **Local Network Only:** Avoid exposing Jellyfin to public internet
 5. **VPN for Remote:** Use VPN instead of port forwarding
 6. **Keep Updated:** Update Jellyfin server regularly

@@ -250,7 +250,7 @@ override func didAddSubview(_ subview: UIView) {
 6. Modify `ExpoTvosSearchModule.swift` — add mode prop
 7. Modify `src/index.tsx` — add mode prop, make results/onSelectItem optional, add children
 8. Push to fork
-9. Install in tomotv: `npm install expo-tvos-search@github:hassoncs/expo-tvos-search#feat/input-mode`
+9. Install in radmedia: `npm install expo-tvos-search@github:hassoncs/expo-tvos-search#feat/input-mode`
 10. Update `ai.tsx` to use `<TvosSearchView mode="input">`
 11. Run `npm run prebuild:tv` to regenerate native project
 12. Build and test on physical Apple TV

@@ -36,7 +36,7 @@ A backup copy of the original multilayer icons exists in `./Images.xcassets/Bran
 
 ## Asset Location
 
-Located in `ios/tomotv/Images.xcassets/Brand Assets.brandassets/`
+Located in `ios/radmedia/Images.xcassets/Brand Assets.brandassets/`
 
 ## Required Structure
 

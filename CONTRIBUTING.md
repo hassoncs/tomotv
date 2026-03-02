@@ -1,6 +1,6 @@
-# Contributing to TomoTV
+# Contributing to RadMedia
 
-Thank you for your interest in contributing to TomoTV! This document provides guidelines for contributing to the project.
+Thank you for your interest in contributing to RadMedia! This document provides guidelines for contributing to the project.
 
 ## Development Setup
 
@@ -8,8 +8,8 @@ See [CLAUDE-development.md](./CLAUDE-development.md) for detailed setup instruct
 
 **Quick Start:**
 ```bash
-git clone https://github.com/keiver/tomotv.git
-cd tomotv
+git clone https://github.com/keiver/radmedia.git
+cd radmedia
 npm install
 cp .env.example .env.local
 # Add your Jellyfin credentials to .env.local

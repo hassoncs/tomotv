@@ -1,8 +1,8 @@
-# TommoTV Liquid Glass + Plex-Style Reskin
+# RadmediaTV Liquid Glass + Plex-Style Reskin
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Transform TommoTV from a simple grid-based Jellyfin browser into a cinematic, Plex-like media experience with Apple's Liquid Glass design language.
+**Goal:** Transform RadmediaTV from a simple grid-based Jellyfin browser into a cinematic, Plex-like media experience with Apple's Liquid Glass design language.
 
 **Architecture:** Replace the flat poster grid with a hero billboard + horizontal shelf layout (like Plex/Apple TV app). Apply Liquid Glass via `@callstack/liquid-glass` to all chrome surfaces (tab bar, overlays, controls, metadata panels). Add backdrop blur with dynamic color extraction for immersive full-screen visuals. All changes are purely UI/styling — no API or playback logic changes.
 
@@ -35,7 +35,7 @@ Think: Apple TV app meets Plex. Full-screen backdrops, horizontal shelves, glass
 
 **Step 1: Install the package**
 ```bash
-cd tomotv && npm install @callstack/liquid-glass
+cd radmedia && npm install @callstack/liquid-glass
 ```
 
 **Step 2: Rebuild native project**

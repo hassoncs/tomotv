@@ -1,12 +1,12 @@
-# TommoTV
+# RadmediaTV
 
-Custom Apple TV media and smart home application. Forked from [keiver/tomotv](https://github.com/keiver/tomotv).
+Custom Apple TV media and smart home application. Forked from [keiver/radmedia](https://github.com/keiver/radmedia).
 
 **Project Status:** Jellyfin client (MVP) → Media discovery (Seerr) → Smart home (HA) → AI SDUI.
 
 ## Project Overview
 
-TommoTV is a video streaming application optimized for Apple TV (tvOS). It connects to a Jellyfin media server and intelligently handles video playback by direct-playing compatible formats (H.264, HEVC) and automatically transcoding unsupported ones.
+RadmediaTV is a video streaming application optimized for Apple TV (tvOS). It connects to a Jellyfin media server and intelligently handles video playback by direct-playing compatible formats (H.264, HEVC) and automatically transcoding unsupported ones.
 
 ## Tech Stack
 
@@ -52,21 +52,21 @@ EXPO_TV=1 expo prebuild --clean
 
 # 2. Build for device
 xcodebuild -workspace ios/RadBot.xcworkspace -scheme RadBot \
-  -destination 'id=96e38ba14a39565bc83898eb7adcc66436e640d3' \
+  -destination 'id=3E2E1550-1549-58F4-8690-DA1CDA2BB713' \
   -configuration Debug build
 
 # 3. Install on Apple TV
 xcrun devicectl device install app \
-  --device 96e38ba14a39565bc83898eb7adcc66436e640d3 \
+  --device 3E2E1550-1549-58F4-8690-DA1CDA2BB713 \
   ~/Library/Developer/Xcode/DerivedData/RadBot-*/Build/Products/Debug-appletvos/RadBot.app
 
 # 4. Launch
 xcrun devicectl device process launch \
-  --device 96e38ba14a39565bc83898eb7adcc66436e640d3 \
+  --device 3E2E1550-1549-58F4-8690-DA1CDA2BB713 \
   com.hassoncs.radbot
 ```
 
-**Device:** Apple TV Living Room — `96e38ba14a39565bc83898eb7adcc66436e640d3`
+**Device:** Apple TV Living Room — `3E2E1550-1549-58F4-8690-DA1CDA2BB713`
 **Bundle ID:** `com.hassoncs.radbot`
 **Scheme:** `RadBot` (workspace: `ios/RadBot.xcworkspace`)
 
@@ -80,8 +80,8 @@ xcrun devicectl device process launch \
 
 ## Git Workflow
 
-- **Origin:** `github.com/hassoncs/tomotv` (Our fork)
-- **Upstream:** `github.com/keiver/tomotv` (Original)
+- **Origin:** `github.com/hassoncs/radmedia` (Our fork)
+- **Upstream:** `github.com/keiver/radmedia` (Original)
 - **Sync Upstream:** `git fetch upstream && git merge upstream/main`
 - **Commits:** Conventional format (`feat:`, `fix:`, `chore:`, `docs:`)
 

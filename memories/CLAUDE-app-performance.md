@@ -1,4 +1,4 @@
-# Performance Analysis - TomoTV
+# Performance Analysis - RadMedia
 
 **Last Updated:** January 24, 2026
 **Last Inspection:** Comprehensive audit including threading analysis
@@ -137,7 +137,7 @@ const value = useMemo(
 | Netflix iOS | ~250-400MB | ~350-600MB |
 | YouTube iOS | ~200-350MB | ~300-500MB |
 | Plex iOS | ~180-320MB | ~280-450MB |
-| **TomoTV** | **~250-300MB** | **~300-350MB** |
+| **RadMedia** | **~250-300MB** | **~300-350MB** |
 
 **Conclusion**: Your app is performing **within normal bounds** for video streaming apps.
 

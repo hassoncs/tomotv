@@ -1,4 +1,4 @@
-# TomoTV - App Store Submission Checklist
+# RadMedia - App Store Submission Checklist
 
 **Status:** ✅ **READY FOR SUBMISSION**
 
@@ -27,21 +27,21 @@ All required pages have been created and the app.json has been updated with the 
 
 ### Marketing/Landing Page
 
-- **URL:** `https://keiver.dev/lab/tomotv`
-- **Location:** `~/keiver.dev/pages/lab/tomotv.tsx`
+- **URL:** `https://keiver.dev/lab/radmedia`
+- **Location:** `~/keiver.dev/pages/lab/radmedia.tsx`
 - **Status:** ✅ Created
 
 ---
 
 ## 📝 What's Been Done
 
-### 1. Created TomoTV Landing Page
+### 1. Created RadMedia Landing Page
 
-**File:** `~/keiver.dev/pages/lab/tomotv.tsx`
+**File:** `~/keiver.dev/pages/lab/radmedia.tsx`
 
 Features:
 
-- Engaging hero section with TomoTV branding
+- Engaging hero section with RadMedia branding
 - Key features and additional capabilities sections
 - 3-step setup guide
 - Supported formats list
@@ -54,7 +54,7 @@ Features:
 
 ### 2. Created Privacy Policy Page
 
-**File:** `~/keiver.dev/pages/lab/tomotv-privacy.tsx`
+**File:** `~/keiver.dev/pages/lab/radmedia-privacy.tsx`
 
 Includes:
 
@@ -68,7 +68,7 @@ Includes:
 
 ### 3. Created Support Page
 
-**File:** `~/keiver.dev/pages/lab/tomotv-support.tsx`
+**File:** `~/keiver.dev/pages/lab/radmedia-support.tsx`
 
 Includes:
 
@@ -89,7 +89,7 @@ Includes:
 Changes:
 
 - ✅ Updated description (better App Store copy)
-- ✅ Added privacy URL: `https://keiver.dev/lab/tomotv-privacy`
+- ✅ Added privacy URL: `https://keiver.dev/lab/radmedia-privacy`
 - ✅ Added `usesNonExemptEncryption: false` (required for App Store submission)
 
 ---
@@ -109,15 +109,15 @@ npm run build
 
 **Verify these URLs work:**
 
-- <https://keiver.dev/lab/tomotv>
+- <https://keiver.dev/lab/radmedia>
 
 ### 2. Add Screenshots
 
-**Action Required:** Add TomoTV screenshots to `~/keiver.dev/public/screenshots/tomotv/`
+**Action Required:** Add RadMedia screenshots to `~/keiver.dev/public/screenshots/radmedia/`
 
 You mentioned you'll add screenshots—place them in the directory that was created:
 
-- `~/keiver.dev/public/screenshots/tomotv/`
+- `~/keiver.dev/public/screenshots/radmedia/`
 
 Recommended screenshots:
 
@@ -127,22 +127,22 @@ Recommended screenshots:
 - `4.webp` - Settings screen
 - `5.webp` - Help screen
 
-Then update `tomotv.tsx` to use real screenshots instead of placeholders (lines 139-167).
+Then update `radmedia.tsx` to use real screenshots instead of placeholders (lines 139-167).
 
 ### 3. Update Apple App ID
 
 **Action Required:** Once you create the app in App Store Connect, update:
 
-1. `~/keiver.dev/pages/lab/tomotv.tsx` line 106:
+1. `~/keiver.dev/pages/lab/radmedia.tsx` line 106:
 
    ```tsx
    <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID_HERE" />
    ```
 
-2. Update App Store button URLs in `tomotv.tsx` line 128:
+2. Update App Store button URLs in `radmedia.tsx` line 128:
 
    ```tsx
-   appStoreUrl = "https://apps.apple.com/us/app/tomotv/YOUR_APP_ID";
+   appStoreUrl = "https://apps.apple.com/us/app/radmedia/YOUR_APP_ID";
    ```
 
 ### 4. Take Apple TV Screenshots (1920x1080)
@@ -160,9 +160,9 @@ For App Store Connect, you need actual Apple TV screenshots:
 
 ### 5. Optional: Create App Icon for Website
 
-Consider creating a TomoTV icon for the website (currently using emoji 📺).
+Consider creating a RadMedia icon for the website (currently using emoji 📺).
 
-Upload to: `~/keiver.dev/public/screenshots/tomotv/icon.png`
+Upload to: `~/keiver.dev/public/screenshots/radmedia/icon.png`
 
 ---
 
@@ -170,11 +170,11 @@ Upload to: `~/keiver.dev/public/screenshots/tomotv/icon.png`
 
 ### Metadata (Copy from APP_STORE_COPY.md)
 
-- [ ] App Name: "TomoTV - Jellyfin Player"
+- [ ] App Name: "RadMedia - Jellyfin Player"
 - [ ] Subtitle: "Stream from your media server"
-- [ ] Privacy Policy URL: `https://keiver.dev/lab/tomotv-privacy`
-- [ ] Marketing URL: `https://keiver.dev/lab/tomotv`
-- [ ] Support URL: `https://keiver.dev/lab/tomotv-support`
+- [ ] Privacy Policy URL: `https://keiver.dev/lab/radmedia-privacy`
+- [ ] Marketing URL: `https://keiver.dev/lab/radmedia`
+- [ ] Support URL: `https://keiver.dev/lab/radmedia-support`
 - [ ] Promotional Text (165 chars from APP_STORE_COPY.md:20)
 - [ ] Description (from APP_STORE_COPY.md:26-86)
 - [ ] Keywords: "jellyfin,media,player,video,streaming,plex,server,nas,local,transcode,hevc,movie,tv,remote,codec"
@@ -212,9 +212,9 @@ Upload to: `~/keiver.dev/public/screenshots/tomotv/icon.png`
 Once deployed, verify these work:
 
 ```bash
-curl -I https://keiver.dev/lab/tomotv
-curl -I https://keiver.dev/lab/tomotv-privacy
-curl -I https://keiver.dev/lab/tomotv-support
+curl -I https://keiver.dev/lab/radmedia
+curl -I https://keiver.dev/lab/radmedia-privacy
+curl -I https://keiver.dev/lab/radmedia-support
 ```
 
 All should return `200 OK`.

@@ -83,10 +83,10 @@ New:
 ## Task 1: Add Bridge Types and Protocol Support
 
 **Files:**
-- Modify: `tomotv/bridge/types.ts`
-- Modify: `tomotv/bridge/protocol.ts`
-- Modify: `tomotv/services/componentRegistry.ts`
-- Test: `tomotv/bridge/__tests__/protocol.ui-events.test.ts`
+- Modify: `radmedia/bridge/types.ts`
+- Modify: `radmedia/bridge/protocol.ts`
+- Modify: `radmedia/services/componentRegistry.ts`
+- Test: `radmedia/bridge/__tests__/protocol.ui-events.test.ts`
 
 **Step 1: Write failing protocol test**
 - Add tests for parsing:
@@ -114,8 +114,8 @@ New:
 ## Task 2: Extend Component Registry Dispatch Metadata
 
 **Files:**
-- Modify: `tomotv/services/componentRegistry.ts`
-- Test: `tomotv/services/__tests__/componentRegistry.dispatch.test.ts`
+- Modify: `radmedia/services/componentRegistry.ts`
+- Test: `radmedia/services/__tests__/componentRegistry.dispatch.test.ts`
 
 **Step 1: Write failing test**
 - Test `dispatchRender` supports metadata:
@@ -141,10 +141,10 @@ New:
 ## Task 3: Add AI Tab and Replace Help Tab
 
 **Files:**
-- Modify: `tomotv/app/(tabs)/_layout.tsx`
-- Add: `tomotv/app/(tabs)/ai.tsx`
-- Keep (unchanged for now): `tomotv/app/(tabs)/help.tsx`
-- Test: `tomotv/app/(tabs)/__tests__/tabs.ai-route.test.tsx`
+- Modify: `radmedia/app/(tabs)/_layout.tsx`
+- Add: `radmedia/app/(tabs)/ai.tsx`
+- Keep (unchanged for now): `radmedia/app/(tabs)/help.tsx`
+- Test: `radmedia/app/(tabs)/__tests__/tabs.ai-route.test.tsx`
 
 **Step 1: Write failing tab test**
 - Assert tabs include `ai` and do not include `help` trigger.
@@ -173,10 +173,10 @@ New:
 ## Task 4: Split Overlay vs Canvas Routing
 
 **Files:**
-- Modify: `tomotv/app/_layout.tsx`
-- Modify: `tomotv/app/sdui.tsx` (overlay host)
-- Modify: `tomotv/app/(tabs)/ai.tsx`
-- Test: `tomotv/app/__tests__/sdui-routing.test.tsx`
+- Modify: `radmedia/app/_layout.tsx`
+- Modify: `radmedia/app/sdui.tsx` (overlay host)
+- Modify: `radmedia/app/(tabs)/ai.tsx`
+- Test: `radmedia/app/__tests__/sdui-routing.test.tsx`
 
 **Step 1: Write failing routing test**
 - On render payload:
@@ -203,10 +203,10 @@ New:
 ## Task 5: Rename TextMessage to Toast (with Alias)
 
 **Files:**
-- Rename: `tomotv/components/sdui/TextMessage.tsx` -> `tomotv/components/sdui/Toast.tsx`
-- Modify: `tomotv/components/sdui/registerComponents.ts`
-- Modify: `tomotv/chrisbot/skills/tomotv-control/SKILL.md`
-- Test: `tomotv/components/sdui/__tests__/toast.schema.test.ts`
+- Rename: `radmedia/components/sdui/TextMessage.tsx` -> `radmedia/components/sdui/Toast.tsx`
+- Modify: `radmedia/components/sdui/registerComponents.ts`
+- Modify: `radmedia/chrisbot/skills/radmedia-control/SKILL.md`
+- Test: `radmedia/components/sdui/__tests__/toast.schema.test.ts`
 
 **Step 1: Write failing test**
 - Manifest exposes `Toast`.
@@ -231,11 +231,11 @@ New:
 ## Task 6: Build Reusable MediaGrid and Remove Duplication
 
 **Files:**
-- Add: `tomotv/components/sdui/MediaGrid.tsx`
-- Modify: `tomotv/components/sdui/registerComponents.ts`
-- Deprecate/remove: `tomotv/components/sdui/MovieGrid.tsx`
-- Deprecate/remove: `tomotv/components/sdui/SearchResults.tsx`
-- Test: `tomotv/components/sdui/__tests__/media-grid.test.tsx`
+- Add: `radmedia/components/sdui/MediaGrid.tsx`
+- Modify: `radmedia/components/sdui/registerComponents.ts`
+- Deprecate/remove: `radmedia/components/sdui/MovieGrid.tsx`
+- Deprecate/remove: `radmedia/components/sdui/SearchResults.tsx`
+- Test: `radmedia/components/sdui/__tests__/media-grid.test.tsx`
 
 **Step 1: Write failing component test**
 - `MediaGrid` renders items using app-standard card behavior.
@@ -260,13 +260,13 @@ New:
 ## Task 7: Implement UI Event Emission from SDUI Components
 
 **Files:**
-- Modify: `tomotv/services/remoteBridgeService.ts`
-- Modify: `tomotv/components/sdui/MediaGrid.tsx`
-- Add: `tomotv/components/sdui/ConfirmationCard.tsx`
-- Add: `tomotv/components/sdui/InfoCard.tsx`
-- Add: `tomotv/components/sdui/EpisodeList.tsx`
-- Modify: `tomotv/components/sdui/registerComponents.ts`
-- Test: `tomotv/services/__tests__/remoteBridge.ui-events.test.ts`
+- Modify: `radmedia/services/remoteBridgeService.ts`
+- Modify: `radmedia/components/sdui/MediaGrid.tsx`
+- Add: `radmedia/components/sdui/ConfirmationCard.tsx`
+- Add: `radmedia/components/sdui/InfoCard.tsx`
+- Add: `radmedia/components/sdui/EpisodeList.tsx`
+- Modify: `radmedia/components/sdui/registerComponents.ts`
+- Test: `radmedia/services/__tests__/remoteBridge.ui-events.test.ts`
 
 **Step 1: Write failing service test**
 - Verify service can send JSON-RPC notifications for:
@@ -301,8 +301,8 @@ New:
 ## Task 8: Wire Bot Skill Docs and Examples
 
 **Files:**
-- Modify: `chrisbot/skills/tomotv-control/SKILL.md`
-- Modify: `tomotv/docs/sdui-component-audit.md`
+- Modify: `chrisbot/skills/radmedia-control/SKILL.md`
+- Modify: `radmedia/docs/sdui-component-audit.md`
 
 **Step 1: Update component list**
 - Replace `TextMessage` with `Toast`.
@@ -310,7 +310,7 @@ New:
 - Add `ConfirmationCard`, `InfoCard`, `EpisodeList` with example payloads.
 
 **Step 2: Add event loop examples**
-- Show `event.ui.select` handling examples with `tommo play <id>`.
+- Show `event.ui.select` handling examples with `radmedia play <id>`.
 
 **Step 3: Commit**
 - `docs(sdui): update component contracts and event-driven interaction flow`
@@ -335,8 +335,8 @@ New:
 
 ### Manual smoke checks (tvOS simulator)
 1. App opens with tabs: Library, Search, Settings, AI.
-2. `tommo ui:render` Toast appears as overlay and auto-dismisses.
-3. `tommo ui:render` MediaGrid routes to AI tab and displays cards.
+2. `radmedia ui:render` Toast appears as overlay and auto-dismisses.
+3. `radmedia ui:render` MediaGrid routes to AI tab and displays cards.
 4. Selecting MediaGrid item emits `event.ui.select` and/or starts playback.
 5. ConfirmationCard emits confirm/cancel events.
 6. InfoCard renders text+image and action buttons.
@@ -371,7 +371,7 @@ New:
 3. There is one reusable SDUI media browser component (`MediaGrid`) that uses app-consistent item UI and data shape.
 4. Selecting SDUI items/actions produces structured bridge events (`event.ui.select`, `event.ui.action`).
 5. The bot can reliably turn those events into follow-up commands (e.g., play selected media).
-6. New components (`ConfirmationCard`, `InfoCard`, `EpisodeList`) are renderable via `tommo ui:render` and validated by Zod schemas.
+6. New components (`ConfirmationCard`, `InfoCard`, `EpisodeList`) are renderable via `radmedia ui:render` and validated by Zod schemas.
 7. Type check, lint, and test suite pass.
 
 ---

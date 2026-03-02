@@ -1,15 +1,15 @@
-# Tomo TV - Jellyfin Client for Apple TV
+# RadMedia TV - Jellyfin Client for Apple TV
 
-[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](https://github.com/keiver/tomotv/releases)
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)](https://github.com/keiver/radmedia/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-tvOS-lightgrey.svg)](https://apps.apple.com/us/app/tomo-tv/id6755077888)
+[![Platform](https://img.shields.io/badge/platform-tvOS-lightgrey.svg)](https://apps.apple.com/us/app/radmedia-tv/id6755077888)
 [![Tests](https://img.shields.io/badge/tests-passing-brightgreen.svg)](package.json)
-[![Download on the App Store](https://img.shields.io/badge/App_Store-Download-black?logo=apple&logoColor=white)](https://apps.apple.com/us/app/tomo-tv/id6755077888)
+[![Download on the App Store](https://img.shields.io/badge/App_Store-Download-black?logo=apple&logoColor=white)](https://apps.apple.com/us/app/radmedia-tv/id6755077888)
 
 A simple and usable Jellyfin client for Apple TV with seamless multi-audio track switching and advanced subtitle support.
 
 <p align="center">
-  <img src="assets/images/screenshots/open-movies.webp" width="100%" alt="TomoTV with open movies folder"/>
+  <img src="assets/images/screenshots/open-movies.webp" width="100%" alt="RadMedia with open movies folder"/>
 </p>
 
 <table>
@@ -43,7 +43,7 @@ A simple and usable Jellyfin client for Apple TV with seamless multi-audio track
   </tr>
 </table>
 
-## Why TomoTV?
+## Why RadMedia?
 
 Built from the ground up for Apple TV with a focus on seamless playback. Switch audio tracks mid-video without restarting playback, thanks to custom HLS manifest generation. Codec compatibility is handled automatically so you can focus on watching, not troubleshooting.
 
@@ -72,8 +72,8 @@ Built from the ground up for Apple TV with a focus on seamless playback. Switch 
 
 ```bash
 # Clone the repository
-git clone https://github.com/keiver/tomotv.git
-cd tomotv
+git clone https://github.com/keiver/radmedia.git
+cd radmedia
 
 # Install dependencies
 npm install
@@ -112,7 +112,7 @@ npx expo run:ios
 
 ### Video Quality Presets
 
-Tomo TV supports 480p, 540p, 720p, 1080p, and 4K transcoding quality presets. Configure via Settings → Video Quality.
+RadMedia TV supports 480p, 540p, 720p, 1080p, and 4K transcoding quality presets. Configure via Settings → Video Quality.
 
 ### Network Requirements
 
@@ -193,7 +193,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## Links
 
-- **Documentation:** [keiver.dev/lab/tomotv](https://keiver.dev/lab/tomotv)
+- **Documentation:** [keiver.dev/lab/radmedia](https://keiver.dev/lab/radmedia)
 - **Support:** <contact@keiver.dev>
 - **Demo Server:** Uses Jellyfin's official demo at demo.jellyfin.org
 - **expo-tvos-search:** [github.com/keiver/expo-tvos-search](https://github.com/keiver/expo-tvos-search)

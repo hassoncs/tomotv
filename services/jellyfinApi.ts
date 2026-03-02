@@ -290,7 +290,7 @@ async function fetchDemoCredentials(demoServerUrl: string): Promise<{ apiKey: st
         Accept: "application/json",
         "Content-Type": "application/json",
         Origin: demoServerUrl,
-        Authorization: `MediaBrowser Client="TomoTV", Device="iOS", DeviceId="demo-device", Version="1.0.0"`,
+        Authorization: `MediaBrowser Client="RadMedia", Device="iOS", DeviceId="demo-device", Version="1.0.0"`,
       },
       body: JSON.stringify({
         Username: DEMO_USERNAME,
@@ -607,7 +607,7 @@ async function getOrCreateDeviceId(): Promise<string> {
  * Required by Jellyfin for auth endpoints like /Users/AuthenticateByName.
  */
 function getClientAuthHeader(deviceId: string): string {
-  return `MediaBrowser Client="TomoTV", Device="${Platform.OS}", DeviceId="${deviceId}", Version="1.3.0"`;
+  return `MediaBrowser Client="RadMedia", Device="${Platform.OS}", DeviceId="${deviceId}", Version="1.3.0"`;
 }
 
 // Lazy-import Platform to avoid circular dependency issues at module scope

@@ -1,4 +1,4 @@
-# TommoTV: Building and Deploying to Physical Apple TV
+# RadmediaTV: Building and Deploying to Physical Apple TV
 
 **Last Updated:** 2026-03-01
 
@@ -10,7 +10,7 @@
 | tvOS | 26.3 |
 | xcodebuild destination ID | `96e38ba14a39565bc83898eb7adcc66436e640d3` |
 | devicectl UUID | `3E2E1550-1549-58F4-8690-DA1CDA2BB713` |
-| Bundle ID | `com.hassoncs.tommotv` |
+| Bundle ID | `com.hassoncs.radmediatv` |
 
 **Critical:** xcodebuild and devicectl use DIFFERENT ID formats for the same device.
 - `-destination "id=..."` → use the **xctrace/xcodebuild ID** (`96e38ba...`)
@@ -26,21 +26,21 @@ xcrun devicectl list devices  # gives devicectl UUIDs
 
 ```bash
 # 1. Prebuild (only needed when package.json or native code changed)
-cd tomotv
+cd radmedia
 EXPO_TV=1 npx expo prebuild --platform ios
 # (if "directory not empty" error: rm -rf ios first)
 
 # 2. Build for physical Apple TV
-cd tomotv/ios
+cd radmedia/ios
 xcodebuild \
-  -workspace TommoTV.xcworkspace \
-  -scheme TommoTV \
+  -workspace RadmediaTV.xcworkspace \
+  -scheme RadmediaTV \
   -destination "id=96e38ba14a39565bc83898eb7adcc66436e640d3" \
   -configuration Debug \
   build
 
 # 3. Install the built app
-APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData/TommoTV-*/Build/Products/Debug-appletvos -name TommoTV.app -maxdepth 1 | head -1)
+APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData/RadmediaTV-*/Build/Products/Debug-appletvos -name RadmediaTV.app -maxdepth 1 | head -1)
 xcrun devicectl device install app \
   --device 3E2E1550-1549-58F4-8690-DA1CDA2BB713 \
   "$APP_PATH"
@@ -48,7 +48,7 @@ xcrun devicectl device install app \
 # 4. Launch the app
 xcrun devicectl device process launch \
   --device 3E2E1550-1549-58F4-8690-DA1CDA2BB713 \
-  com.hassoncs.tommotv
+  com.hassoncs.radmediatv
 ```
 
 ## When Prebuild Is Required
@@ -76,7 +76,7 @@ After JS-only changes, just build+install — no prebuild needed.
 
 ## Relay Bridge
 
-The app auto-connects to `ws://openclaw.lan:9091/tomotv` on startup (hardcoded default).
+The app auto-connects to `ws://openclaw.lan:9091/radmedia` on startup (hardcoded default).
 After launch, check it connected:
 
 ```bash
@@ -86,5 +86,5 @@ ssh root@openclaw.lan "docker logs bridge-relay --tail 5"
 
 Test end-to-end:
 ```bash
-ssh root@openclaw.lan "docker exec openclaw tommo status" | python3 -m json.tool | head -20
+ssh root@openclaw.lan "docker exec openclaw radmedia status" | python3 -m json.tool | head -20
 ```

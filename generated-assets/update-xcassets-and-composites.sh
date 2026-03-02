@@ -2,7 +2,7 @@
 # Update xcassets with new Ernie assets and regenerate flattened composites
 set -euo pipefail
 
-APP="/Users/hassoncs/Workspaces/Personal/automation/tomotv"
+APP="/Users/hassoncs/Workspaces/Personal/automation/radmedia"
 XC="$APP/Images.xcassets"
 ICON_STACK="$XC/AppIcon.brandassets/App Icon.imagestack"
 STORE_STACK="$XC/AppIcon.brandassets/App Icon - App Store.imagestack"

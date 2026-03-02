@@ -6,7 +6,7 @@
 **Category:** Implementation
 **Keywords:** debugging, bugs, lessons, case studies, audio tracks, HLS, platform behavior, compliance tests, anti-patterns
 
-Case studies of significant bugs encountered during TomoTV development with root causes, solutions, and key takeaways.
+Case studies of significant bugs encountered during RadMedia development with root causes, solutions, and key takeaways.
 
 ## Related Documentation
 - [`CLAUDE-patterns.md`](./CLAUDE-patterns.md) - Lessons inform best practices
@@ -14,7 +14,7 @@ Case studies of significant bugs encountered during TomoTV development with root
 
 ---
 
-This document captures important lessons from debugging sessions, bugs, and issues encountered during TomoTV development. Each lesson reinforces the workflow and decision-making rules in the main CLAUDE.md.
+This document captures important lessons from debugging sessions, bugs, and issues encountered during RadMedia development. Each lesson reinforces the workflow and decision-making rules in the main CLAUDE.md.
 
 ---
 

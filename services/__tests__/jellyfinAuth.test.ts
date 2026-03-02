@@ -256,7 +256,7 @@ describe("jellyfinAuth", () => {
         'DeviceId="my-device-id"',
       );
       expect(fetchCall[1].headers.Authorization).toContain(
-        'Client="TomoTV"',
+        'Client="RadMedia"',
       );
     });
   });
@@ -529,7 +529,7 @@ describe("jellyfinAuth", () => {
         'DeviceId="my-device-id"',
       );
       expect(fetchCall[1].headers.Authorization).toContain(
-        'Client="TomoTV"',
+        'Client="RadMedia"',
       );
     });
   });

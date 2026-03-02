@@ -228,11 +228,11 @@ export default function AiScreen() {
         style={styles.nativeView}
       >
         {/* Results area — rendered as RN children below the native search bar */}
-        {hasAnyContent && (
-          <ScrollView
-            style={styles.resultsContainer}
-            contentContainerStyle={styles.resultsContent}
-          >
+        <ScrollView
+          style={[styles.resultsContainer, !hasAnyContent && styles.hidden]}
+          contentContainerStyle={styles.resultsContent}
+        >
+          <View style={styles.contentWrapper}>
             {/* Loading indicator — shown while waiting for either text or SDUI */}
             {isLoading && components.length === 0 && (
               <ChatMessage
@@ -266,8 +266,8 @@ export default function AiScreen() {
                 {rc.element}
               </View>
             ))}
-          </ScrollView>
-        )}
+          </View>
+        </ScrollView>
       </TvosSearchViewWithChildren>
     );
   }
@@ -285,11 +285,20 @@ const styles = StyleSheet.create({
   },
   resultsContainer: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   resultsContent: {
     padding: Platform.isTV ? 48 : 16,
     gap: 16,
     paddingBottom: Platform.isTV ? 120 : 40,
+    backgroundColor: 'transparent',
+  },
+  hidden: {
+    display: 'none',
+    opacity: 0,
+  },
+  contentWrapper: {
+    width: '100%',
   },
   componentWrapper: {
     width: '100%',

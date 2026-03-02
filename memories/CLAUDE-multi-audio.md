@@ -18,15 +18,15 @@ Seamless multi-audio track switching during transcoding using custom Swift modul
 
 **Seamless Multi-Audio Track Switching**
 
-TomoTV provides seamless audio track switching during transcoding through a custom Swift native module. This feature works like Apple TV+, Netflix, and Disney+ - no video restarts, no interruptions, just instant audio switching.
+RadMedia provides seamless audio track switching during transcoding through a custom Swift native module. This feature works like Apple TV+, Netflix, and Disney+ - no video restarts, no interruptions, just instant audio switching.
 
 ## How It Works
 
 ### Technical Implementation
 
-TomoTV uses a custom Swift module (`MultiAudioResourceLoader`) that intercepts HLS manifest loading and generates proper multivariant playlists client-side:
+RadMedia uses a custom Swift module (`MultiAudioResourceLoader`) that intercepts HLS manifest loading and generates proper multivariant playlists client-side:
 
-1. **Detection:** When a video with multiple audio tracks needs transcoding, TomoTV detects this in `useVideoPlayback` hook
+1. **Detection:** When a video with multiple audio tracks needs transcoding, RadMedia detects this in `useVideoPlayback` hook
 2. **Manifest Fetching:** Custom Swift module fetches individual Jellyfin HLS manifests for each audio track
 3. **Manifest Generation:** Combines all manifests into a single multivariant HLS playlist with proper `#EXT-X-MEDIA` tags
 4. **Custom Protocol:** Uses `jellyfin-multi://` protocol to trigger the custom resource loader
@@ -73,9 +73,9 @@ The standard approach with HLS transcoding is to generate a single manifest per 
 
 This creates an interruption in the viewing experience.
 
-### TomoTV's Solution
+### RadMedia's Solution
 
-TomoTV generates a **multivariant HLS manifest** with ALL audio tracks as separate streams. This allows:
+RadMedia generates a **multivariant HLS manifest** with ALL audio tracks as separate streams. This allows:
 
 - ✅ **Instant switching** - AVPlayer discovers all tracks at once and switches in real-time
 - ✅ **No interruption** - Video continues playing without restart or rebuffering
@@ -84,7 +84,7 @@ TomoTV generates a **multivariant HLS manifest** with ALL audio tracks as separa
 
 ### Technical Innovation
 
-This required custom Swift implementation because Jellyfin's API doesn't natively support multivariant playlists. TomoTV's approach:
+This required custom Swift implementation because Jellyfin's API doesn't natively support multivariant playlists. RadMedia's approach:
 
 1. Fetches individual HLS manifests for each audio track
 2. Combines them client-side into a multivariant playlist

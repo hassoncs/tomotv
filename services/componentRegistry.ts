@@ -89,7 +89,7 @@ class ComponentRegistry {
 
   /**
    * Returns a JSON-schema manifest of all registered components.
-   * Sent to the LLM via `tommo ui:components` so it knows what to render.
+   * Sent to the LLM via `radmedia ui:components` so it knows what to render.
    */
   getManifest(): ComponentManifestEntry[] {
     return Array.from(this.components.values()).map((c) => ({

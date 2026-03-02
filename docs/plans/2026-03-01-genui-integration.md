@@ -24,7 +24,7 @@ The pipeline is ~70% wired. What's missing:
 
 When the bot renders a MediaGrid, the user browses and clicks items **natively** — same as the Search tab. The app handles navigation (click movie → player, click series → episode browser). The bot is notified via `event.ui.select` but doesn't need to orchestrate anything.
 
-The bot CAN still send explicit commands ("select the first result") via `tommo remote select`, but it's **not in the selection loop** by default.
+The bot CAN still send explicit commands ("select the first result") via `radmedia remote select`, but it's **not in the selection loop** by default.
 
 ### Why This Is Better
 - **No blocking** — bot doesn't hold a socket open waiting for user input
@@ -37,11 +37,11 @@ The bot CAN still send explicit commands ("select the first result") via `tommo 
 ```
 Current:
   User types → HTTP POST → OpenClaw → text response shown
-                                     ↘ (sometimes) tommo ui:render → component renders
+                                     ↘ (sometimes) radmedia ui:render → component renders
   User clicks item → event.ui.select → relay → nobody listening (dead end)
 
 Target:
-  User types → HTTP POST → OpenClaw → bot calls tommo ui:render → component renders
+  User types → HTTP POST → OpenClaw → bot calls radmedia ui:render → component renders
                                                                     ↓
                                                           User browses with D-pad
                                                                     ↓
@@ -85,7 +85,7 @@ Components ALSO emit `event.ui.select` for bot awareness, but navigation happens
 ### Bot-Initiated Selection
 The bot can still say "play the first result" by calling:
 ```bash
-tommo remote select  # D-pad select on the currently focused item
+radmedia remote select  # D-pad select on the currently focused item
 ```
 This triggers the same `handlePress` in MediaGrid, so it navigates AND emits.
 
@@ -186,16 +186,16 @@ The AI tab renders THREE independent things:
 
 | User Intent | Bot Action |
 |-------------|------------|
-| "Show me movies/shows" | `seedbox library:search` → `tommo ui:render MediaGrid` (user browses natively) |
-| "Show me episodes of X" | `seedbox library:find-episode` → `tommo ui:render EpisodeList` (user browses natively) |
-| "What is X?" / "Tell me about X" | `seedbox library:search` → `tommo ui:render InfoCard` or `SeriesDetail` |
-| "What's playing?" | `tommo status` → `tommo ui:render NowPlayingCard` |
-| "Play the first result" | `tommo remote select` (triggers native navigation on focused item) |
-| "Download X" | `seedbox tv:add` / `seedbox movie:add` → `tommo ui:render Toast` |
-| "Turn on cinema mode" | `ha script cinema_preshow` → `tommo ui:render Toast` |
+| "Show me movies/shows" | `seedbox library:search` → `radmedia ui:render MediaGrid` (user browses natively) |
+| "Show me episodes of X" | `seedbox library:find-episode` → `radmedia ui:render EpisodeList` (user browses natively) |
+| "What is X?" / "Tell me about X" | `seedbox library:search` → `radmedia ui:render InfoCard` or `SeriesDetail` |
+| "What's playing?" | `radmedia status` → `radmedia ui:render NowPlayingCard` |
+| "Play the first result" | `radmedia remote select` (triggers native navigation on focused item) |
+| "Download X" | `seedbox tv:add` / `seedbox movie:add` → `radmedia ui:render Toast` |
+| "Turn on cinema mode" | `ha script cinema_preshow` → `radmedia ui:render Toast` |
 | General question | Text response (AI tab renders as ChatMessage) |
 
-3. **Eval updates** — add test cases for each workflow to `evals/tests/tomotv.yaml`
+3. **Eval updates** — add test cases for each workflow to `evals/tests/radmedia.yaml`
 
 ---
 
@@ -204,7 +204,7 @@ The AI tab renders THREE independent things:
 ### 1. "Show me action movies"
 ```
 Bot: seedbox library:search "action movies"
-Bot: tommo ui:render '{"component":"MediaGrid","props":{"items":[...],"title":"Action Movies"}}'
+Bot: radmedia ui:render '{"component":"MediaGrid","props":{"items":[...],"title":"Action Movies"}}'
 → User browses grid with D-pad, clicks "Die Hard"
 → App navigates to /player (same as Search tab)
 → event.ui.select emitted (bot informed passively)
@@ -213,7 +213,7 @@ Bot: tommo ui:render '{"component":"MediaGrid","props":{"items":[...],"title":"A
 ### 2. "What's new in my library?"
 ```
 Bot: seedbox library:recent
-Bot: tommo ui:render '{"component":"MediaGrid","props":{"items":[...],"title":"Recently Added"}}'
+Bot: radmedia ui:render '{"component":"MediaGrid","props":{"items":[...],"title":"Recently Added"}}'
 → User browses and clicks anything → plays
 ```
 
@@ -221,21 +221,21 @@ Bot: tommo ui:render '{"component":"MediaGrid","props":{"items":[...],"title":"R
 ```
 Bot: seedbox library:search "Severance"
 Bot: seedbox library:find-episode "Severance" S02
-Bot: tommo ui:render '{"component":"EpisodeList","props":{"episodes":[...],"seriesTitle":"Severance S02"}}'
+Bot: radmedia ui:render '{"component":"EpisodeList","props":{"episodes":[...],"seriesTitle":"Severance S02"}}'
 → User browses episode list, clicks S02E01
 → App navigates to /player
 ```
 
 ### 4. "What's playing?"
 ```
-Bot: tommo status
-Bot: tommo ui:render '{"component":"NowPlayingCard","props":{"title":"Severance","positionSeconds":342,...}}'
+Bot: radmedia status
+Bot: radmedia ui:render '{"component":"NowPlayingCard","props":{"title":"Severance","positionSeconds":342,...}}'
 ```
 
 ### 5. "Tell me about Andor"
 ```
 Bot: seedbox library:search "Andor"
-Bot: tommo ui:render '{"component":"SeriesDetail","props":{"title":"Andor","overview":"...","seasons":[...]}}'
+Bot: radmedia ui:render '{"component":"SeriesDetail","props":{"title":"Andor","overview":"...","seasons":[...]}}'
 → User clicks Season 1 → event.ui.select → bot renders EpisodeList
 ```
 
@@ -243,13 +243,13 @@ Bot: tommo ui:render '{"component":"SeriesDetail","props":{"title":"Andor","over
 ```
 Bot: seedbox tv:search "The Bear"
 Bot: seedbox tv:add <tvdbId>
-Bot: tommo ui:render '{"component":"Toast","props":{"text":"The Bear added! Downloading Season 1-3.","style":"success"},"target":"overlay"}'
+Bot: radmedia ui:render '{"component":"Toast","props":{"text":"The Bear added! Downloading Season 1-3.","style":"success"},"target":"overlay"}'
 ```
 
 ### 7. "Turn on cinema mode"
 ```
 Bot: ha script cinema_preshow
-Bot: tommo ui:render '{"component":"Toast","props":{"text":"Cinema mode activated","style":"success"},"target":"overlay"}'
+Bot: radmedia ui:render '{"component":"Toast","props":{"text":"Cinema mode activated","style":"success"},"target":"overlay"}'
 ```
 
 ### 8. General question ("What's the weather?")
@@ -261,17 +261,17 @@ AI tab: renders as ChatMessage component (styled consistently)
 ### 9. "Search for breaking bad"
 ```
 Bot: seedbox library:search "breaking bad"
-Bot: tommo ui:render '{"component":"MediaGrid","props":{"items":[...],"title":"Breaking Bad"}}'
+Bot: radmedia ui:render '{"component":"MediaGrid","props":{"items":[...],"title":"Breaking Bad"}}'
 → User clicks "Breaking Bad" (Type: Series)
 → App emits event.ui.select with itemType: "Series"
 → Bot receives event, responds with:
-Bot: tommo ui:render '{"component":"EpisodeList","props":{"episodes":[...],"seriesTitle":"Breaking Bad S01"}}'
+Bot: radmedia ui:render '{"component":"EpisodeList","props":{"episodes":[...],"seriesTitle":"Breaking Bad S01"}}'
 → User clicks S01E01 → App navigates to /player
 ```
 
 ### 10. Bot says "play the first one"
 ```
-Bot: tommo remote select    # D-pad select on the focused item
+Bot: radmedia remote select    # D-pad select on the focused item
 → MediaGrid handlePress fires → navigates to /player + emits event
 ```
 
@@ -282,29 +282,29 @@ Bot: tommo remote select    # D-pad select on the focused item
 ### New Files
 | File | Description |
 |------|-------------|
-| `tomotv/components/sdui/ChatMessage.tsx` | Bot text response component |
-| `tomotv/components/sdui/LoadingCard.tsx` | Progress/loading component |
-| `tomotv/components/sdui/SeriesDetail.tsx` | Series detail with season list + native season navigation |
-| `tomotv/components/sdui/__tests__/chat-message.test.tsx` | ChatMessage tests |
-| `tomotv/components/sdui/__tests__/loading-card.test.tsx` | LoadingCard tests |
-| `tomotv/components/sdui/__tests__/series-detail.test.tsx` | SeriesDetail tests |
+| `radmedia/components/sdui/ChatMessage.tsx` | Bot text response component |
+| `radmedia/components/sdui/LoadingCard.tsx` | Progress/loading component |
+| `radmedia/components/sdui/SeriesDetail.tsx` | Series detail with season list + native season navigation |
+| `radmedia/components/sdui/__tests__/chat-message.test.tsx` | ChatMessage tests |
+| `radmedia/components/sdui/__tests__/loading-card.test.tsx` | LoadingCard tests |
+| `radmedia/components/sdui/__tests__/series-detail.test.tsx` | SeriesDetail tests |
 
 ### Modified Files
 | File | What Changes |
 |------|-------------|
-| `tomotv/components/sdui/MediaGrid.tsx` | Add `useRouter()` navigation on item press (Movie/Episode → player) |
-| `tomotv/components/sdui/EpisodeList.tsx` | Add `useRouter()` navigation on episode press → player |
-| `tomotv/components/sdui/registerComponents.ts` | Register 3 new components |
-| `tomotv/app/(tabs)/ai.tsx` | Response arbitration (text vs SDUI), query tracking, ChatMessage fallback |
-| `chrisbot/skills/tomotv-control/SKILL.md` | Add workflow examples, document native navigation behavior |
+| `radmedia/components/sdui/MediaGrid.tsx` | Add `useRouter()` navigation on item press (Movie/Episode → player) |
+| `radmedia/components/sdui/EpisodeList.tsx` | Add `useRouter()` navigation on episode press → player |
+| `radmedia/components/sdui/registerComponents.ts` | Register 3 new components |
+| `radmedia/app/(tabs)/ai.tsx` | Response arbitration (text vs SDUI), query tracking, ChatMessage fallback |
+| `chrisbot/skills/radmedia-control/SKILL.md` | Add workflow examples, document native navigation behavior |
 | `evals/prompts/ha-chat.json` | Sync bot prompt with SDUI rendering rules |
-| `evals/tests/tomotv.yaml` | Add eval cases for all workflows |
+| `evals/tests/radmedia.yaml` | Add eval cases for all workflows |
 
 ### NOT Needed (removed from plan)
 | Item | Why |
 |------|-----|
-| `tommo ui:render-wait` | App owns interaction — bot doesn't need to block on selections |
-| `tommo ui:wait-event` | Same reason — app navigates natively |
+| `radmedia ui:render-wait` | App owns interaction — bot doesn't need to block on selections |
+| `radmedia ui:wait-event` | Same reason — app navigates natively |
 | Relay modifications | No event subscription changes needed |
 | `openclawApi.ts` changes | No request correlation needed since app handles navigation |
 
@@ -336,12 +336,12 @@ Bot: tommo remote select    # D-pad select on the focused item
 
 - [ ] MediaGrid items navigate to player on click (just like Search tab)
 - [ ] EpisodeList items navigate to player on click
-- [ ] All 3 new components render correctly via `tommo ui:render`
+- [ ] All 3 new components render correctly via `radmedia ui:render`
 - [ ] AI tab suppresses redundant text when SDUI renders arrive
 - [ ] AI tab shows ChatMessage for text-only responses
 - [ ] Bot chooses appropriate component for each query type
 - [ ] User can: see results → browse with D-pad → click → play (no bot involvement)
-- [ ] Bot can: say "play the first result" via `tommo remote select`
+- [ ] Bot can: say "play the first result" via `radmedia remote select`
 - [ ] All existing tests pass (`npm test`)
 - [ ] Type check passes (`npx tsc --noEmit`)
 - [ ] Lint passes (`npm run lint`)

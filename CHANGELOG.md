@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to TomoTV are documented here.
+All notable changes to RadMedia are documented here.
 
 ## [1.3.1] - 2026-02-25
 
@@ -50,7 +50,7 @@ All notable changes to TomoTV are documented here.
 ## [1.1.0]
 
 ### Added
-- Demo mode — try TomoTV instantly with Jellyfin's official demo server
+- Demo mode — try RadMedia instantly with Jellyfin's official demo server
 - Full playlist support — browse and play videos from your Jellyfin playlists
 - One-tap demo connection in Settings
 - Navigate into playlists with breadcrumb navigation

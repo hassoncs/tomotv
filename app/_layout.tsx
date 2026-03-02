@@ -28,7 +28,7 @@ const CustomDarkTheme = {
   ...DarkTheme,
   colors: {
     ...DarkTheme.colors,
-    background: "#0A0A0A",
+    background: "transparent",
   },
 };
 

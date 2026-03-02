@@ -2,7 +2,7 @@
  * multiAudioLoader.ts
  *
  * Service for preparing multi-audio track playback with custom HLS manifest generation.
- * This enables seamless audio track switching during transcoding - TomoTV's killer feature!
+ * This enables seamless audio track switching during transcoding - RadMedia's killer feature!
  *
  * How it works:
  * 1. Detects videos with multiple audio tracks

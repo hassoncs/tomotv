@@ -1,4 +1,4 @@
-# TommoTV tvOS Build Debug Log
+# RadmediaTV tvOS Build Debug Log
 
 ## What's Working ✅
 
@@ -92,4 +92,4 @@ xcodebuild ... \
 | Xcode UDID | `96e38ba14a39565bc83898eb7adcc66436e640d3` |
 | CoreDevice ID | `3E2E1550-1549-58F4-8690-DA1CDA2BB713` |
 | Dev Team | `24T4GAP365` |
-| Bundle ID | `com.hassoncs.tommotv` |
+| Bundle ID | `com.hassoncs.radmediatv` |

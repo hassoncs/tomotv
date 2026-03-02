@@ -1,4 +1,4 @@
-Can we hack it so like we always just return one quote unquote search result but our search will be like whatever we want. We can like render our own component there. It could be a grid, it could be a word, it could be an image, anything we want. That's kind of the idea I was thinking.# TommoTV Asset Inventory — Ernie (Robot Cat) Theming
+Can we hack it so like we always just return one quote unquote search result but our search will be like whatever we want. We can like render our own component there. It could be a grid, it could be a word, it could be an image, anything we want. That's kind of the idea I was thinking.# RadmediaTV Asset Inventory — Ernie (Robot Cat) Theming
 
 Complete inventory of all replaceable visual assets. Organized by what you actually need to create vs. what gets auto-generated.
 
@@ -135,7 +135,7 @@ Android uses a two-layer system (foreground + background). Both layers are squar
 | `assets/images/adaptive-icon/foreground.png` | 1024x1024 | 1:1 | Logo/icon on transparent background |
 | `assets/images/adaptive-icon/background.png` | 1024x1024 | 1:1 | Solid color or pattern background |
 
-**Also has SVG source:** `assets/images/adaptive-icon/tomottv-svg.svg`
+**Also has SVG source:** `assets/images/adaptive-icon/radmediattv-svg.svg`
 
 ---
 
@@ -186,7 +186,7 @@ Not directly used in the build but may be useful references or originals.
 | `assets/images/support/green-jelly.png` | 1024x1024 | Current jellyfish mascot |
 | `assets/images/support/tv-robot.svg` | SVG | Robot icon reference |
 | `assets/images/support/Firefly green jellyfish icon 415602.svg` | SVG | AI-generated jellyfish source |
-| `assets/images/tomotv-qr-1000px.png` | 740x740 | QR code (probably don't theme this) |
+| `assets/images/radmedia-qr-1000px.png` | 740x740 | QR code (probably don't theme this) |
 
 ---
 
@@ -219,7 +219,7 @@ Not directly used in the build but may be useful references or originals.
 python3 assets/images/tvos-flattened/composite.py  # or use the script from README.md
 
 # 3. Rebuild native projects (generates ios/, android/ from sources):
-cd tomotv && npm run prebuild:tv
+cd radmedia && npm run prebuild:tv
 
 # 4. Build and verify:
 npm run ios
@@ -286,7 +286,7 @@ Kawaii robot cat head, centered, facing forward, black white and gray coloring, 
 *For: `assets/images/wide/top@*.png`*
 
 ```
-Wide banner for tvOS top shelf. Warm radial gradient background from bright mustard-orange (#F39C12) at edges to deeper reddish-orange at center. Kawaii robot cat head centered horizontally, positioned slightly above vertical midpoint — black white and gray, cute oversized eyes, mechanical antenna, friendly smile. Lineless flat vector art style, soft shading. Below the cat, the text TOMO TV in light gray retro pixelated 8-bit style font. Scattered small organic blob accents in coral pink and terracotta. 8:3 aspect ratio, ultrawide horizontal composition with generous negative space on sides.
+Wide banner for tvOS top shelf. Warm radial gradient background from bright mustard-orange (#F39C12) at edges to deeper reddish-orange at center. Kawaii robot cat head centered horizontally, positioned slightly above vertical midpoint — black white and gray, cute oversized eyes, mechanical antenna, friendly smile. Lineless flat vector art style, soft shading. Below the cat, the text RADMEDIA in light gray retro pixelated 8-bit style font. Scattered small organic blob accents in coral pink and terracotta. 8:3 aspect ratio, ultrawide horizontal composition with generous negative space on sides.
 ```
 
 ---
@@ -296,7 +296,7 @@ Wide banner for tvOS top shelf. Warm radial gradient background from bright must
 *For: `assets/images/wide/wide@*.png`*
 
 ```
-Extra-wide banner for tvOS top shelf. Same composition as standard top shelf but stretched wider with more negative space on both sides. Warm radial gradient background from bright mustard-orange (#F39C12) to deeper reddish-orange. Kawaii robot cat head centered with TOMO TV in light gray pixelated 8-bit font below. Lineless flat vector style, scattered coral and terracotta blob accents. Very wide 29:9 aspect ratio — character and text occupy only the center third.
+Extra-wide banner for tvOS top shelf. Same composition as standard top shelf but stretched wider with more negative space on both sides. Warm radial gradient background from bright mustard-orange (#F39C12) to deeper reddish-orange. Kawaii robot cat head centered with RADMEDIA in light gray pixelated 8-bit font below. Lineless flat vector style, scattered coral and terracotta blob accents. Very wide 29:9 aspect ratio — character and text occupy only the center third.
 ```
 
 ---

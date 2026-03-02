@@ -1,4 +1,4 @@
-# Testing Strategy - TomoTV
+# Testing Strategy - RadMedia
 
 **Last Updated:** January 26, 2026 (added No Compliance Tests rule)
 **Current Coverage:** 51.1% overall
@@ -20,7 +20,7 @@ Comprehensive testing strategy with current coverage analysis, test patterns, an
 
 ## Executive Summary
 
-TomoTV has moderate test coverage (51.1%) with significant gaps in critical areas. This document provides a comprehensive strategy to increase coverage to 80% while focusing on security-critical code, core functionality, and user workflows.
+RadMedia has moderate test coverage (51.1%) with significant gaps in critical areas. This document provides a comprehensive strategy to increase coverage to 80% while focusing on security-critical code, core functionality, and user workflows.
 
 **Key Findings:**
 - ✅ Services: 67.63% (good)
@@ -787,9 +787,9 @@ For manual testing and integration testing of multi-audio, subtitle, and transco
 - HLS manifest generation with multiple audio streams
 - Seamless audio switching without video restart
 
-**Usage in TomoTV:**
+**Usage in RadMedia:**
 1. Upload to Jellyfin server library
-2. Play video in TomoTV
+2. Play video in RadMedia
 3. Verify audio track names display correctly (not "Unknown language")
 4. Switch between audio tracks during playback
 5. Verify seamless switching (no playback interruption)
@@ -828,10 +828,10 @@ sintel-embedded-subtitles/
 - Multiple external subtitle files for same video
 - Embedded vs. external subtitle handling
 
-**Usage in TomoTV:**
+**Usage in RadMedia:**
 1. Upload Sintel videos + .srt files to Jellyfin server
 2. Ensure .srt files are in same directory as video files
-3. Play video in TomoTV
+3. Play video in RadMedia
 4. Verify subtitle tracks appear in native tvOS subtitle picker
 5. Toggle subtitles on/off during playback
 6. Verify WebVTT overlay rendering (not burned-in)

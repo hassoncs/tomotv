@@ -31,6 +31,7 @@ import { registerHandlers as registerSduiHandlers } from '@/bridge/handlers/sdui
 import { playbackController } from '@/services/playbackController';
 // mDNS discovery available via bridgeDiscovery.ts when needed
 import { logger } from '@/utils/logger';
+import { getDeviceId } from '@/utils/deviceId';
 
 type JsonRpcId = string | number | null;
 
@@ -188,8 +189,8 @@ class RemoteBridgeService {
 
     this.transport.onOpen(() => {
       this.reconnectAttempts = 0;
-      // Identify as the TommoTV app FIRST, before anything else
-      this.transport.send('HELLO app');
+      // Identify as the RadmediaTV app FIRST, before anything else
+      this.transport.send(`HELLO app ${getDeviceId()}`);
       // Subscribe to state changes only after connected — prevents pre-HELLO event sends
       if (!this.playbackUnsubscribe) {
         this.playbackUnsubscribe = playbackController.subscribe((state) => {
@@ -490,7 +491,7 @@ class RemoteBridgeService {
 
 function getDefaultRelayUrl(): string {
   const envValue = typeof process !== 'undefined' ? process.env?.EXPO_PUBLIC_REMOTE_BRIDGE_RELAY_URL : undefined;
-  return envValue && envValue.length > 0 ? envValue : 'ws://openclaw.lan:9091/tomotv';
+  return envValue && envValue.length > 0 ? envValue : 'ws://openclaw.lan:9091/radmedia';
 }
 
 export const remoteBridgeService = RemoteBridgeService.getInstance();

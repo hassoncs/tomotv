@@ -6,7 +6,7 @@
 **Category:** Implementation
 **Keywords:** state, manager, context, singleton, pub-sub, caching, library, navigation
 
-TomoTV uses a Singleton Manager + Context wrapper pattern for global state with 5-minute TTL caching and pub/sub reactivity.
+RadMedia uses a Singleton Manager + Context wrapper pattern for global state with 5-minute TTL caching and pub/sub reactivity.
 
 ## Related Documentation
 - [`CLAUDE-api-reference.md`](./CLAUDE-api-reference.md) - API integration layer
@@ -14,7 +14,7 @@ TomoTV uses a Singleton Manager + Context wrapper pattern for global state with 
 
 ---
 
-TomoTV uses a **Singleton Manager + Context wrapper** pattern for global state.
+RadMedia uses a **Singleton Manager + Context wrapper** pattern for global state.
 
 ## Architecture Diagram
 

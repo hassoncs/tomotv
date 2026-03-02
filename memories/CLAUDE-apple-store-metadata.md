@@ -1,4 +1,4 @@
-# App Store Metadata for TomoTV
+# App Store Metadata for RadMedia
 
 **Last Updated:** February 11, 2026
 
@@ -14,7 +14,7 @@ Complete App Store metadata including app name, description, keywords, screensho
 ---
 
 ## App Name (30 characters max)
-**TomoTV - Jellyfin Player**
+**RadMedia - Jellyfin Player**
 (29 characters)
 
 ---
@@ -37,7 +37,7 @@ Alternative:
 
 ## Description (4,000 characters max)
 
-TomoTV connects your Apple TV to your Jellyfin media server. Select a video, it plays. No configuration needed.
+RadMedia connects your Apple TV to your Jellyfin media server. Select a video, it plays. No configuration needed.
 
 **FEATURES**
 • Browse and search your entire library
@@ -145,7 +145,7 @@ Keywords Strategy:
 **Demo Mode & Playlist Support**
 
 **New Features:**
-• Demo mode - Try TomoTV instantly with Jellyfin's official demo server (no setup required)
+• Demo mode - Try RadMedia instantly with Jellyfin's official demo server (no setup required)
 • Full playlist support - Browse and play videos from your Jellyfin playlists
 • One-tap demo connection in Settings for instant testing
 • Navigate into playlists just like folders with breadcrumb navigation
@@ -209,9 +209,9 @@ Keywords Strategy:
 ---
 
 ### Version 1.0.5
-**Initial Release - Welcome to TomoTV!**
+**Initial Release - Welcome to RadMedia!**
 
-We're excited to bring you the first release of TomoTV, built from the ground up for Apple TV and Jellyfin.
+We're excited to bring you the first release of RadMedia, built from the ground up for Apple TV and Jellyfin.
 
 **What's Included:**
 • Automatic codec detection and transcoding
@@ -230,7 +230,7 @@ We're excited to bring you the first release of TomoTV, built from the ground up
 • Video metadata display (year, rating, plot)
 • Continue watching section
 
-We built TomoTV to solve one major problem: codec compatibility on Apple TV. If you've ever gotten a black screen or "cannot play" error with your Jellyfin videos, TomoTV handles it automatically.
+We built RadMedia to solve one major problem: codec compatibility on Apple TV. If you've ever gotten a black screen or "cannot play" error with your Jellyfin videos, RadMedia handles it automatically.
 
 **Feedback Welcome:**
 This is our first release, and we'd love to hear from you. Visit our support page to share suggestions or report issues.
@@ -263,19 +263,19 @@ Thank you for supporting independent development!
 
 ## Privacy Policy URL (Required)
 
-**URL:** https://keiver.dev/lab/tomotv
+**URL:** https://keiver.dev/lab/radmedia
 
 **Minimum Privacy Policy Content:**
 ```
-TomoTV Privacy Policy
+RadMedia Privacy Policy
 
 Last Updated: [Date]
 
 OVERVIEW
-TomoTV is a local media player that connects to your Jellyfin server. We do not collect, store, or transmit any user data.
+RadMedia is a local media player that connects to your Jellyfin server. We do not collect, store, or transmit any user data.
 
 DATA COLLECTION
-• None. TomoTV does not collect analytics, crash reports, or usage data.
+• None. RadMedia does not collect analytics, crash reports, or usage data.
 • No third-party tracking or advertising SDKs are included.
 
 CREDENTIAL STORAGE
@@ -296,17 +296,17 @@ For questions or concerns: contact@keiver.dev
 
 ## Support URL (Required)
 
-**URL:** https://keiver.dev/lab/tomotv
+**URL:** https://keiver.dev/lab/radmedia
 
 **Minimum Support Page Content:**
 ```
-TomoTV Support
+RadMedia Support
 
 GETTING STARTED
 1. Install Jellyfin (https://jellyfin.org)
 2. Find your API key: Jellyfin Dashboard → API Keys → Create new key
 3. Find your User ID: Jellyfin Dashboard → Users → Click your username → Copy ID from URL
-4. Enter these in TomoTV Settings
+4. Enter these in RadMedia Settings
 
 COMMON ISSUES
 
@@ -314,7 +314,7 @@ Q: Videos won't play / black screen
 A: Enable transcoding in Jellyfin Dashboard → Playback → Transcoding. Install FFmpeg if needed.
 
 Q: Can't connect to server
-A: Ensure TomoTV and Jellyfin are on same network. Check server URL includes port (e.g., http://192.168.1.100:8096)
+A: Ensure RadMedia and Jellyfin are on same network. Check server URL includes port (e.g., http://192.168.1.100:8096)
 
 Q: Transcoding is slow
 A: Lower quality in Settings → Video Quality. Enable hardware acceleration in Jellyfin if available.
@@ -324,14 +324,14 @@ A: Try restarting the app. Credentials are stored in the device Keychain and per
 
 CONTACT
 Email: contact@keiver.dev
-GitHub Issues: https://github.com/keiver/tomotv/issues
+GitHub Issues: https://github.com/keiver/radmedia/issues
 ```
 
 ---
 
 ## Marketing URL (Optional)
 
-**URL:** https://keiver.dev/lab/tomotv
+**URL:** https://keiver.dev/lab/radmedia
 
 **Suggested Landing Page Sections:**
 1. Hero: "Stream Your Jellyfin Library on Apple TV"
@@ -381,7 +381,7 @@ GitHub Issues: https://github.com/keiver/tomotv/issues
 4. Show remote control navigation (2-3 seconds)
 5. Show search feature (2-3 seconds)
 6. Show quality settings (2 seconds)
-7. End with app icon and tagline: "TomoTV - Your Jellyfin on Apple TV"
+7. End with app icon and tagline: "RadMedia - Your Jellyfin on Apple TV"
 
 **Technical Requirements:**
 - Resolution: 1920x1080 (Apple TV)
@@ -505,4 +505,4 @@ Notes:
 - Jellyfin Discord
 
 **Messaging:**
-"Built TomoTV to solve codec issues on Apple TV. Automatically handles transcoding so you can just hit play. Free, no ads, no tracking. Would love feedback from the community."
+"Built RadMedia to solve codec issues on Apple TV. Automatically handles transcoding so you can just hit play. Free, no ads, no tracking. Would love feedback from the community."

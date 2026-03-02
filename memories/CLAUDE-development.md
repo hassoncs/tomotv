@@ -1,4 +1,4 @@
-# TomoTV Development Setup
+# RadMedia Development Setup
 
 ## Quick Reference
 **Category:** Deployment
@@ -92,7 +92,7 @@ This is exactly how production users will configure the app!
 1. Open Jellyfin web interface
 2. Go to **Dashboard → API Keys**
 3. Click **+ New API Key**
-4. Name it "TomoTV Development"
+4. Name it "RadMedia Development"
 5. Copy the generated key
 
 ### 3. User ID

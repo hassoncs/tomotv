@@ -6,7 +6,7 @@
 **Category:** Implementation
 **Keywords:** components, UI, VideoGridItem, FolderGridItem, performance, React.memo, FlatList
 
-All reusable UI components in TomoTV with optimization patterns, props, and performance considerations.
+All reusable UI components in RadMedia with optimization patterns, props, and performance considerations.
 
 ## Related Documentation
 - [`CLAUDE-testing.md`](./CLAUDE-testing.md) - Component tests
@@ -15,11 +15,11 @@ All reusable UI components in TomoTV with optimization patterns, props, and perf
 
 ---
 
-This document describes all reusable UI components in the TomoTV app.
+This document describes all reusable UI components in the RadMedia app.
 
 ## Overview
 
-TomoTV uses a small set of highly optimized components designed for TV platforms with focus navigation.
+RadMedia uses a small set of highly optimized components designed for TV platforms with focus navigation.
 
 ---
 

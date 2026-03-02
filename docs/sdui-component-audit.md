@@ -2,11 +2,11 @@
 
 ## Architecture Overview
 
-TommoTV uses a **Server-Driven UI (SDUI)** system where the radbot (OpenClaw) sends structured JSON payloads over WebSocket that render as native tvOS components.
+RadmediaTV uses a **Server-Driven UI (SDUI)** system where the radbot (OpenClaw) sends structured JSON payloads over WebSocket that render as native tvOS components.
 
 **Data flow:**
 ```
-radbot → tommo ui:render → WebSocket relay → sduiHandlers.ts → componentRegistry → component
+radbot → radmedia ui:render → WebSocket relay → sduiHandlers.ts → componentRegistry → component
 ```
 
 **Key design traits:**
@@ -212,8 +212,8 @@ When `target: "canvas"` and `navigateToTab: true`, the app auto-navigates to `/(
 
 1. Create `components/sdui/YourComponent.tsx` with Zod `propsSchema` export
 2. Register in `components/sdui/registerComponents.ts` with name + description
-3. The bot auto-discovers it via `tommo ui:components`
-4. Update `chrisbot/skills/tomotv-control/SKILL.md` with usage examples
-5. Test via `tommo ui:render '{"component":"YourComponent","props":{...}}'`
+3. The bot auto-discovers it via `radmedia ui:components`
+4. Update `chrisbot/skills/radmedia-control/SKILL.md` with usage examples
+5. Test via `radmedia ui:render '{"component":"YourComponent","props":{...}}'`
 6. If canvas component: ensure AI tab renders it properly
 7. If interactive: wire `event.ui.*` emission back through bridge

@@ -4,7 +4,7 @@ from PIL import Image
 import subprocess
 import os
 
-APP = "/Users/hassoncs/Workspaces/Personal/automation/tomotv"
+APP = "/Users/hassoncs/Workspaces/Personal/automation/radmedia"
 GEN = f"{APP}/generated-assets"
 PROCESSED = f"{GEN}/processed"
 

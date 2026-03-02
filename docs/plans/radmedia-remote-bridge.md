@@ -1,4 +1,4 @@
-# TommoTV Remote Control Bridge + Generative UI
+# RadmediaTV Remote Control Bridge + Generative UI
 
 **Status:** Implementation in progress (Layer 1 + 2 wiring, Layer 3 foundation)
 **Last Updated:** 2026-03-01
@@ -7,12 +7,12 @@
 
 ## Vision
 
-Connect Home Assistant voice → OpenClaw bot → WebSocket relay → TommoTV app.
+Connect Home Assistant voice → OpenClaw bot → WebSocket relay → RadmediaTV app.
 Every capability available via the Apple TV pyatv API — plus unique app-native capabilities —
 controllable by voice, automation, or AI-generated UI.
 
 ```
-HA Voice → OpenClaw (N100) → tommo CLI → WS Relay (openclaw.lan:9091) → TommoTV app
+HA Voice → OpenClaw (N100) → radmedia CLI → WS Relay (openclaw.lan:9091) → RadmediaTV app
                                                    ↑
                                         JSON-RPC 2.0 over WebSocket
 ```
@@ -24,33 +24,33 @@ HA Voice → OpenClaw (N100) → tommo CLI → WS Relay (openclaw.lan:9091) → 
 ### Layer 1: Integration Glue (OpenClaw Skill)
 
 **Files:**
-- `chrisbot/skills/tomotv-control/SKILL.md` — tool definition for the LLM
-- `chrisbot/skills/tomotv-control/scripts/tommo` — bash CLI wrapping the relay API
+- `chrisbot/skills/radmedia-control/SKILL.md` — tool definition for the LLM
+- `chrisbot/skills/radmedia-control/scripts/radmedia` — bash CLI wrapping the relay API
 
-**tommo CLI commands:**
+**radmedia CLI commands:**
 | Command | What It Does |
 |---------|-------------|
-| `tommo status` | Full state: screen, playback, position, metadata, queue |
-| `tommo play <jellyfinId> [folderId]` | Deep-link play a specific Jellyfin item |
-| `tommo pause` | Pause playback |
-| `tommo resume` | Resume playback |
-| `tommo stop` | Stop and return to library |
-| `tommo next` | Next in queue |
-| `tommo prev` | Previous in queue |
-| `tommo seek <seconds>` | Seek to absolute position |
-| `tommo navigate <route>` | Navigate to screen (e.g. `/(tabs)/search`) |
-| `tommo remote <key>` | D-pad input (up/down/left/right/select/menu/play_pause) |
-| `tommo text <string>` | Send text input to search field |
-| `tommo ui:render <json>` | SDUI: render dynamic component on screen |
-| `tommo ui:components` | SDUI: list available components + schemas |
+| `radmedia status` | Full state: screen, playback, position, metadata, queue |
+| `radmedia play <jellyfinId> [folderId]` | Deep-link play a specific Jellyfin item |
+| `radmedia pause` | Pause playback |
+| `radmedia resume` | Resume playback |
+| `radmedia stop` | Stop and return to library |
+| `radmedia next` | Next in queue |
+| `radmedia prev` | Previous in queue |
+| `radmedia seek <seconds>` | Seek to absolute position |
+| `radmedia navigate <route>` | Navigate to screen (e.g. `/(tabs)/search`) |
+| `radmedia remote <key>` | D-pad input (up/down/left/right/select/menu/play_pause) |
+| `radmedia text <string>` | Send text input to search field |
+| `radmedia ui:render <json>` | SDUI: render dynamic component on screen |
+| `radmedia ui:components` | SDUI: list available components + schemas |
 
-**Bot Tool Definition** (in `evals/tools/tomotv-tools.json`):
+**Bot Tool Definition** (in `evals/tools/radmedia-tools.json`):
 ```json
 {
   "type": "function",
   "function": {
-    "name": "tommo",
-    "description": "Control the TommoTV Apple TV app...",
+    "name": "radmedia",
+    "description": "Control the RadmediaTV Apple TV app...",
     "parameters": { "type": "object", "properties": { "command": { "type": "string" } } }
   }
 }
@@ -61,21 +61,21 @@ HA Voice → OpenClaw (N100) → tommo CLI → WS Relay (openclaw.lan:9091) → 
 **Architecture: Client → Relay → App**
 
 ```
-tommo CLI ──WS──▶ Relay (openclaw.lan:9091/tomotv) ◀──WS── TommoTV app
+radmedia CLI ──WS──▶ Relay (openclaw.lan:9091/radmedia) ◀──WS── RadmediaTV app
 ```
 
-The TommoTV app is a WebSocket **client** that connects to a relay server running on the N100
-alongside OpenClaw. The relay brokers commands from the `tommo` CLI to the app and forwards
+The RadmediaTV app is a WebSocket **client** that connects to a relay server running on the N100
+alongside OpenClaw. The relay brokers commands from the `radmedia` CLI to the app and forwards
 state events from the app back to the CLI.
 
 **Relay server:** `seedbox/services/bridge-relay/`
 - Node.js, runs in the Docker LXC alongside other services
-- Port 9091, path `/tomotv`
+- Port 9091, path `/radmedia`
 - Identifies app connection vs CLI connections
 - Broadcasts CLI commands → app, streams app events → pending CLI responses
 
-**TommoTV app side** (`tomotv/services/remoteBridgeService.ts`):
-- WebSocket client connecting to `ws://openclaw.lan:9091/tomotv`
+**RadmediaTV app side** (`radmedia/services/remoteBridgeService.ts`):
+- WebSocket client connecting to `ws://openclaw.lan:9091/radmedia`
 - Sends `HELLO app` on connect to identify itself
 - Receives JSON-RPC requests, dispatches to handlers
 - Pushes state events back to relay
@@ -97,18 +97,18 @@ state events from the app back to the CLI.
 { "jsonrpc": "2.0", "method": "event.navigation", "params": { "route": "/player", "params": {} } }
 ```
 
-**PlaybackController singleton** (`tomotv/services/playbackController.ts`):
+**PlaybackController singleton** (`radmedia/services/playbackController.ts`):
 - Bridges React hooks ↔ bridge handlers
 - `registerPlayer(controls)` — called by `player.tsx` on mount
 - `unregisterPlayer()` — called by `player.tsx` on unmount
 - `registerRouter(router)` — called by `_layout.tsx` on mount
 - `getFullState()` → complete app state snapshot
 
-**App initialization** (`tomotv/app/_layout.tsx`):
+**App initialization** (`radmedia/app/_layout.tsx`):
 - `remoteBridgeService.start()` — opens WS connection on app boot
 - `playbackController.registerRouter(router)` — wires Expo Router
 
-**Player wiring** (`tomotv/app/player.tsx`):
+**Player wiring** (`radmedia/app/player.tsx`):
 - `playbackController.registerPlayer({pause, resume, stop, seek, next, prev, playById, getState, subscribe})`
 - `playbackController.unregisterPlayer()` on unmount
 
@@ -118,21 +118,21 @@ state events from the app back to the CLI.
 
 ```
 Bot decides to render UI:
-  tommo ui:render '{"component":"MovieGrid","props":{"movies":[...]}}'
+  radmedia ui:render '{"component":"MovieGrid","props":{"movies":[...]}}'
     → relay → app
     → ComponentRegistry validates props with Zod
     → App renders <MovieGrid> as overlay
     → User selects item → event.ui.select pushed back
-    → Bot receives event → calls tommo play <id>
+    → Bot receives event → calls radmedia play <id>
 ```
 
-**ComponentRegistry** (`tomotv/services/componentRegistry.ts`):
+**ComponentRegistry** (`radmedia/services/componentRegistry.ts`):
 - Singleton, mirrors `playQueueManager` / `libraryManager` pattern
 - `registry.register({ name, description, component, propsSchema, focusConfig })`
 - `registry.render(name, props)` → validates with Zod, returns React element
-- `registry.getManifest()` → JSON schema array sent to LLM via `tommo ui:components`
+- `registry.getManifest()` → JSON schema array sent to LLM via `radmedia ui:components`
 
-**SDUI Canvas screen** (`tomotv/app/sdui.tsx`):
+**SDUI Canvas screen** (`radmedia/app/sdui.tsx`):
 - Subscribes to SDUI render events from `remoteBridgeService`
 - Renders registered components as overlays or full screens
 - Pushes `event.ui.select` back when user selects an item
@@ -149,7 +149,7 @@ Bot decides to render UI:
 
 ## File Map
 
-### TommoTV App (`tomotv/`)
+### RadmediaTV App (`radmedia/`)
 | File | Status | Purpose |
 |------|--------|---------|
 | `bridge/types.ts` | ✅ Done | All TypeScript types |
@@ -175,29 +175,29 @@ Bot decides to render UI:
 | `index.ts` | ✅ Done | WS relay server on port 9091 |
 | `package.json` | ✅ Done | Node.js + ws dependency |
 
-### OpenClaw Skill (`chrisbot/skills/tomotv-control/`)
+### OpenClaw Skill (`chrisbot/skills/radmedia-control/`)
 | File | Status | Purpose |
 |------|--------|---------|
 | `SKILL.md` | ✅ Done | Tool definitions + command reference |
-| `scripts/tommo` | ✅ Done | Bash CLI wrapping relay WS API |
+| `scripts/radmedia` | ✅ Done | Bash CLI wrapping relay WS API |
 
 ### Evals (`evals/`)
 | File | Status | Purpose |
 |------|--------|---------|
-| `tests/tomotv.yaml` | ✅ Done | Eval test cases for tommo tool routing |
-| `tools/tomotv-tools.json` | ✅ Done | Tool definition for promptfoo |
+| `tests/radmedia.yaml` | ✅ Done | Eval test cases for radmedia tool routing |
+| `tools/radmedia-tools.json` | ✅ Done | Tool definition for promptfoo |
 
 ---
 
-## Integration: Cinema Mode via TommoTV Events
+## Integration: Cinema Mode via RadmediaTV Events
 
-TommoTV pushes `event.playback` → relay → HA webhook → bot notified:
+RadmediaTV pushes `event.playback` → relay → HA webhook → bot notified:
 - `status: playing` → `ha script cinema_preshow` (dim lights)
 - `status: paused` → `ha script cinema_pause` (brighten)
 - `status: playing` (after pause) → `ha script cinema_resume` (re-dim)
 - `status: stopped/idle` → `ha script cinema_end` (restore scene)
 
-HA webhook URL: `http://ha.lan:8123/api/webhook/tomotv_playback_event`
+HA webhook URL: `http://ha.lan:8123/api/webhook/radmedia_playback_event`
 
 ---
 
@@ -213,13 +213,13 @@ HA webhook URL: `http://ha.lan:8123/api/webhook/tomotv_playback_event`
 
 ### OpenClaw Skill
 ```bash
-./scripts/n100-sync.sh skills  # syncs all skills including tomotv-control
+./scripts/n100-sync.sh skills  # syncs all skills including radmedia-control
 ```
 
-### TommoTV App
+### RadmediaTV App
 ```bash
 # Set env var before build
-EXPO_PUBLIC_REMOTE_BRIDGE_RELAY_URL=ws://openclaw.lan:9091/tomotv
+EXPO_PUBLIC_REMOTE_BRIDGE_RELAY_URL=ws://openclaw.lan:9091/radmedia
 npm run prebuild:tv && npm run ios
 ```
 
