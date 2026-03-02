@@ -4,6 +4,7 @@ import { z } from 'zod';
 
 import { VideoGridItem } from '@/components/video-grid-item';
 import type { JellyfinVideoItem } from '@/types/jellyfin';
+import { remoteBridgeService } from '@/services/remoteBridgeService';
 
 // Minimal Zod schema for a Jellyfin item as received from the bridge.
 // Only Id and Name are required; everything else is optional to keep the bot
@@ -44,6 +45,12 @@ export type MediaGridProps = z.infer<typeof mediaGridPropsSchema> & {
 export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProps) {
   const handlePress = useCallback(
     (video: JellyfinVideoItem) => {
+      remoteBridgeService.emitUiSelect({
+        component: 'MediaGrid',
+        itemId: video.Id,
+        itemType: video.Type,
+        title: video.Name,
+      });
       onSelect?.(video.Id);
     },
     [onSelect]

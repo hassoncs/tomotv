@@ -6,7 +6,10 @@ import {
   jsonRpcNotificationSchema,
   jsonRpcRequestSchema,
   jsonRpcSuccessResponseSchema,
-  methodParamsSchemaMap
+  methodParamsSchemaMap,
+  uiSelectEventSchema,
+  uiActionEventSchema,
+  uiDismissEventSchema,
 } from '@/bridge/protocol';
 import type {
   BridgeEventMethod,
@@ -234,6 +237,11 @@ class RemoteBridgeService {
     return RemoteBridgeService.instance;
   }
 
+  /** Create a fresh non-singleton instance for unit tests. */
+  static createForTesting(transport: BridgeTransport): RemoteBridgeService {
+    return new RemoteBridgeService({}, transport);
+  }
+
   subscribe(listener: RemoteBridgeListener): () => void {
     this.listeners.add(listener);
 
@@ -443,6 +451,32 @@ class RemoteBridgeService {
     });
   }
 
+  public sendNotification(method: string, params: unknown): void {
+    this.sendPayload({
+      jsonrpc: '2.0',
+      method,
+      params
+    });
+  }
+
+  /** Emit a structured UI selection event (app → relay). */
+  public emitUiSelect(payload: { component: string; itemId: string; itemType?: string; title?: string }): void {
+    const validated = uiSelectEventSchema.parse(payload);
+    this.sendPayload({ jsonrpc: '2.0', method: 'event.ui.select', params: validated });
+  }
+
+  /** Emit a structured UI action event (confirm/cancel/custom). */
+  public emitUiAction(payload: { component: string; actionId: string; value?: string }): void {
+    const validated = uiActionEventSchema.parse(payload);
+    this.sendPayload({ jsonrpc: '2.0', method: 'event.ui.action', params: validated });
+  }
+
+  /** Emit a UI dismiss event (overlay or canvas closed). */
+  public emitUiDismiss(payload: { component?: string; source: 'overlay' | 'canvas' }): void {
+    const validated = uiDismissEventSchema.parse(payload);
+    this.sendPayload({ jsonrpc: '2.0', method: 'event.ui.dismiss', params: validated });
+  }
+
   private sendPayload(payload: unknown): void {
     const serialized = JSON.stringify(payload);
 
@@ -460,3 +494,6 @@ function getDefaultRelayUrl(): string {
 }
 
 export const remoteBridgeService = RemoteBridgeService.getInstance();
+
+/** Named export of the class — for injecting mock transports in tests only. */
+export { RemoteBridgeService as RemoteBridgeServiceTestExport };

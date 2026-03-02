@@ -10,6 +10,9 @@ import { NowPlayingCard, nowPlayingCardPropsSchema } from './NowPlayingCard';
 import { MovieGrid, movieGridPropsSchema } from './MovieGrid';
 import { SearchResults, searchResultsPropsSchema } from './SearchResults';
 import { MediaGrid, mediaGridPropsSchema } from './MediaGrid';
+import { ConfirmationCard, confirmationCardPropsSchema } from './ConfirmationCard';
+import { InfoCard, infoCardPropsSchema } from './InfoCard';
+import { EpisodeList, episodeListPropsSchema } from './EpisodeList';
 
 componentRegistry.register({
   name: 'Toast',
@@ -54,4 +57,28 @@ componentRegistry.register({
   component: MediaGrid,
   propsSchema: mediaGridPropsSchema,
   focusConfig: { focusDirection: 'grid' },
+});
+
+componentRegistry.register({
+  name: 'ConfirmationCard',
+  description: 'Modal-style card with confirm and cancel buttons. Emits event.ui.action with actionId "confirm" or "cancel". Use when the bot needs explicit user approval before an irreversible action.',
+  component: ConfirmationCard,
+  propsSchema: confirmationCardPropsSchema,
+  focusConfig: { focusDirection: 'horizontal' },
+});
+
+componentRegistry.register({
+  name: 'InfoCard',
+  description: 'Rich info card with title, body text, optional image, and action buttons. Use to display metadata about a show, movie, or any rich content. Buttons emit event.ui.action.',
+  component: InfoCard,
+  propsSchema: infoCardPropsSchema,
+  focusConfig: { focusDirection: 'vertical' },
+});
+
+componentRegistry.register({
+  name: 'EpisodeList',
+  description: 'Scrollable list of TV episodes with season/episode labels. Pressing an episode emits event.ui.select with the episode Jellyfin ID. Use after fetching episodes for a series.',
+  component: EpisodeList,
+  propsSchema: episodeListPropsSchema,
+  focusConfig: { focusDirection: 'vertical' },
 });
