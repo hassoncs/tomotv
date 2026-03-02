@@ -29,7 +29,9 @@ class ComponentRegistry {
   private static instance: ComponentRegistry;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private components = new Map<string, RegisteredComponent<any>>();
+  private pendingRenders: Array<{ name: string; props: Record<string, unknown> }> = [];
   private renderListeners = new Set<SduiRenderListener>();
 
   private constructor() {}
@@ -93,8 +95,17 @@ class ComponentRegistry {
    * Dispatches to all registered render listeners (i.e. the SDUI canvas screen).
    */
   dispatchRender(name: string, props: Record<string, unknown>): void {
-    logger.info('SDUI render dispatched', { service: 'ComponentRegistry', name });
+    logger.info('SDUI render queued', { service: 'ComponentRegistry', name });
+    // Queue so SduiScreen can drain on mount — avoids the race with router.push
+    this.pendingRenders.push({ name, props });
     this.renderListeners.forEach((listener) => listener(name, props));
+  }
+
+  /** Drain all renders that arrived before SduiScreen mounted. */
+  drainPending(): Array<{ name: string; props: Record<string, unknown> }> {
+    const pending = [...this.pendingRenders];
+    this.pendingRenders = [];
+    return pending;
   }
 
   onRender(listener: SduiRenderListener): () => void {

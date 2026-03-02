@@ -3,12 +3,9 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { componentRegistry } from '@/services/componentRegistry';
-import { remoteBridgeService } from '@/services/remoteBridgeService';
 import { logger } from '@/utils/logger';
 
-// Register all built-in SDUI components on first import
-import '@/components/sdui/registerComponents';
-
+// Components are registered in _layout.tsx at app startup
 interface RenderedComponent {
   id: string;
   element: React.ReactElement;
@@ -32,6 +29,12 @@ export default function SduiScreen() {
   }, []);
 
   useEffect(() => {
+    // Drain any renders that fired before this screen mounted (router.push race)
+    const pending = componentRegistry.drainPending();
+    if (pending.length > 0) {
+      pending.forEach(({ name, props }) => handleRender(name, props));
+    }
+    // Subscribe for future renders
     const unsub = componentRegistry.onRender(handleRender);
     return unsub;
   }, [handleRender]);

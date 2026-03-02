@@ -15,6 +15,7 @@ import { syncDevCredentials } from "@/services/jellyfinApi";
 import { remoteBridgeService } from "@/services/remoteBridgeService";
 import { playbackController } from "@/services/playbackController";
 import { componentRegistry } from "@/services/componentRegistry";
+import "@/components/sdui/registerComponents"; // register SDUI components before any bridge command arrives
 
 // ─── Dev-mode bridge status indicator ───────────────────────────────────────
 // Flip to false before shipping to production.
