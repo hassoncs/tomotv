@@ -1,10 +1,12 @@
 import { FocusableButton } from "@/components/FocusableButton";
+import { SmartGlassView } from "@/components/SmartGlassView";
 import { UpNextOverlay } from "@/components/up-next-overlay";
 import { useLibrary } from "@/contexts/LibraryContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { usePlayQueue } from "@/contexts/PlayQueueContext";
 import { useVideoPlayback } from "@/hooks/useVideoPlayback";
 import { logger } from "@/utils/logger";
+import { playbackController } from "@/services/playbackController";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -97,10 +99,30 @@ export default function VideoPlayerScreen() {
   }, [isQueueMode, hasNext, advanceToNext, clear, currentPlaylistIndex, videos, router, showGlobalLoader]);
 
   // Use the video playback hook with state machine
-  const { videoRef, sourceUri, paused, videoCallbacks, state, showLoadingOverlay, pause, retry } = useVideoPlayback({
+  const { videoRef, sourceUri, paused, videoCallbacks, state, showLoadingOverlay, pause, play, retry } = useVideoPlayback({
     videoId: params.videoId,
     onPlaybackEnd: handlePlaybackEnd,
   });
+
+  // Register player controls with PlaybackController so bridge commands reach this player
+  useEffect(() => {
+    playbackController.registerPlayer({
+      pause: () => pause(),
+      resume: () => play(),
+      stop: () => { pause(); router.back(); },
+      seek: (seconds: number) => { videoRef.current?.seek(seconds); },
+      next: () => handlePlaybackEnd(),
+      getState: () => ({
+        status: paused ? 'paused' : (state.type === 'PLAYING' ? 'playing' : state.type === 'ERROR' ? 'error' : 'buffering'),
+        jellyfinId: params.videoId ?? null,
+        positionSeconds: 0,
+        durationSeconds: 0,
+      }),
+    });
+    return () => { playbackController.unregisterPlayer(); };
+  // Register once per videoId mount — handlers close over stable refs
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.videoId]);
 
   // Hide global loader when component mounts
   useEffect(() => {
@@ -198,7 +220,9 @@ export default function VideoPlayerScreen() {
       return (
         <View style={styles.container}>
           <View style={styles.loadingOverlay}>
-            <ActivityIndicator size="large" color="#FFFFFF" />
+            <SmartGlassView style={styles.loadingPill}>
+              <ActivityIndicator size="large" color="#FFC312" />
+            </SmartGlassView>
           </View>
         </View>
       );
@@ -207,14 +231,16 @@ export default function VideoPlayerScreen() {
     // Only show error UI if retry is not possible or has already failed
     return (
       <View style={styles.errorContainer}>
-        <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
-        <Text style={styles.errorTitle}>Unable to Play</Text>
-        <Text style={styles.errorText}>{state.error}</Text>
+        <SmartGlassView style={styles.errorGlassPanel}>
+          <Ionicons name="alert-circle-outline" size={64} color="#FF3B30" />
+          <Text style={styles.errorTitle}>Unable to Play</Text>
+          <Text style={styles.errorText}>{state.error}</Text>
 
-        <View style={styles.buttonGroup}>
-          <FocusableButton title="Retry" onPress={retry} variant="retry" style={styles.button} hasTVPreferredFocus={true} />
-          <FocusableButton title="Go Back" onPress={handleBack} variant="secondary" style={styles.button} />
-        </View>
+          <View style={styles.buttonGroup}>
+            <FocusableButton title="Retry" onPress={retry} variant="retry" style={styles.button} hasTVPreferredFocus={true} />
+            <FocusableButton title="Go Back" onPress={handleBack} variant="secondary" style={styles.button} />
+          </View>
+        </SmartGlassView>
       </View>
     );
   }
@@ -243,7 +269,9 @@ export default function VideoPlayerScreen() {
       {/* Loading Overlay */}
       {showLoadingOverlay && (
         <View style={styles.loadingOverlay}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
+          <SmartGlassView style={styles.loadingPill}>
+            <ActivityIndicator size="large" color="#FFC312" />
+          </SmartGlassView>
         </View>
       )}
 
@@ -274,8 +302,13 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#000000",
+    backgroundColor: "transparent",
     zIndex: 100,
+  },
+  loadingPill: {
+    paddingHorizontal: 48,
+    paddingVertical: 32,
+    borderRadius: 20,
   },
   iosBackButton: {
     position: "absolute",
@@ -295,6 +328,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 40,
+  },
+  errorGlassPanel: {
+    borderRadius: 24,
+    padding: Platform.isTV ? 48 : 32,
+    alignItems: "center",
+    maxWidth: 600,
   },
   errorTitle: {
     marginTop: 16,

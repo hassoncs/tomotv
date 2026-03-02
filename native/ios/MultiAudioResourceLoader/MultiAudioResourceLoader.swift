@@ -31,7 +31,7 @@ class MultiAudioResourceLoaderDelegate: NSObject, AVAssetResourceLoaderDelegate 
     private var audioTrackInfo: [[String: Any]] = []
 
     private let session = URLSession.shared
-    private let queue = DispatchQueue(label: "com.tomotv.multiaudio", qos: .userInitiated)
+    private let queue = DispatchQueue(label: "com.radbot.multiaudio", qos: .userInitiated)
 
     // MARK: - Configuration
 

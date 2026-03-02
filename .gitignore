@@ -50,3 +50,7 @@ nogit/
 .claude/settings.json
 .claude/settings.local.json
 .claude/mcp/
+.claude/worktrees/
+
+# logs
+metro_dev.log

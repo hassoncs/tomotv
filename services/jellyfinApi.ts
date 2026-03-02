@@ -38,7 +38,7 @@ const QUALITY_PRESETS = [
   { label: "4K", bitrate: 20000000, width: 3840, height: 2160, level: 51 },
 ];
 
-const DEFAULT_QUALITY = 0; // 480p
+const DEFAULT_QUALITY = 3; // 1080p — N100 has Quick Sync hardware transcode
 
 // Standardized timeout constants
 const API_TIMEOUTS = {
@@ -220,13 +220,25 @@ export async function refreshConfig(): Promise<void> {
  */
 export async function syncDevCredentials(): Promise<void> {
   try {
-    // CRITICAL: Never overwrite demo mode credentials with dev credentials
-    const demoModeFlag = await SecureStore.getItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
-    if (demoModeFlag === "true") {
-      logger.debug("Skipping dev credential sync (demo mode active)", {
-        service: "JellyfinAPI",
-      });
-      return;
+    // In dev mode (DEV_* env vars present), always override stored credentials
+    // including demo mode. Dev .env.local is authoritative during development.
+    if (DEV_SERVER && DEV_API_KEY && DEV_USER_ID) {
+      const demoModeFlag = await SecureStore.getItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
+      if (demoModeFlag === "true") {
+        logger.debug("Clearing demo mode (dev credentials present)", {
+          service: "JellyfinAPI",
+        });
+        await SecureStore.deleteItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
+      }
+    } else {
+      // No dev credentials — respect demo mode
+      const demoModeFlag = await SecureStore.getItemAsync(STORAGE_KEYS.IS_DEMO_MODE);
+      if (demoModeFlag === "true") {
+        logger.debug("Skipping dev credential sync (demo mode active)", {
+          service: "JellyfinAPI",
+        });
+        return;
+      }
     }
 
     // Migrate old config format if needed
@@ -249,7 +261,10 @@ export async function syncDevCredentials(): Promise<void> {
     ]);
     logger.debug("Synced dev credentials to SecureStore", {
       service: "JellyfinAPI",
+      server: DEV_SERVER,
     });
+    // Refresh cached config so API calls use the new credentials immediately
+    await refreshConfig();
   } catch (error) {
     logger.error("Error syncing dev credentials", error, {
       service: "JellyfinAPI",
@@ -1702,8 +1717,10 @@ async function requestLibraryItems(
 
 /**
  * Get video stream URL for a specific item
- * Always uses direct download - HLS generation appears broken in Jellyfin
- * Returns empty string if config not yet loaded
+ * Uses /Videos/{id}/stream with Container=mp4 so Jellyfin remuxes MKV→MP4
+ * on the fly (stream copy, no re-encode). This lets AVPlayer handle H.264+EAC3
+ * content that fails with the raw /Download endpoint (MKV not supported by AVFoundation).
+ * Returns empty string if config not yet loaded.
  * @param itemId - The video item ID
  */
 export function getVideoStreamUrl(itemId: string): string {
@@ -1711,8 +1728,10 @@ export function getVideoStreamUrl(itemId: string): string {
     logger.warn("getVideoStreamUrl called before config loaded", { service: "JellyfinAPI" });
     return "";
   }
-  // Use direct download endpoint with API key in URL
-  const url = `${cachedConfig.server}/Items/${itemId}/Download?api_key=${cachedConfig.apiKey}`;
+  // Use stream endpoint with MP4 container hint for AVPlayer compatibility.
+  // Static=true tells Jellyfin to stream-copy (remux) without re-encoding.
+  // This is instant and preserves original quality.
+  const url = `${cachedConfig.server}/Videos/${itemId}/stream.mp4?api_key=${cachedConfig.apiKey}&Static=true&Container=mp4`;
 
   logger.debug("Generated direct play stream URL", {
     service: "JellyfinAPI",
@@ -1928,11 +1947,13 @@ export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoIt
 
         try {
           const response = await fetch(url, {
-            method: "GET",
+            method: "POST",
             headers: {
               Accept: "application/json",
+              "Content-Type": "application/json",
               Authorization: `MediaBrowser Token="${config.apiKey}"`,
             },
+            body: JSON.stringify({ UserId: config.userId }),
             signal: controller.signal,
           });
 
@@ -2270,4 +2291,152 @@ export function getSubtitleUrl(itemId: string, streamIndex: number, format: stri
   // For most cases, mediaSourceId is the same as itemId
   // VTT format is preferred as it works better with HTML5 video players
   return `${cachedConfig.server}/Videos/${itemId}/${itemId}/Subtitles/${streamIndex}/Stream.${format}?api_key=${cachedConfig.apiKey}`;
+}
+
+/**
+ * Get backdrop (fanart) image URL for a specific item
+ * Backdrops are wide landscape images, ideal for hero sections
+ * Returns empty string if config not yet loaded
+ */
+export function getBackdropUrl(itemId: string, maxWidth = 1920): string {
+  if (!cachedConfig.server || !cachedConfig.apiKey) return "";
+  return `${cachedConfig.server}/Items/${itemId}/Images/Backdrop?api_key=${cachedConfig.apiKey}&maxWidth=${maxWidth}`;
+}
+
+/**
+ * Fetch recently added items for the current user
+ * Returns up to 20 items sorted by date added (newest first)
+ */
+export async function getRecentlyAdded(): Promise<JellyfinItem[]> {
+  try {
+    const config = await getConfig();
+    const url = `${config.server}/Users/${config.userId}/Items/Latest?Limit=20&Fields=Overview,Genres,MediaStreams,BackdropImageTags&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop`;
+
+    return await retryWithBackoff(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `MediaBrowser Token="${config.apiKey}"`,
+            },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            logger.warn("Failed to fetch recently added", { service: "JellyfinAPI", status: response.status });
+            return [];
+          }
+
+          const data: JellyfinItem[] = await response.json();
+          return data || [];
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      },
+      { maxAttempts: 2 },
+    );
+  } catch (error) {
+    logger.warn("Error fetching recently added", error, { service: "JellyfinAPI" });
+    return [];
+  }
+}
+
+/**
+ * Fetch items the user has started watching but not finished
+ * Returns up to 20 in-progress video items
+ */
+export async function getContinueWatching(): Promise<JellyfinItem[]> {
+  try {
+    const config = await getConfig();
+    const url = `${config.server}/Users/${config.userId}/Items/Resume?MediaTypes=Video&Limit=20&Fields=Overview,Genres,MediaStreams,BackdropImageTags&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop`;
+
+    return await retryWithBackoff(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `MediaBrowser Token="${config.apiKey}"`,
+            },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            logger.warn("Failed to fetch continue watching", { service: "JellyfinAPI", status: response.status });
+            return [];
+          }
+
+          const data: { Items: JellyfinItem[] } = await response.json();
+          return data.Items || [];
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      },
+      { maxAttempts: 2 },
+    );
+  } catch (error) {
+    logger.warn("Error fetching continue watching", error, { service: "JellyfinAPI" });
+    return [];
+  }
+}
+
+/**
+ * Fetch next up episodes for TV shows the user is currently watching
+ * Returns up to 20 next-episode suggestions
+ */
+export async function getNextUp(): Promise<JellyfinItem[]> {
+  try {
+    const config = await getConfig();
+    const url = `${config.server}/Shows/NextUp?UserId=${config.userId}&Limit=20&Fields=Overview,Genres,MediaStreams,BackdropImageTags&ImageTypeLimit=1&EnableImageTypes=Primary,Backdrop&apikey=${config.apiKey}`;
+
+    return await retryWithBackoff(
+      async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUTS.QUICK);
+
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              Authorization: `MediaBrowser Token="${config.apiKey}"`,
+            },
+            signal: controller.signal,
+          });
+
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            logger.warn("Failed to fetch next up", { service: "JellyfinAPI", status: response.status });
+            return [];
+          }
+
+          const data: { Items: JellyfinItem[] } = await response.json();
+          return data.Items || [];
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      },
+      { maxAttempts: 2 },
+    );
+  } catch (error) {
+    logger.warn("Error fetching next up", error, { service: "JellyfinAPI" });
+    return [];
+  }
 }

@@ -1,3 +1,4 @@
+import { SmartGlassView } from "@/components/SmartGlassView";
 import { FolderStackEntry } from "@/types/jellyfin";
 import { Ionicons } from "@expo/vector-icons";
 import { Dimensions, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -25,18 +26,18 @@ export function Breadcrumb({ stack }: BreadcrumbProps) {
   // Show "No Library" when at library selection level
   if (stack.length === 0) {
     return (
-      <View style={styles.container}>
+      <SmartGlassView style={styles.container} effect="clear">
         <View style={styles.rotatedContent}>
           <View style={styles.scrollContent}>
             <Text style={styles.breadcrumbTextPlaceholder}>Home</Text>
           </View>
         </View>
-      </View>
+      </SmartGlassView>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SmartGlassView style={styles.container} effect="clear">
       <View style={styles.rotatedContent}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {stack.map((entry, index) => (
@@ -44,7 +45,7 @@ export function Breadcrumb({ stack }: BreadcrumbProps) {
           ))}
         </ScrollView>
       </View>
-    </View>
+    </SmartGlassView>
   );
 }
 
@@ -55,7 +56,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     width: 44,
-    backgroundColor: "#F39D120C",
+    backgroundColor: "transparent",
     overflow: "hidden",
   },
   rotatedContent: {

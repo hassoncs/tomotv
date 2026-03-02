@@ -18,9 +18,9 @@ export default function TabLayout() {
         <Label>Settings</Label>
       </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger name="help">
-        <Icon sf="questionmark.circle.fill" />
-        <Label>Help</Label>
+      <NativeTabs.Trigger name="ai">
+        <Icon sf="sparkles" />
+        <Label>AI</Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );

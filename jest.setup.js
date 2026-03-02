@@ -13,6 +13,36 @@ global.__ExpoImportMetaRegistry = {};
 // Mock @expo/metro-runtime to prevent native runtime from loading in Node
 jest.mock('@expo/metro-runtime', () => ({}));
 
+// Mock @callstack/liquid-glass (ESM native module — unavailable in Jest)
+jest.mock('@callstack/liquid-glass', () => ({
+  LiquidGlassView: 'View',
+  isLiquidGlassSupported: () => false,
+}));
+
+// Mock expo-image (native module unavailable in Jest)
+jest.mock('expo-image', () => ({
+  Image: 'Image',
+}));
+
+// Mock react-native-reanimated (native worklets fail in Jest environment)
+jest.mock('react-native-reanimated', () => {
+  const Reanimated = require('react-native-reanimated/mock');
+  Reanimated.default.call = () => {};
+  return Reanimated;
+});
+
+// Mock VideoGridItem — complex native component with reanimated/expo-image/SmartGlass deps
+jest.mock('@/components/video-grid-item', () => ({
+  VideoGridItem: ({ video, onPress, index }: any) => {
+    const { TouchableOpacity, Text } = require('react-native');
+    const React = require('react');
+    return React.createElement(TouchableOpacity, {
+      testID: `card-${video.Id}`,
+      onPress: () => onPress(video),
+    }, React.createElement(Text, null, video.Name));
+  },
+}));
+
 // Mock expo-secure-store
 jest.mock('expo-secure-store', () => ({
   getItemAsync: jest.fn(),
