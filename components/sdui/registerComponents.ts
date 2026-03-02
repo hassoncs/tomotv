@@ -1,17 +1,25 @@
 /**
  * Registers all built-in SDUI components with the ComponentRegistry.
- * Import this module once at app startup (in sdui.tsx) to make all components
+ * Import this module once at app startup (in _layout.tsx) to make all components
  * available for LLM-driven rendering via `tommo ui:render`.
  */
 import { componentRegistry } from '@/services/componentRegistry';
+import { Toast, toastPropsSchema } from './Toast';
 import { TextMessage, textMessagePropsSchema } from './TextMessage';
 import { NowPlayingCard, nowPlayingCardPropsSchema } from './NowPlayingCard';
 import { MovieGrid, movieGridPropsSchema } from './MovieGrid';
 import { SearchResults, searchResultsPropsSchema } from './SearchResults';
 
 componentRegistry.register({
+  name: 'Toast',
+  description: 'Overlay toast notification. Displays a brief text message on screen. Use for simple announcements, confirmations, or alerts. Renders as overlay — does not navigate to AI tab.',
+  component: Toast,
+  propsSchema: toastPropsSchema,
+});
+
+componentRegistry.register({
   name: 'TextMessage',
-  description: 'Displays a text notification or status message on screen. Use for simple announcements, confirmations, or alerts.',
+  description: '@deprecated — use Toast instead. Backward-compatible alias kept for existing bot prompts.',
   component: TextMessage,
   propsSchema: textMessagePropsSchema,
 });
