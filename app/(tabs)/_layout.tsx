@@ -2,7 +2,7 @@ import { Icon, Label, NativeTabs } from "expo-router/unstable-native-tabs";
 
 export default function TabLayout() {
   return (
-    <NativeTabs blurEffect="systemChromeMaterial">
+    <NativeTabs blurEffect="dark">
       <NativeTabs.Trigger name="index">
         <Icon sf="film.fill" />
         <Label>Library</Label>
