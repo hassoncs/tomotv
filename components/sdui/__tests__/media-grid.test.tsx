@@ -23,6 +23,23 @@ jest.mock('@/components/video-grid-item', () => ({
 jest.mock('@/services/jellyfinApi', () => ({
   getPosterUrl: () => 'https://example.com/poster.jpg',
   hasPoster: () => true,
+  isFolder: () => false,
+}));
+
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ push: jest.fn() }),
+}));
+
+jest.mock('@/contexts/FolderNavigationContext', () => ({
+  useFolderNavigation: () => ({ navigateToFolder: jest.fn() }),
+}));
+
+jest.mock('@/contexts/LoadingContext', () => ({
+  useLoading: () => ({ showGlobalLoader: jest.fn() }),
+}));
+
+jest.mock('@/services/remoteBridgeService', () => ({
+  remoteBridgeService: { emitUiSelect: jest.fn() },
 }));
 
 jest.mock('@/utils/logger', () => ({
@@ -44,7 +61,7 @@ describe('MediaGrid component', () => {
   });
 
   it('renders without crashing', () => {
-    const { MediaGrid, mediaGridPropsSchema } = require('../MediaGrid');
+    const { MediaGrid } = require('../MediaGrid');
     const items = [makeItem('1', 'Inception'), makeItem('2', 'Interstellar')];
     expect(() =>
       create(<MediaGrid items={items} title="Test" columns={4} onSelectId={undefined} />)
@@ -66,6 +83,7 @@ describe('MediaGrid component', () => {
       card.props.onPress();
     });
 
+    // onSelect callback is called with the itemId
     expect(onSelect).toHaveBeenCalledWith('abc123');
   });
 

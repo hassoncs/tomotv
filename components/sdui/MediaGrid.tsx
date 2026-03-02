@@ -1,9 +1,13 @@
 import React, { useCallback } from 'react';
 import { View, Text, FlatList, StyleSheet, Platform } from 'react-native';
 import { z } from 'zod';
+import { useRouter } from 'expo-router';
 
 import { VideoGridItem } from '@/components/video-grid-item';
 import type { JellyfinVideoItem } from '@/types/jellyfin';
+import { isFolder } from '@/services/jellyfinApi';
+import { useFolderNavigation } from '@/contexts/FolderNavigationContext';
+import { useLoading } from '@/contexts/LoadingContext';
 import { remoteBridgeService } from '@/services/remoteBridgeService';
 
 // Minimal Zod schema for a Jellyfin item as received from the bridge.
@@ -29,6 +33,7 @@ const mediaGridItemSchema = z.object({
   ParentIndexNumber: z.number().optional(),
   ImageTags: z.object({ Primary: z.string().optional() }).optional(),
   PrimaryImageAspectRatio: z.number().optional(),
+  ParentId: z.string().optional(),
 });
 
 export const mediaGridPropsSchema = z.object({
@@ -43,8 +48,13 @@ export type MediaGridProps = z.infer<typeof mediaGridPropsSchema> & {
 };
 
 export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProps) {
+  const router = useRouter();
+  const { showGlobalLoader } = useLoading();
+  const { navigateToFolder } = useFolderNavigation();
+
   const handlePress = useCallback(
     (video: JellyfinVideoItem) => {
+      // Always notify the relay so the bot is passively informed.
       remoteBridgeService.emitUiSelect({
         component: 'MediaGrid',
         itemId: video.Id,
@@ -52,8 +62,24 @@ export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProp
         title: video.Name,
       });
       onSelect?.(video.Id);
+
+      // Native navigation — same behaviour as the Library screen.
+      if (isFolder(video as any)) {
+        navigateToFolder({
+          id: video.Id,
+          name: video.Name,
+          parentId: (video as any).ParentId,
+          type: video.Type === 'Playlist' ? 'playlist' : 'folder',
+        });
+      } else {
+        showGlobalLoader();
+        router.push({
+          pathname: '/player' as const,
+          params: { videoId: video.Id, videoName: video.Name },
+        });
+      }
     },
-    [onSelect]
+    [router, showGlobalLoader, navigateToFolder, onSelect],
   );
 
   return (

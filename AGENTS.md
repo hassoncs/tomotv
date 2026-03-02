@@ -42,6 +42,34 @@ npm test              # Run Jest test suite
 npm run lint          # Run ESLint and Prettier check
 ```
 
+### Deploying to Apple TV (Living Room)
+
+**MANDATORY:** After ANY native code change (Swift, Objective-C, CocoaPods, prebuild), always build and deploy to the physical Apple TV. JS-only changes hot-reload via Metro automatically — no rebuild needed.
+
+```bash
+# 1. Prebuild (regenerates ios/ from native/)
+EXPO_TV=1 expo prebuild --clean
+
+# 2. Build for device
+xcodebuild -workspace ios/RadBot.xcworkspace -scheme RadBot \
+  -destination 'id=96e38ba14a39565bc83898eb7adcc66436e640d3' \
+  -configuration Debug build
+
+# 3. Install on Apple TV
+xcrun devicectl device install app \
+  --device 96e38ba14a39565bc83898eb7adcc66436e640d3 \
+  ~/Library/Developer/Xcode/DerivedData/RadBot-*/Build/Products/Debug-appletvos/RadBot.app
+
+# 4. Launch
+xcrun devicectl device process launch \
+  --device 96e38ba14a39565bc83898eb7adcc66436e640d3 \
+  com.hassoncs.radbot
+```
+
+**Device:** Apple TV Living Room — `96e38ba14a39565bc83898eb7adcc66436e640d3`
+**Bundle ID:** `com.hassoncs.radbot`
+**Scheme:** `RadBot` (workspace: `ios/RadBot.xcworkspace`)
+
 ## Key Architecture Patterns
 
 - **File-based Routing:** Uses `NativeTabs` for an optimized tvOS tab experience.

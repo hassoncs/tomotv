@@ -1,0 +1,64 @@
+diff --git a/node_modules/expo-tvos-search/ios/ExpoTvosSearchView.swift b/node_modules/expo-tvos-search/ios/ExpoTvosSearchView.swift
+index 17f95ce..e79f174 100644
+--- a/node_modules/expo-tvos-search/ios/ExpoTvosSearchView.swift
++++ b/node_modules/expo-tvos-search/ios/ExpoTvosSearchView.swift
+@@ -341,6 +341,10 @@ class ExpoTvosSearchView: ExpoView {
+         let container = UIView()
+         container.backgroundColor = .clear
+         container.clipsToBounds = true
++        // Start with interaction disabled so the empty container doesn't
++        // block the tvOS focus engine from reaching the SwiftUI search bar.
++        // layoutSubviews() re-enables it once RN children are present.
++        container.isUserInteractionEnabled = false
+         addSubview(container)
+         rnContentContainer = container
+ 
+@@ -437,6 +441,11 @@ class ExpoTvosSearchView: ExpoView {
+         if let guide = focusGuide {
+             guide.preferredFocusEnvironments = container.subviews.compactMap { $0 as? UIFocusEnvironment }
+         }
++
++        // Enable/disable interaction based on whether the container has children.
++        // When empty, the container must be transparent to the focus engine so
++        // focus can reach the SwiftUI .searchable keyboard underneath.
++        container.isUserInteractionEnabled = !container.subviews.isEmpty
+     }
+ 
+     private func setupView() {
+diff --git a/node_modules/expo-tvos-search/ios/InputModeContentView.swift b/node_modules/expo-tvos-search/ios/InputModeContentView.swift
+index e5e31aa..4b7ef79 100644
+--- a/node_modules/expo-tvos-search/ios/InputModeContentView.swift
++++ b/node_modules/expo-tvos-search/ios/InputModeContentView.swift
+@@ -6,16 +6,27 @@ import SwiftUI
+ /// Provides ONLY the native `.searchable` search bar (with keyboard + mic button)
+ /// over a transparent background. React Native children fill the space below
+ /// via UIKit layout in ExpoTvosSearchView.
++///
++/// Note: A hidden focusable Button is included to ensure the tvOS focus engine
++/// can bridge focus from the UIKit tab bar into this SwiftUI NavigationView.
++/// Without it, the `.searchable` keyboard renders but cannot receive focus.
+ struct InputModeContentView: View {
+     @ObservedObject var viewModel: SearchViewModel
+ 
+     var body: some View {
+         NavigationView {
+-            Color.clear
+-                .searchable(text: $viewModel.searchText, prompt: viewModel.placeholder)
+-                .onChange(of: viewModel.searchText) { newValue in
+-                    viewModel.onSearch?(newValue)
+-                }
++            // A hidden focusable element ensures the tvOS focus engine can
++            // discover this NavigationView's content area and activate the
++            // .searchable keyboard. Color.clear alone is not focusable.
++            Button(action: {}) {
++                Color.clear
++            }
++            .buttonStyle(.plain)
++            .frame(maxWidth: .infinity, maxHeight: .infinity)
++            .searchable(text: $viewModel.searchText, prompt: viewModel.placeholder)
++            .onChange(of: viewModel.searchText) { newValue in
++                viewModel.onSearch?(newValue)
++            }
+         }
+         .tint(viewModel.accentColor)
+         .modifier(TopInsetModifier(topInset: viewModel.topInset))

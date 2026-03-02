@@ -1947,11 +1947,13 @@ export async function fetchVideoDetails(itemId: string): Promise<JellyfinVideoIt
 
         try {
           const response = await fetch(url, {
-            method: "GET",
+            method: "POST",
             headers: {
               Accept: "application/json",
+              "Content-Type": "application/json",
               Authorization: `MediaBrowser Token="${config.apiKey}"`,
             },
+            body: JSON.stringify({ UserId: config.userId }),
             signal: controller.signal,
           });
 

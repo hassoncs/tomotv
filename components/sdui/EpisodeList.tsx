@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { z } from 'zod';
+import { useRouter } from 'expo-router';
 
+import { useLoading } from '@/contexts/LoadingContext';
 import { remoteBridgeService } from '@/services/remoteBridgeService';
 
 const episodeSchema = z.object({
@@ -24,21 +26,34 @@ export type Episode = z.infer<typeof episodeSchema>;
 
 export function EpisodeList({ episodes, seriesTitle, component = 'EpisodeList' }: EpisodeListProps) {
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const router = useRouter();
+  const { showGlobalLoader } = useLoading();
 
   const handlePress = (episode: Episode) => {
+    // Inform the relay passively.
     remoteBridgeService.emitUiSelect({
       component,
       itemId: episode.id,
       itemType: 'Episode',
       title: episode.title,
     });
+
+    // Navigate natively to the player — same as anywhere else in the app.
+    showGlobalLoader();
+    router.push({
+      pathname: '/player' as const,
+      params: { videoId: episode.id, videoName: episode.title },
+    });
   };
 
   const renderItem = ({ item }: { item: Episode }) => {
     const isFocused = focusedId === item.id;
-    const epLabel = item.seasonNumber !== undefined && item.episodeNumber !== undefined
-      ? `S${item.seasonNumber}E${item.episodeNumber}`
-      : item.episodeNumber !== undefined ? `E${item.episodeNumber}` : '';
+    const epLabel =
+      item.seasonNumber !== undefined && item.episodeNumber !== undefined
+        ? `S${item.seasonNumber}E${item.episodeNumber}`
+        : item.episodeNumber !== undefined
+          ? `E${item.episodeNumber}`
+          : '';
 
     return (
       <TouchableOpacity

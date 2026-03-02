@@ -13,7 +13,9 @@ import { MediaGrid, mediaGridPropsSchema } from './MediaGrid';
 import { ConfirmationCard, confirmationCardPropsSchema } from './ConfirmationCard';
 import { InfoCard, infoCardPropsSchema } from './InfoCard';
 import { EpisodeList, episodeListPropsSchema } from './EpisodeList';
-
+import { ChatMessage, chatMessagePropsSchema } from './ChatMessage';
+import { LoadingCard, loadingCardPropsSchema } from './LoadingCard';
+import { SeriesDetail, seriesDetailPropsSchema } from './SeriesDetail';
 componentRegistry.register({
   name: 'Toast',
   description: 'Overlay toast notification. Displays a brief text message on screen. Use for simple announcements, confirmations, or alerts. Renders as overlay — does not navigate to AI tab.',
@@ -80,5 +82,27 @@ componentRegistry.register({
   description: 'Scrollable list of TV episodes with season/episode labels. Pressing an episode emits event.ui.select with the episode Jellyfin ID. Use after fetching episodes for a series.',
   component: EpisodeList,
   propsSchema: episodeListPropsSchema,
+  focusConfig: { focusDirection: 'vertical' },
+});
+
+componentRegistry.register({
+  name: 'ChatMessage',
+  description: 'Display a conversational text response from the bot. Use for general Q&A answers, status updates, or any non-visual response where no richer component applies. Renders on the AI tab canvas.',
+  component: ChatMessage,
+  propsSchema: chatMessagePropsSchema,
+});
+
+componentRegistry.register({
+  name: 'LoadingCard',
+  description: 'Progress indicator for slow bot operations. Show this before a long seedbox search or multi-step action, then replace with a result component or Toast when done. Renders on the AI tab canvas.',
+  component: LoadingCard,
+  propsSchema: loadingCardPropsSchema,
+});
+
+componentRegistry.register({
+  name: 'SeriesDetail',
+  description: 'Rich series detail view showing poster, overview, and a season list. Selecting a season emits event.ui.select so the bot can follow up with an EpisodeList render. Use when the user asks about a specific TV series or clicks a Series item from MediaGrid.',
+  component: SeriesDetail,
+  propsSchema: seriesDetailPropsSchema,
   focusConfig: { focusDirection: 'vertical' },
 });
