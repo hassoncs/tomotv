@@ -19,9 +19,10 @@ interface ShelfCardProps {
   onPress: (item: JellyfinItem) => void;
   cardStyle: "poster" | "landscape";
   index: number;
+  onItemFocus?: (item: JellyfinItem) => void;
 }
 
-function ShelfCard({ item, onPress, cardStyle, index }: ShelfCardProps) {
+function ShelfCard({ item, onPress, cardStyle, index, onItemFocus }: ShelfCardProps) {
   const [focused, setFocused] = useState(false);
 
   const cardWidth = cardStyle === "poster" ? POSTER_CARD_WIDTH : LANDSCAPE_CARD_WIDTH;
@@ -35,7 +36,8 @@ function ShelfCard({ item, onPress, cardStyle, index }: ShelfCardProps) {
 
   const handleFocus = useCallback(() => {
     setFocused(true);
-  }, []);
+    onItemFocus?.(item);
+  }, [onItemFocus, item]);
 
   const handleBlur = useCallback(() => {
     setFocused(false);
@@ -90,14 +92,15 @@ interface VideoShelfProps {
   items: JellyfinItem[];
   onItemPress: (item: JellyfinItem) => void;
   cardStyle?: "poster" | "landscape";
+  onItemFocus?: (item: JellyfinItem) => void;
 }
 
-export function VideoShelf({ title, items, onItemPress, cardStyle = "poster" }: VideoShelfProps) {
+export function VideoShelf({ title, items, onItemPress, cardStyle = "poster", onItemFocus }: VideoShelfProps) {
   const renderItem = useCallback(
     ({ item, index }: { item: JellyfinItem; index: number }) => (
-      <ShelfCard item={item} onPress={onItemPress} cardStyle={cardStyle} index={index} />
+      <ShelfCard item={item} onPress={onItemPress} cardStyle={cardStyle} index={index} onItemFocus={onItemFocus} />
     ),
-    [onItemPress, cardStyle],
+    [onItemPress, cardStyle, onItemFocus],
   );
 
   const keyExtractor = useCallback((item: JellyfinItem) => item.Id, []);

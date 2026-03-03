@@ -52,7 +52,7 @@
       ],
       "expo-secure-store",
       "./plugins/withMultiAudioResourceLoader",
-      "./plugins/withTVImageAssets"
+      "./plugins/withMetroPort",
     ],
     "experiments": {
       "typedRoutes": true,

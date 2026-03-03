@@ -9,12 +9,12 @@ import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { usePlayQueue } from "@/contexts/PlayQueueContext";
 import { useBackground } from "@/contexts/BackgroundContext";
-import { connectToDemoServer, getBackdropUrl, getContinueWatching, getNextUp, getRecentlyAdded, isFolder } from "@/services/jellyfinApi";
+import { connectToDemoServer, getBackdropUrl, getPosterUrl, getContinueWatching, getNextUp, getRecentlyAdded, isFolder } from "@/services/jellyfinApi";
 import { JellyfinItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, BackHandler, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View, useTVEventHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -49,6 +49,7 @@ export default function VideoLibraryScreen() {
   const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore, refresh } = useFolderNavigation();
   const { buildQueue } = usePlayQueue();
   const { setBackdropUrl, setScreenContext } = useBackground();
+  const heroBackdropUrlRef = useRef<string | undefined>(undefined);
 
   const handleMoreInfo = useCallback(
     (item: JellyfinItem) => {
@@ -123,6 +124,18 @@ export default function VideoLibraryScreen() {
         item.BackdropImageTags && item.BackdropImageTags.length > 0
           ? getBackdropUrl(item.Id)
           : undefined;
+      heroBackdropUrlRef.current = url;
+      setBackdropUrl(url);
+    },
+    [setBackdropUrl],
+  );
+
+  const handleShelfItemFocus = useCallback(
+    (item: JellyfinItem) => {
+      const url =
+        item.BackdropImageTags && item.BackdropImageTags.length > 0
+          ? getBackdropUrl(item.Id)
+          : getPosterUrl(item.Id, 1920);
       setBackdropUrl(url);
     },
     [setBackdropUrl],
@@ -337,6 +350,7 @@ export default function VideoLibraryScreen() {
                   title="Continue Watching"
                   items={homeData.continueWatching}
                   onItemPress={handleItemPress}
+                  onItemFocus={handleShelfItemFocus}
                   cardStyle="landscape"
                 />
               )}
@@ -345,6 +359,7 @@ export default function VideoLibraryScreen() {
                   title="Next Up"
                   items={homeData.nextUp}
                   onItemPress={handleItemPress}
+                  onItemFocus={handleShelfItemFocus}
                   cardStyle="landscape"
                 />
               )}
@@ -353,6 +368,7 @@ export default function VideoLibraryScreen() {
                   title="Recently Added"
                   items={homeData.recentlyAdded}
                   onItemPress={handleItemPress}
+                  onItemFocus={handleShelfItemFocus}
                   cardStyle="poster"
                 />
               )}

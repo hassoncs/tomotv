@@ -53,6 +53,11 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange }: HeroBillb
     }
   }, [currentIndex, items, onItemChange]);
 
+  // Re-sync background when focus returns to the hero area (after browsing shelves)
+  const handleHeroAreaFocus = useCallback(() => {
+    onItemChange?.(items[currentIndex]);
+  }, [onItemChange, items, currentIndex]);
+
   if (items.length === 0) return null;
 
   const item = items[currentIndex];
@@ -66,7 +71,8 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange }: HeroBillb
   const subtitle = [year, genre, duration].filter(Boolean).join(" • ");
 
   return (
-    <View style={styles.container}>
+    // onFocus bubbles up from any focused descendant on tvOS
+    <View style={styles.container} onFocus={handleHeroAreaFocus}>
       <Image
         source={{ uri: backdropUrl }}
         style={styles.backdropImage}
