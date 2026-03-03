@@ -5,6 +5,7 @@ import { FolderGridItem } from "@/components/folder-grid-item";
 import { HeroBillboard } from "@/components/HeroBillboard";
 import { VideoGridItem } from "@/components/video-grid-item";
 import { VideoShelf } from "@/components/VideoShelf";
+import { SkiaLibraryBackground } from "@/components/SkiaLibraryBackground";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { usePlayQueue } from "@/contexts/PlayQueueContext";
@@ -17,6 +18,7 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, BackHandler, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View, useTVEventHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Animated, { useAnimatedScrollHandler, useDerivedValue, useSharedValue } from "react-native-reanimated";
 
 // Special marker for the ".." back navigation item
 const BACK_ITEM_ID = "__BACK__";
@@ -48,8 +50,25 @@ export default function VideoLibraryScreen() {
   const { showGlobalLoader, hideGlobalLoader } = useLoading();
   const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore, refresh } = useFolderNavigation();
   const { buildQueue } = usePlayQueue();
-  const { setBackdropUrl, setScreenContext } = useBackground();
+  const { setBackdropUrl, setScreenContext, currentImageSource } = useBackground();
+  // Extract URL string for SkiaLibraryBackground (ambient require() assets fall back to dark shader)
+  const backdropImageUrl = currentImageSource && typeof currentImageSource !== "number" ? currentImageSource.uri : undefined;
   const heroBackdropUrlRef = useRef<string | undefined>(undefined);
+  const shelfFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ─── Scroll-based blur line (Phase 2) ───────────────────────────────────
+  const HERO_HEIGHT = Dimensions.get("window").height * 0.62;
+  const scrollY = useSharedValue(0);
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = event.contentOffset.y;
+    },
+  });
+  // blurLine: 0.45 at top, 0.0 when fully past hero — as user scrolls down, blur rises
+  const blurLine = useDerivedValue(() => {
+    const progress = Math.min(scrollY.value / HERO_HEIGHT, 1);
+    return 0.45 * (1 - progress);
+  });
 
   const handleMoreInfo = useCallback(
     (item: JellyfinItem) => {
@@ -132,11 +151,14 @@ export default function VideoLibraryScreen() {
 
   const handleShelfItemFocus = useCallback(
     (item: JellyfinItem) => {
-      const url =
-        item.BackdropImageTags && item.BackdropImageTags.length > 0
-          ? getBackdropUrl(item.Id)
-          : getPosterUrl(item.Id, 1920);
-      setBackdropUrl(url);
+      if (shelfFocusTimerRef.current) clearTimeout(shelfFocusTimerRef.current);
+      shelfFocusTimerRef.current = setTimeout(() => {
+        const url =
+          item.BackdropImageTags && item.BackdropImageTags.length > 0
+            ? getBackdropUrl(item.Id)
+            : getPosterUrl(item.Id, 1920);
+        setBackdropUrl(url);
+      }, 150);
     },
     [setBackdropUrl],
   );
@@ -321,6 +343,7 @@ export default function VideoLibraryScreen() {
 
   return (
     <View style={styles.container}>
+      <SkiaLibraryBackground imageUrl={backdropImageUrl} blurLine={blurLine} />
       {folderStack.length === 0 ? (
         <>
           {isLoadingHomeData || !homeData ? (
@@ -333,7 +356,9 @@ export default function VideoLibraryScreen() {
           ) : homeData.recentlyAdded.length === 0 && homeData.continueWatching.length === 0 ? (
             renderEmpty()
           ) : (
-            <ScrollView
+            <Animated.ScrollView
+              onScroll={scrollHandler}
+              scrollEventThrottle={16}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.homeScrollContent}
             >
@@ -372,7 +397,7 @@ export default function VideoLibraryScreen() {
                   cardStyle="poster"
                 />
               )}
-            </ScrollView>
+            </Animated.ScrollView>
           )}
         </>
       ) : (

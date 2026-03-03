@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Dimensions, StyleSheet, Text, View } from "react-native";
-import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
+import { SkiaFadingHeroImage } from "@/components/SkiaFadingHeroImage";
 import { FocusableButton } from "@/components/FocusableButton";
 import { SmartGlassView } from "@/components/SmartGlassView";
 import { COLORS, SPACING, TYPOGRAPHY } from "@/constants/theme";
@@ -10,7 +9,10 @@ import { JellyfinItem } from "@/types/jellyfin";
 import { useBackground } from "@/contexts/BackgroundContext";
 
 const WINDOW_HEIGHT = Dimensions.get("window").height;
+const SCREEN_WIDTH = Dimensions.get("window").width;
 const HERO_HEIGHT = WINDOW_HEIGHT * 0.62;
+const FADE_HEIGHT = 0;
+// Fade is handled by SkiaFadingHeroImage shader — no tail needed
 const ROTATION_INTERVAL_MS = 8000;
 
 interface HeroBillboardProps {
@@ -71,19 +73,15 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange }: HeroBillb
   const subtitle = [year, genre, duration].filter(Boolean).join(" • ");
 
   return (
-    // onFocus bubbles up from any focused descendant on tvOS
+    // Skia handles the bottom alpha fade — no overflow clip needed
     <View style={styles.container} onFocus={handleHeroAreaFocus}>
-      <Image
-        source={{ uri: backdropUrl }}
-        style={styles.backdropImage}
-        contentFit="cover"
-        transition={600}
-      />
-
-      <LinearGradient
-        colors={["transparent", COLORS.background]}
-        locations={[0.3, 1.0]}
-        style={styles.gradient}
+      {/* Hero image with shader-based alpha fade to transparent at the bottom */}
+      <SkiaFadingHeroImage
+        uri={backdropUrl}
+        width={SCREEN_WIDTH}
+        height={HERO_HEIGHT}
+        fadeStart={0.5}
+        fadeEnd={0.88}
       />
 
       <View style={[styles.metadataContainer, { left: SPACING.screenPadding }]}>
@@ -132,21 +130,6 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange }: HeroBillb
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    height: HERO_HEIGHT,
-    overflow: "hidden",
-  },
-  backdropImage: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-  },
-  gradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
     height: HERO_HEIGHT,
   },
   metadataContainer: {
