@@ -1,12 +1,10 @@
 import { Image } from "expo-image";
-import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-import { DynamicBackground } from "@/components/DynamicBackground";
+import { SkiaLibraryBackground } from "@/components/SkiaLibraryBackground";
 import { FocusableButton } from "@/components/FocusableButton";
-import { SmartGlassView } from "@/components/SmartGlassView";
 import { useBackground } from "@/contexts/BackgroundContext";
 import { useLoading } from "@/contexts/LoadingContext";
 import { fetchVideoDetails, formatDuration, getBackdropUrl, getEpisodes, getSeasons, getPosterUrl } from "@/services/jellyfinApi";
@@ -89,7 +87,7 @@ export default function DetailScreen() {
   const router = useRouter();
   const { itemId, itemName } = useLocalSearchParams<{ itemId: string; itemName: string }>();
   const { showGlobalLoader } = useLoading();
-  const { accentColor } = useBackground();
+  const { accentColor, currentImageSource } = useBackground();
 
   const [item, setItem] = useState<JellyfinVideoItem | null>(null);
   const [seasons, setSeasons] = useState<JellyfinItem[]>([]);
@@ -98,7 +96,9 @@ export default function DetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   const isSeries = item?.Type === "Series";
+  // Once item loads use its backdrop; until then fall back to whatever home screen had
   const backdropUrl = item ? (item.BackdropImageTags?.length ? getBackdropUrl(item.Id, 1920) : getPosterUrl(item.Id, 1920)) : undefined;
+  const backgroundImageUrl = backdropUrl ?? (currentImageSource && typeof currentImageSource !== "number" ? currentImageSource.uri : undefined);
 
   // Load item + seasons on mount
   useEffect(() => {
@@ -153,29 +153,18 @@ export default function DetailScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Full-screen backdrop (slightly blurred — cinematic, not fully sharp) */}
-      <DynamicBackground source={backdropUrl ? { uri: backdropUrl } : undefined} blurRadius={6} overlayOpacity={0.35} />
-
-      {/* Gradient that deepens toward the bottom metadata area */}
-      <LinearGradient colors={["transparent", "rgba(10,10,10,0.55)", "rgba(10,10,10,0.92)", "#0A0A0A"]} locations={[0, 0.38, 0.6, 1]} style={styles.gradient} pointerEvents="none" />
-
+      {/* Full-screen blurred backdrop — same system as home screen */}
+      <SkiaLibraryBackground imageUrl={backgroundImageUrl} />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never">
-        {/* Hero spacer — gives the backdrop room to breathe */}
-        <View style={{ height: HERO_HEIGHT * 0.72 }} />
-
-        {/* Metadata glass panel */}
-        <SmartGlassView style={styles.metaPanel} effect="regular" tintColor={accentColor}>
+        <View style={styles.metaPanel}>
+          {/* Always show title immediately from route params */}
+          <Text style={styles.title} numberOfLines={2}>
+            {item?.Name ?? itemName}
+          </Text>
           {isLoading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator color="#FFC312" size="small" />
-            </View>
+            <ActivityIndicator color="#FFC312" size="small" style={{ marginTop: 20 }} />
           ) : (
             <>
-              {/* Title */}
-              <Text style={styles.title} numberOfLines={2}>
-                {item?.Name ?? itemName}
-              </Text>
-
               {/* Pills row */}
               <View style={styles.pillsRow}>
                 {year ? (
@@ -214,7 +203,7 @@ export default function DetailScreen() {
               </View>
             </>
           )}
-        </SmartGlassView>
+        </View>
 
         {/* Series: season picker + episode list */}
         {!isLoading && isSeries && seasons.length > 0 && (
@@ -253,33 +242,21 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#0A0A0A",
   },
-  gradient: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-  },
   scroll: {
     flex: 1,
     zIndex: 1,
   },
   scrollContent: {
+    flexGrow: 1,
     paddingHorizontal: IS_TV ? 80 : 20,
+    justifyContent: "flex-end",
+    paddingBottom: IS_TV ? 80 : 40,
   },
-  loadingContainer: {
-    height: 120,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  // ── Metadata panel ──────────────────────────────────────────────────────
   metaPanel: {
     borderRadius: 24,
     padding: IS_TV ? 40 : 24,
-    marginBottom: IS_TV ? 40 : 24,
-    // subtle shadow so glass lifts off the gradient
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 24,
+    marginBottom: IS_TV ? 24 : 16,
+    backgroundColor: "rgba(10,10,10,0.6)",
   },
   title: {
     fontSize: IS_TV ? 52 : 28,
