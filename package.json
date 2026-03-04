@@ -33,17 +33,18 @@
   },
   "scripts": {
     "postinstall": "patch-package",
-    "start": "expo start --port 8031",
+    "start": "expo start",
     "android": "expo run:android",
-    "ios": "expo run:ios --port 8031",
+    "ios": "expo run:ios",
     "lint": "npx expo lint --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "prebuild:tv": "EXPO_TV=1 expo prebuild --clean",
     "prebuild": "expo prebuild --clean",
-    "lib": "npm uninstall expo-tvos-search && npm cache clean --force && npm install expo-tvos-search@github:keiver/expo-tvos-search#tint-fix && rm -rf .expo .metro-cache && yes | EXPO_TV=1 npx expo prebuild --clean && npx expo start --port 8031 --clear",
-    "clear": "rm -rf .expo .metro-cache node_modules package-lock.json && npm i && yes | EXPO_TV=1 npx expo prebuild --clean && npx expo start --port 8031 --clear"
+    "lib": "npm uninstall expo-tvos-search && npm cache clean --force && npm install expo-tvos-search@github:keiver/expo-tvos-search#tint-fix && rm -rf .expo .metro-cache && yes | EXPO_TV=1 npx expo prebuild --clean && npx expo start --clear",
+    "clear": "rm -rf .expo .metro-cache node_modules package-lock.json && npm i && yes | EXPO_TV=1 npx expo prebuild --clean && npx expo start --clear",
+    "sim:reload": "xcrun simctl terminate CCD5D246-2222-401D-8EC4-A1759F4E589C com.hasson.radmedia 2>/dev/null; sleep 1; xcrun simctl launch CCD5D246-2222-401D-8EC4-A1759F4E589C com.hasson.radmedia"
   },
   "dependencies": {
     "@callstack/liquid-glass": "^0.7.0",

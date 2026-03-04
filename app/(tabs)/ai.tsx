@@ -1,27 +1,20 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useBackground } from "@/contexts/BackgroundContext";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TVEventControl,
-  ScrollView,
-  ActivityIndicator,
-  Platform,
-} from 'react-native';
-import { isNativeSearchAvailable, TvosSearchView } from 'expo-tvos-search';
+import { View, Text, StyleSheet, TVEventControl, ScrollView, ActivityIndicator, Platform } from "react-native";
+import { isNativeSearchAvailable, TvosSearchView } from "expo-tvos-search";
+import { componentRegistry } from "@/services/componentRegistry";
+import type { SduiRenderPayload } from "@/services/componentRegistry";
+import { sendChatMessage, OpenClawError } from "@/services/openclawApi";
+import { ChatMessage } from "@/components/sdui/ChatMessage";
+import { AnimatedEntrance } from "@/components/sdui/AnimatedEntrance";
+import { logger } from "@/utils/logger";
+import { useFocusEffect } from "expo-router";
+import { SkiaShaderBackground } from "@/components/SkiaShaderBackground";
 
 // expo-tvos-search renders RN children below the native search bar and accepts
 // a `mode` prop, but neither are in the upstream TS types (patched library).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+
 const TvosSearchViewWithChildren = TvosSearchView as React.ComponentType<any>;
-import { componentRegistry } from '@/services/componentRegistry';
-import type { SduiRenderPayload } from '@/services/componentRegistry';
-import { sendChatMessage, OpenClawError } from '@/services/openclawApi';
-import { ChatMessage } from '@/components/sdui/ChatMessage';
-import { AnimatedEntrance } from '@/components/sdui/AnimatedEntrance';
-import { logger } from '@/utils/logger';
-import { useFocusEffect } from 'expo-router';
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -49,12 +42,12 @@ let nextQueryId = 0;
 /** AI tab — native search bar (keyboard + mic) for voice commands to OpenClaw. */
 export default function AiScreen() {
   // Query / request state
-  const [currentQuery, setCurrentQuery] = useState('');
+  const [currentQuery, setCurrentQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [responseText, setResponseText] = useState('');
-  const [errorText, setErrorText] = useState('');
+  const [responseText, setResponseText] = useState("");
+  const [errorText, setErrorText] = useState("");
   const [hasQueried, setHasQueried] = useState(false);
-  const submittedQueryRef = useRef('');
+  const submittedQueryRef = useRef("");
 
   // Track the current query's ID so stale SDUI renders from old queries are ignored.
   const activeQueryIdRef = useRef(-1);
@@ -115,14 +108,14 @@ export default function AiScreen() {
     activeQueryIdRef.current = queryId;
 
     // Clear previous results
-    setResponseText('');
-    setErrorText('');
+    setResponseText("");
+    setErrorText("");
     setComponents([]);
     setHasSduiContent(false);
     setHasQueried(true);
     setIsLoading(true);
 
-    logger.info('AI tab: submitting query', { service: 'AiScreen', query: trimmed });
+    logger.info("AI tab: submitting query", { service: "AiScreen", query: trimmed });
 
     try {
       const result = await sendChatMessage(trimmed, controller.signal);
@@ -132,14 +125,9 @@ export default function AiScreen() {
         setResponseText(result.text);
       }
     } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') return;
-      const message =
-        err instanceof OpenClawError
-          ? err.message
-          : err instanceof Error
-            ? err.message
-            : 'Something went wrong';
-      logger.error('AI tab: query failed', err, { service: 'AiScreen', query: trimmed });
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      const message = err instanceof OpenClawError ? err.message : err instanceof Error ? err.message : "Something went wrong";
+      logger.error("AI tab: query failed", err, { service: "AiScreen", query: trimmed });
       if (activeQueryIdRef.current === queryId) {
         setErrorText(message);
       }
@@ -186,13 +174,13 @@ export default function AiScreen() {
   // ── SDUI render handling ───────────────────────────────────────────────────────
 
   const handleRender = useCallback((payload: SduiRenderPayload) => {
-    logger.info('AI tab: rendering component', {
-      service: 'AiScreen',
+    logger.info("AI tab: rendering component", {
+      service: "AiScreen",
       name: payload.name,
     });
     const element = componentRegistry.render(payload.name, payload.props);
     if (!element) {
-      logger.warn('AI tab: render returned null', { service: 'AiScreen', name: payload.name });
+      logger.warn("AI tab: render returned null", { service: "AiScreen", name: payload.name });
       return;
     }
     // Stable id = component name so React updates props in-place (preserves animation state).
@@ -218,73 +206,54 @@ export default function AiScreen() {
   // - no richer SDUI components arrived (those already convey the bot's intent).
   const showTextResponse = responseText.length > 0 && !hasSduiContent;
 
-
   if (isNativeSearchAvailable()) {
     return (
-      <TvosSearchViewWithChildren
-        mode="input"
-        results={[]}
-        placeholder="Ask me anything..."
-        colorScheme="dark"
-        topInset={140}
-        onSearch={handleSearch}
-        onSelectItem={() => {}}
-        onSearchFieldFocused={handleSearchFieldFocused}
-        onSearchFieldBlurred={handleSearchFieldBlurred}
-        style={styles.nativeView}
-      >
-        {/* Results area — always mounted so Fabric children stay stable */}
-        <ScrollView
-          style={styles.resultsContainer}
-          contentContainerStyle={styles.resultsContent}
-          removeClippedSubviews={false}
-          scrollEnabled
-          focusable={false}
-        >
-          <View style={styles.contentWrapper}>
-            {/* Empty state — shown before the first query */}
-            {!hasQueried && !isLoading && components.length === 0 && (
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyStateText}>Ask me anything about your media library</Text>
-              </View>
-            )}
-
-            {/* Spinner — shown while waiting for a response */}
-            {isLoading && components.length === 0 && (
-              <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#FFC312" />
-              </View>
-            )}
-
-            {/* Error message */}
-            {errorText.length > 0 && (
-              <ChatMessage
-                text={errorText}
-                role="system"
-                variant="error"
-              />
-            )}
-
-            {/* Text-only response (suppressed when SDUI components are present) */}
-            {showTextResponse && (
-              <ChatMessage
-                text={responseText}
-                role="assistant"
-                variant="default"
-              />
-            )}
-
-            {/* SDUI components from ui.render */}
-            {components.map((rc) => (
-              <AnimatedEntrance key={rc.id} triggerKey={rc.triggerId}>
-                <View style={styles.componentWrapper}>
-                  {rc.element}
+      <View style={styles.screenRoot}>
+        <SkiaShaderBackground />
+        <TvosSearchViewWithChildren
+          mode="input"
+          results={[]}
+          placeholder="Ask me anything..."
+          colorScheme="dark"
+          topInset={140}
+          onSearch={handleSearch}
+          onSelectItem={() => {}}
+          onSearchFieldFocused={handleSearchFieldFocused}
+          onSearchFieldBlurred={handleSearchFieldBlurred}
+          style={styles.nativeView}>
+          {/* Results area — always mounted so Fabric children stay stable */}
+          <ScrollView style={styles.resultsContainer} contentContainerStyle={styles.resultsContent} removeClippedSubviews={false} scrollEnabled focusable={false}>
+            <View style={styles.contentWrapper}>
+              {/* Empty state — shown before the first query */}
+              {!hasQueried && !isLoading && components.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Text style={styles.emptyStateText}>Ask me anything about your media library</Text>
                 </View>
-              </AnimatedEntrance>
-            ))}
-          </View>
-        </ScrollView>
-      </TvosSearchViewWithChildren>
+              )}
+
+              {/* Spinner — shown while waiting for a response */}
+              {isLoading && components.length === 0 && (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="large" color="#FFC312" />
+                </View>
+              )}
+
+              {/* Error message */}
+              {errorText.length > 0 && <ChatMessage text={errorText} role="system" variant="error" />}
+
+              {/* Text-only response (suppressed when SDUI components are present) */}
+              {showTextResponse && <ChatMessage text={responseText} role="assistant" variant="default" />}
+
+              {/* SDUI components from ui.render */}
+              {components.map((rc) => (
+                <AnimatedEntrance key={rc.id} triggerKey={rc.triggerId}>
+                  <View style={styles.componentWrapper}>{rc.element}</View>
+                </AnimatedEntrance>
+              ))}
+            </View>
+          </ScrollView>
+        </TvosSearchViewWithChildren>
+      </View>
     );
   }
 
@@ -295,43 +264,46 @@ export default function AiScreen() {
 // ─── Styles ─────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
+  screenRoot: {
+    flex: 1,
+  },
   nativeView: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   resultsContainer: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   resultsContent: {
     paddingTop: Platform.isTV ? 160 : 16,
     paddingHorizontal: Platform.isTV ? 80 : 16,
     gap: Platform.isTV ? 24 : 16,
     paddingBottom: Platform.isTV ? 120 : 40,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   emptyState: {
     paddingTop: Platform.isTV ? 80 : 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   emptyStateText: {
-    color: 'rgba(255,255,255,0.4)',
+    color: "rgba(255,255,255,0.4)",
     fontSize: Platform.isTV ? 28 : 17,
-    fontWeight: '300',
-    textAlign: 'center',
+    fontWeight: "300",
+    textAlign: "center",
   },
   loadingContainer: {
     paddingTop: Platform.isTV ? 80 : 40,
-    alignItems: 'center',
+    alignItems: "center",
   },
   contentWrapper: {
-    width: '100%',
+    width: "100%",
   },
   componentWrapper: {
-    width: '100%',
+    width: "100%",
   },
   fallback: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
 });

@@ -8,6 +8,7 @@ import { useBackground } from "@/contexts/BackgroundContext";
 import { connectToDemoServer, getPosterUrl, searchVideos } from "@/services/jellyfinApi";
 import { JellyfinVideoItem } from "@/types/jellyfin";
 import { logger } from "@/utils/logger";
+import { DynamicBackground } from "@/components/DynamicBackground";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { isNativeSearchAvailable, SearchResult, TvosSearchView } from "expo-tvos-search";
@@ -68,8 +69,7 @@ const SearchHeader = React.memo(
 );
 
 function NativeSearchScreen() {
-
-  const { setScreenContext, setBackdropUrl } = useBackground();
+  const { setScreenContext, setBackdropUrl, currentImageSource } = useBackground();
   useEffect(() => {
     setScreenContext("search");
     setBackdropUrl(undefined);
@@ -162,28 +162,31 @@ function NativeSearchScreen() {
   );
 
   return (
-    <TvosSearchView
-      results={searchResults}
-      columns={5}
-      placeholder="Search library"
-      emptyStateText="Find by title, season, or year..."
-      isLoading={isSearching}
-      topInset={140}
-      colorScheme="dark"
-      overlayTitleSize={30}
-      textColor={searchTextColor}
-      accentColor={searchTextColor}
-      onSearch={handleSearch}
-      onSelectItem={handleSelectItem}
-      onSearchFieldFocused={handleSearchFieldFocused}
-      onSearchFieldBlurred={handleSearchFieldBlurred}
-      style={styles.nativeSearchView}
-    />
+    <View style={styles.nativeSearchView}>
+      <DynamicBackground source={currentImageSource} />
+      <TvosSearchView
+        results={searchResults}
+        columns={5}
+        placeholder="Search library"
+        emptyStateText="Find by title, season, or year..."
+        isLoading={isSearching}
+        topInset={140}
+        colorScheme="dark"
+        overlayTitleSize={30}
+        textColor={searchTextColor}
+        accentColor={searchTextColor}
+        onSearch={handleSearch}
+        onSelectItem={handleSelectItem}
+        onSearchFieldFocused={handleSearchFieldFocused}
+        onSearchFieldBlurred={handleSearchFieldBlurred}
+        style={styles.nativeSearchView}
+      />
+    </View>
   );
 }
 
 function ReactNativeSearchScreen() {
-  const { setScreenContext, setBackdropUrl } = useBackground();
+  const { setScreenContext, setBackdropUrl, currentImageSource } = useBackground();
   useEffect(() => {
     setScreenContext("search");
     setBackdropUrl(undefined);
@@ -490,6 +493,7 @@ function ReactNativeSearchScreen() {
 
   return (
     <View style={styles.container}>
+      <DynamicBackground source={currentImageSource} />
       {headerComponent}
 
       {shouldShowResults ? (

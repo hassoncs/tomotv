@@ -19,6 +19,18 @@ jest.mock('@callstack/liquid-glass', () => ({
   isLiquidGlassSupported: () => false,
 }));
 
+// Mock @shopify/react-native-skia (native Metal module — unavailable in Jest)
+jest.mock('@shopify/react-native-skia', () => ({
+  Canvas: 'Canvas',
+  Fill: 'Fill',
+  Shader: 'Shader',
+  Skia: {
+    RuntimeEffect: {
+      Make: () => ({}),
+    },
+  },
+}));
+
 // Mock expo-image (native module unavailable in Jest)
 jest.mock('expo-image', () => ({
   Image: 'Image',

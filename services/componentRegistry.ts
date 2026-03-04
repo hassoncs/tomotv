@@ -86,7 +86,19 @@ class ComponentRegistry {
   }
 
   /**
-   * Returns a JSON-schema manifest of all registered components.
+   * Validate props for a named component without rendering.
+   * Returns the parsed props on success, or throws a ZodError on failure.
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  validateProps(name: string, rawProps: unknown): Record<string, any> {
+    const registered = this.components.get(name);
+    if (!registered) {
+      throw new Error(`Unknown SDUI component: ${name}`);
+    }
+    return registered.propsSchema.parse(rawProps);
+  }
+
+  /**
    * Sent to the LLM via `radmedia ui:components` so it knows what to render.
    */
   getManifest(): ComponentManifestEntry[] {

@@ -18,7 +18,7 @@ function getSourceKey(source?: ImageSource): string {
   return source.uri;
 }
 
-export function DynamicBackground({ source, blurRadius = 50, overlayOpacity = 0.55 }: DynamicBackgroundProps) {
+export function DynamicBackground({ source, blurRadius = 50, overlayOpacity = 0.3 }: DynamicBackgroundProps) {
   const [currentSource, setCurrentSource] = useState<ImageSource | undefined>(source);
   const [previousSource, setPreviousSource] = useState<ImageSource | undefined>(undefined);
   const fadeAnim = useSharedValue(1);
@@ -40,32 +40,12 @@ export function DynamicBackground({ source, blurRadius = 50, overlayOpacity = 0.
 
   return (
     <View style={styles.container} pointerEvents="none">
-      {previousSource && (
-        <Image
-          source={previousSource}
-          style={styles.layer}
-          blurRadius={blurRadius}
-          contentFit="cover"
-          cachePolicy="disk"
-        />
-      )}
+      {previousSource && <Image source={previousSource} style={styles.layer} blurRadius={blurRadius} contentFit="cover" cachePolicy="disk" />}
       <Animated.View style={[styles.layer, animatedStyle]}>
-        {currentSource && (
-          <Image
-            source={currentSource}
-            style={styles.layerFill}
-            blurRadius={blurRadius}
-            contentFit="cover"
-            cachePolicy="disk"
-          />
-        )}
+        {currentSource && <Image source={currentSource} style={styles.layerFill} blurRadius={blurRadius} contentFit="cover" cachePolicy="disk" />}
       </Animated.View>
       <LinearGradient
-        colors={[
-          `rgba(10,10,10,${(overlayOpacity * 0.3).toFixed(3)})`,
-          `rgba(10,10,10,${overlayOpacity.toFixed(3)})`,
-          `rgba(10,10,10,${overlayOpacity.toFixed(3)})`,
-        ]}
+        colors={[`rgba(10,10,10,${(overlayOpacity * 0.1).toFixed(3)})`, `rgba(10,10,10,${overlayOpacity.toFixed(3)})`, `rgba(10,10,10,${overlayOpacity.toFixed(3)})`]}
         locations={[0, 0.4, 1]}
         style={StyleSheet.absoluteFillObject}
       />

@@ -1,14 +1,14 @@
-import React, { useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet, Platform } from 'react-native';
-import { z } from 'zod';
-import { useRouter } from 'expo-router';
+import React, { useCallback } from "react";
+import { View, Text, FlatList, StyleSheet, Platform } from "react-native";
+import { z } from "zod";
+import { useRouter } from "expo-router";
 
-import { VideoGridItem } from '@/components/video-grid-item';
-import type { JellyfinVideoItem } from '@/types/jellyfin';
-import { isFolder } from '@/services/jellyfinApi';
-import { useFolderNavigation } from '@/contexts/FolderNavigationContext';
-import { useLoading } from '@/contexts/LoadingContext';
-import { remoteBridgeService } from '@/services/remoteBridgeService';
+import { VideoGridItem } from "@/components/video-grid-item";
+import type { JellyfinVideoItem } from "@/types/jellyfin";
+import { isFolder } from "@/services/jellyfinApi";
+import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
+import { useLoading } from "@/contexts/LoadingContext";
+import { remoteBridgeService } from "@/services/remoteBridgeService";
 
 // Minimal Zod schema for a Jellyfin item as received from the bridge.
 // Only Id and Name are required; everything else is optional to keep the bot
@@ -17,8 +17,8 @@ const mediaGridItemSchema = z.object({
   Id: z.string().min(1),
   Name: z.string(),
   RunTimeTicks: z.number().default(0),
-  Type: z.string().default('Movie'),
-  Path: z.string().default(''),
+  Type: z.string().default("Movie"),
+  Path: z.string().default(""),
   MediaStreams: z.array(z.unknown()).optional(),
   MediaSources: z.array(z.unknown()).optional(),
   Overview: z.string().optional(),
@@ -37,10 +37,10 @@ const mediaGridItemSchema = z.object({
 });
 
 export const mediaGridPropsSchema = z.object({
-  items: z.array(mediaGridItemSchema).describe('Jellyfin video items to display in the grid'),
-  title: z.string().optional().describe('Optional header title displayed above the grid'),
-  columns: z.number().int().min(1).max(8).default(5).describe('Number of grid columns'),
-  onSelectId: z.string().optional().describe('Pre-selected item ID (informational, unused at render)'),
+  items: z.array(mediaGridItemSchema).describe("Jellyfin video items to display in the grid"),
+  title: z.string().optional().describe("Optional header title displayed above the grid"),
+  columns: z.number().int().min(1).max(8).default(5).describe("Number of grid columns"),
+  onSelectId: z.string().optional().describe("Pre-selected item ID (informational, unused at render)"),
 });
 
 export type MediaGridProps = z.infer<typeof mediaGridPropsSchema> & {
@@ -56,7 +56,7 @@ export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProp
     (video: JellyfinVideoItem) => {
       // Always notify the relay so the bot is passively informed.
       remoteBridgeService.emitUiSelect({
-        component: 'MediaGrid',
+        component: "MediaGrid",
         itemId: video.Id,
         itemType: video.Type,
         title: video.Name,
@@ -69,12 +69,12 @@ export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProp
           id: video.Id,
           name: video.Name,
           parentId: (video as any).ParentId,
-          type: video.Type === 'Playlist' ? 'playlist' : 'folder',
+          type: video.Type === "Playlist" ? "playlist" : "folder",
         });
       } else {
         showGlobalLoader();
         router.push({
-          pathname: '/player' as const,
+          pathname: "/player" as const,
           params: { videoId: video.Id, videoName: video.Name },
         });
       }
@@ -89,19 +89,13 @@ export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProp
         data={items as JellyfinVideoItem[]}
         keyExtractor={(item) => item.Id}
         numColumns={columns}
-        renderItem={({ item, index }) => (
-          <VideoGridItem
-            video={item}
-            onPress={handlePress}
-            index={index}
-          />
-        )}
+        renderItem={({ item, index }) => <VideoGridItem video={item} onPress={handlePress} index={index} />}
         contentContainerStyle={styles.grid}
         scrollEnabled={false}
         removeClippedSubviews={false}
       />
-        scrollEnabled={false}
-        removeClippedSubviews={false}
+      scrollEnabled={false}
+      removeClippedSubviews={false}
     </View>
   );
 }
@@ -109,12 +103,12 @@ export function MediaGrid({ items, title, columns = 5, onSelect }: MediaGridProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: "transparent",
   },
   header: {
-    color: '#FFFFFF',
+    color: "#FFFFFF",
     fontSize: Platform.isTV ? 36 : 24,
-    fontWeight: '700',
+    fontWeight: "700",
     marginBottom: Platform.isTV ? 20 : 12,
     paddingHorizontal: 8,
   },

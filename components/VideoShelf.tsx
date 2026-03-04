@@ -54,21 +54,9 @@ function ShelfCard({ item, onPress, cardStyle, index, onItemFocus }: ShelfCardPr
       accessibilityRole="button"
       accessibilityLabel={item.Name || "Media item"}
       style={[styles.cardContainer, { width: cardWidth }]}>
-      <View
-        style={[
-          styles.card,
-          { aspectRatio, backgroundColor: COLORS.backgroundCard },
-          focused ? styles.cardFocused : styles.cardUnfocused,
-        ]}>
+      <View style={[styles.card, { aspectRatio, backgroundColor: COLORS.backgroundCard }, focused ? styles.cardFocused : styles.cardUnfocused]}>
         {posterUrl ? (
-          <Image
-            source={{ uri: posterUrl }}
-            style={styles.cardImage}
-            contentFit="cover"
-            priority={index < 8 ? "high" : "normal"}
-            cachePolicy="disk"
-            recyclingKey={item.Id}
-          />
+          <Image source={{ uri: posterUrl }} style={styles.cardImage} contentFit="cover" priority={index < 8 ? "high" : "normal"} cachePolicy="disk" recyclingKey={item.Id} />
         ) : (
           <View style={styles.placeholderImage}>
             <Text style={styles.placeholderIcon}>▶</Text>
@@ -97,9 +85,7 @@ interface VideoShelfProps {
 
 export function VideoShelf({ title, items, onItemPress, cardStyle = "poster", onItemFocus }: VideoShelfProps) {
   const renderItem = useCallback(
-    ({ item, index }: { item: JellyfinItem; index: number }) => (
-      <ShelfCard item={item} onPress={onItemPress} cardStyle={cardStyle} index={index} onItemFocus={onItemFocus} />
-    ),
+    ({ item, index }: { item: JellyfinItem; index: number }) => <ShelfCard item={item} onPress={onItemPress} cardStyle={cardStyle} index={index} onItemFocus={onItemFocus} />,
     [onItemPress, cardStyle, onItemFocus],
   );
 
@@ -108,14 +94,7 @@ export function VideoShelf({ title, items, onItemPress, cardStyle = "poster", on
   return (
     <View style={styles.container}>
       <Text style={[TYPOGRAPHY.sectionTitle, styles.sectionTitle]}>{title}</Text>
-      <FlatList
-        data={items}
-        renderItem={renderItem}
-        keyExtractor={keyExtractor}
-        horizontal={true}
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.listContent}
-      />
+      <FlatList data={items} renderItem={renderItem} keyExtractor={keyExtractor} horizontal={true} showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listContent} />
     </View>
   );
 }

@@ -1,10 +1,5 @@
-import React, { useEffect } from 'react';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import React, { useEffect } from "react";
+import Animated, { Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 interface AnimatedEntranceProps {
   children: React.ReactNode;
@@ -32,12 +27,7 @@ interface AnimatedEntranceProps {
  *
  * The wrapper is non-focusable: tvOS focus passes through to children normally.
  */
-export function AnimatedEntrance({
-  children,
-  triggerKey,
-  durationMs = 320,
-  offsetY = 18,
-}: AnimatedEntranceProps) {
+export function AnimatedEntrance({ children, triggerKey, durationMs = 320, offsetY = 18 }: AnimatedEntranceProps) {
   const opacity = useSharedValue(0);
   const translateY = useSharedValue(offsetY);
 

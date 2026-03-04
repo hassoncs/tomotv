@@ -12,9 +12,13 @@ export function registerHandlers(dispatcher: HandlerDispatcher): void {
       throw new Error(`Unknown SDUI component: ${parsed.component}. Available: ${manifest.map((c) => c.name).join(', ')}`);
     }
 
+    // Validate props against the component's schema — throws ZodError if invalid,
+    // which remoteBridgeService converts to a JSON-RPC -32602 Invalid params error.
+    const validatedProps = componentRegistry.validateProps(parsed.component, parsed.props);
+
     componentRegistry.dispatchRender(
       parsed.component,
-      parsed.props as Record<string, unknown>,
+      validatedProps,
       { navigateToTab: parsed.navigateToTab }
     );
 

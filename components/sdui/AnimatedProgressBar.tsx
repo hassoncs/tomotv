@@ -1,12 +1,6 @@
-import React, { useEffect } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
-import Animated, {
-  cancelAnimation,
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import React, { useEffect } from "react";
+import { Platform, StyleSheet, View } from "react-native";
+import Animated, { cancelAnimation, Easing, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 
 const TV = Platform.isTV;
 
@@ -45,8 +39,8 @@ export function AnimatedProgressBar({
   progressPerSecond,
   durationToCompleteSeconds,
   height = TV ? 6 : 4,
-  trackColor = 'rgba(255, 255, 255, 0.1)',
-  fillColor = '#FFC312',
+  trackColor = "rgba(255, 255, 255, 0.1)",
+  fillColor = "#FFC312",
 }: AnimatedProgressBarProps) {
   const progressSV = useSharedValue(progress);
 
@@ -61,29 +55,25 @@ export function AnimatedProgressBar({
     const capturedDTC = durationToCompleteSeconds;
 
     // Step 1: Snap to the current confirmed position with a short catch-up.
-    progressSV.value = withTiming(
-      clamped,
-      { duration: 250, easing: Easing.out(Easing.quad) },
-      (finished) => {
-        'worklet';
-        if (!finished || remaining <= 0) return;
+    progressSV.value = withTiming(clamped, { duration: 250, easing: Easing.out(Easing.quad) }, (finished) => {
+      "worklet";
+      if (!finished || remaining <= 0) return;
 
-        // Step 2: Continue advancing linearly to 100% at the given rate.
-        let remainingMs: number | undefined;
-        if (capturedPPS !== undefined && capturedPPS > 0) {
-          remainingMs = (remaining / capturedPPS) * 1000;
-        } else if (capturedDTC !== undefined && capturedDTC > 0) {
-          remainingMs = capturedDTC * 1000;
-        }
+      // Step 2: Continue advancing linearly to 100% at the given rate.
+      let remainingMs: number | undefined;
+      if (capturedPPS !== undefined && capturedPPS > 0) {
+        remainingMs = (remaining / capturedPPS) * 1000;
+      } else if (capturedDTC !== undefined && capturedDTC > 0) {
+        remainingMs = capturedDTC * 1000;
+      }
 
-        if (remainingMs !== undefined) {
-          progressSV.value = withTiming(1, {
-            duration: remainingMs,
-            easing: Easing.linear,
-          });
-        }
-      },
-    );
+      if (remainingMs !== undefined) {
+        progressSV.value = withTiming(1, {
+          duration: remainingMs,
+          easing: Easing.linear,
+        });
+      }
+    });
   }, [progress, progressPerSecond, durationToCompleteSeconds, progressSV]);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -100,6 +90,6 @@ export function AnimatedProgressBar({
 const styles = StyleSheet.create({
   track: {
     borderRadius: 3,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
 });

@@ -109,19 +109,26 @@ export default function VideoPlayerScreen() {
     playbackController.registerPlayer({
       pause: () => pause(),
       resume: () => play(),
-      stop: () => { pause(); router.back(); },
-      seek: (seconds: number) => { videoRef.current?.seek(seconds); },
+      stop: () => {
+        pause();
+        router.back();
+      },
+      seek: (seconds: number) => {
+        videoRef.current?.seek(seconds);
+      },
       next: () => handlePlaybackEnd(),
       getState: () => ({
-        status: paused ? 'paused' : (state.type === 'PLAYING' ? 'playing' : state.type === 'ERROR' ? 'error' : 'buffering'),
+        status: paused ? "paused" : state.type === "PLAYING" ? "playing" : state.type === "ERROR" ? "error" : "buffering",
         jellyfinId: params.videoId ?? null,
         positionSeconds: 0,
         durationSeconds: 0,
       }),
     });
-    return () => { playbackController.unregisterPlayer(); };
-  // Register once per videoId mount — handlers close over stable refs
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => {
+      playbackController.unregisterPlayer();
+    };
+    // Register once per videoId mount — handlers close over stable refs
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.videoId]);
 
   // Hide global loader when component mounts

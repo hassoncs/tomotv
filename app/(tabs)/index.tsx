@@ -18,7 +18,6 @@ import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivityIndicator, Alert, BackHandler, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View, useTVEventHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Animated, { useAnimatedScrollHandler, useDerivedValue, useSharedValue } from "react-native-reanimated";
 
 // Special marker for the ".." back navigation item
 const BACK_ITEM_ID = "__BACK__";
@@ -51,28 +50,15 @@ export default function VideoLibraryScreen() {
   const { items, isLoading, isLoadingMore, hasMoreResults, error, folderStack, currentFolder, navigateToFolder, navigateBack, loadMore, refresh } = useFolderNavigation();
   const { buildQueue } = usePlayQueue();
   const { setBackdropUrl, setScreenContext, currentImageSource } = useBackground();
-  // Extract URL string for SkiaLibraryBackground (ambient require() assets fall back to dark shader)
+  // Extract URL string for SkiaLibraryBackground (ambient require() assets fall back to dark base)
   const backdropImageUrl = currentImageSource && typeof currentImageSource !== "number" ? currentImageSource.uri : undefined;
   const heroBackdropUrlRef = useRef<string | undefined>(undefined);
   const shelfFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // ─── Scroll-based blur line (Phase 2) ───────────────────────────────────
-  const HERO_HEIGHT = Dimensions.get("window").height * 0.62;
-  const scrollY = useSharedValue(0);
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
-    },
-  });
-  // blurLine: 0.45 at top, 0.0 when fully past hero — as user scrolls down, blur rises
-  const blurLine = useDerivedValue(() => {
-    const progress = Math.min(scrollY.value / HERO_HEIGHT, 1);
-    return 0.45 * (1 - progress);
-  });
+  // True while the user is focused on a shelf item — carousel auto-rotate should not override backdrop
+  const shelfFocusedRef = useRef(false);
 
   const handleMoreInfo = useCallback(
     (item: JellyfinItem) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       router.push({ pathname: "/detail" as any, params: { itemId: item.Id, itemName: item.Name } });
     },
     [router],
@@ -110,11 +96,7 @@ export default function VideoLibraryScreen() {
   useEffect(() => {
     if (folderStack.length === 0) {
       setIsLoadingHomeData(true);
-      Promise.all([
-        getRecentlyAdded(),
-        getContinueWatching(),
-        getNextUp(),
-      ])
+      Promise.all([getRecentlyAdded(), getContinueWatching(), getNextUp()])
         .then(([recentlyAdded, continueWatching, nextUp]) => {
           setHomeData({ recentlyAdded, continueWatching, nextUp });
         })
@@ -139,24 +121,34 @@ export default function VideoLibraryScreen() {
 
   const handleHeroItemChange = useCallback(
     (item: JellyfinItem) => {
-      const url =
-        item.BackdropImageTags && item.BackdropImageTags.length > 0
-          ? getBackdropUrl(item.Id)
-          : undefined;
+      const url = item.BackdropImageTags && item.BackdropImageTags.length > 0 ? getBackdropUrl(item.Id) : undefined;
       heroBackdropUrlRef.current = url;
-      setBackdropUrl(url);
+      // Don't override backdrop while user is focused on a shelf item
+      if (!shelfFocusedRef.current) {
+        setBackdropUrl(url);
+      }
     },
     [setBackdropUrl],
   );
 
+  // Called when focus returns to the hero area — clears shelf focus and restores carousel backdrop
+  const handleHeroFocus = useCallback(() => {
+    if (shelfFocusTimerRef.current) {
+      clearTimeout(shelfFocusTimerRef.current);
+      shelfFocusTimerRef.current = null;
+    }
+    shelfFocusedRef.current = false;
+    if (heroBackdropUrlRef.current !== undefined) {
+      setBackdropUrl(heroBackdropUrlRef.current);
+    }
+  }, [setBackdropUrl]);
+
   const handleShelfItemFocus = useCallback(
     (item: JellyfinItem) => {
+      shelfFocusedRef.current = true;
       if (shelfFocusTimerRef.current) clearTimeout(shelfFocusTimerRef.current);
       shelfFocusTimerRef.current = setTimeout(() => {
-        const url =
-          item.BackdropImageTags && item.BackdropImageTags.length > 0
-            ? getBackdropUrl(item.Id)
-            : getPosterUrl(item.Id, 1920);
+        const url = item.BackdropImageTags && item.BackdropImageTags.length > 0 ? getBackdropUrl(item.Id) : getPosterUrl(item.Id, 1920);
         setBackdropUrl(url);
       }, 150);
     },
@@ -343,7 +335,7 @@ export default function VideoLibraryScreen() {
 
   return (
     <View style={styles.container}>
-      <SkiaLibraryBackground imageUrl={backdropImageUrl} blurLine={blurLine} />
+      <SkiaLibraryBackground imageUrl={backdropImageUrl} />
       {folderStack.length === 0 ? (
         <>
           {isLoadingHomeData || !homeData ? (
@@ -356,48 +348,18 @@ export default function VideoLibraryScreen() {
           ) : homeData.recentlyAdded.length === 0 && homeData.continueWatching.length === 0 ? (
             renderEmpty()
           ) : (
-            <Animated.ScrollView
-              onScroll={scrollHandler}
-              scrollEventThrottle={16}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={styles.homeScrollContent}
-            >
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.homeScrollContent}>
               {homeData.recentlyAdded.length > 0 && (
-                <HeroBillboard
-                  items={homeData.recentlyAdded.slice(0, 5)}
-                  onPlay={handleItemPress}
-                  onInfo={handleMoreInfo}
-                  onItemChange={handleHeroItemChange}
-                />
+                <HeroBillboard items={homeData.recentlyAdded.slice(0, 5)} onPlay={handleItemPress} onInfo={handleMoreInfo} onItemChange={handleHeroItemChange} onHeroFocus={handleHeroFocus} />
               )}
               {homeData.continueWatching.length > 0 && (
-                <VideoShelf
-                  title="Continue Watching"
-                  items={homeData.continueWatching}
-                  onItemPress={handleItemPress}
-                  onItemFocus={handleShelfItemFocus}
-                  cardStyle="landscape"
-                />
+                <VideoShelf title="Continue Watching" items={homeData.continueWatching} onItemPress={handleItemPress} onItemFocus={handleShelfItemFocus} cardStyle="landscape" />
               )}
-              {homeData.nextUp.length > 0 && (
-                <VideoShelf
-                  title="Next Up"
-                  items={homeData.nextUp}
-                  onItemPress={handleItemPress}
-                  onItemFocus={handleShelfItemFocus}
-                  cardStyle="landscape"
-                />
-              )}
+              {homeData.nextUp.length > 0 && <VideoShelf title="Next Up" items={homeData.nextUp} onItemPress={handleItemPress} onItemFocus={handleShelfItemFocus} cardStyle="landscape" />}
               {homeData.recentlyAdded.length > 0 && (
-                <VideoShelf
-                  title="Recently Added"
-                  items={homeData.recentlyAdded}
-                  onItemPress={handleItemPress}
-                  onItemFocus={handleShelfItemFocus}
-                  cardStyle="poster"
-                />
+                <VideoShelf title="Recently Added" items={homeData.recentlyAdded} onItemPress={handleItemPress} onItemFocus={handleShelfItemFocus} cardStyle="poster" />
               )}
-            </Animated.ScrollView>
+            </ScrollView>
           )}
         </>
       ) : (

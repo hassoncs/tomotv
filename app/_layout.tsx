@@ -62,9 +62,7 @@ function RootLayoutContent({ bridgeConnected }: { bridgeConnected: boolean }) {
       {SHOW_BRIDGE_STATUS && (
         <View style={styles.bridgeDot} pointerEvents="none">
           <View style={[styles.dot, bridgeConnected ? styles.dotOn : styles.dotOff]} />
-          <Text style={styles.dotLabel}>
-            {bridgeConnected ? "WS" : "WS"}
-          </Text>
+          <Text style={styles.dotLabel}>{bridgeConnected ? "WS" : "WS"}</Text>
         </View>
       )}
     </View>
@@ -82,7 +80,6 @@ export default function RootLayout() {
 
     playbackController.registerRouter({
       push: (route: string, params?: Record<string, string>) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         router.push({ pathname: route as any, params });
       },
       back: () => router.back(),
@@ -96,14 +93,14 @@ export default function RootLayout() {
 
     const unsubSdui = componentRegistry.onRender((payload) => {
       if (payload.navigateToTab) {
-        router.push('/(tabs)/ai' as any);
+        router.push("/(tabs)/ai" as any);
       }
     });
 
-    const appStateSub = AppState.addEventListener('change', (nextState: AppStateStatus) => {
+    const appStateSub = AppState.addEventListener("change", (nextState: AppStateStatus) => {
       const prev = appState.current;
       appState.current = nextState;
-      if (prev !== 'active' && nextState === 'active') {
+      if (prev !== "active" && nextState === "active") {
         if (!remoteBridgeService.isConnected()) {
           remoteBridgeService.reconnectNow();
         }
@@ -117,7 +114,7 @@ export default function RootLayout() {
       remoteBridgeService.stop();
       playbackController.unregisterRouter();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -172,7 +169,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 });
-
 
 export const unstable_settings = {
   anchor: "(tabs)",

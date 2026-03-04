@@ -18,7 +18,7 @@ DEVICE_UUID="3E2E1550-1549-58F4-8690-DA1CDA2BB713"          # devicectl UUID
 BUNDLE_ID="com.hasson.radmedia"
 WORKSPACE="ios/RadMedia.xcworkspace"
 SCHEME="RadMedia"
-METRO_PORT=8031
+METRO_PORT=8081
 
 # ─── Paths ──────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

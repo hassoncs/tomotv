@@ -44,10 +44,7 @@ const VideoGridItemComponent = forwardRef<React.ElementRef<typeof TouchableOpaci
 
   // Always attempt poster URL if we have an Id — Jellyfin serves images
   // even when ImageTags metadata wasn't included (e.g. SDUI payloads from the bot)
-  const posterUrl = useMemo(
-    () => (video.Id ? getPosterUrl(video.Id, POSTER_SIZE) : undefined),
-    [video.Id],
-  );
+  const posterUrl = useMemo(() => (video.Id ? getPosterUrl(video.Id, POSTER_SIZE) : undefined), [video.Id]);
 
   const contentFit = useMemo(() => {
     const ratio = video.PrimaryImageAspectRatio;

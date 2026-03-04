@@ -2,6 +2,7 @@ import { ConnectedSection } from "@/components/settings/ConnectedSection";
 import { NotConnectedSection } from "@/components/settings/NotConnectedSection";
 import { QuickConnectSection } from "@/components/settings/QuickConnectSection";
 import { settingsStyles as styles } from "@/components/settings/styles";
+import { DynamicBackground } from "@/components/DynamicBackground";
 import { UsernamePasswordSection } from "@/components/settings/UsernamePasswordSection";
 import { useFolderNavigation } from "@/contexts/FolderNavigationContext";
 import { useLibrary } from "@/contexts/LibraryContext";
@@ -73,7 +74,7 @@ export default function SettingsScreen() {
     }, []),
   );
 
-  const { setScreenContext, setBackdropUrl } = useBackground();
+  const { setScreenContext, setBackdropUrl, currentImageSource } = useBackground();
   React.useEffect(() => {
     setScreenContext("settings");
     setBackdropUrl(undefined);
@@ -247,6 +248,7 @@ export default function SettingsScreen() {
   if (screenState === "LOADING") {
     return (
       <View style={screenStyles.container}>
+        <DynamicBackground source={currentImageSource} />
         <View style={screenStyles.loadingContainer}>
           <ActivityIndicator size="small" color="#FFC312" />
           <Text style={screenStyles.loadingText}>Loading settings...</Text>
@@ -257,6 +259,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={screenStyles.container}>
+      <DynamicBackground source={currentImageSource} />
       <ScrollView
         style={screenStyles.scrollView}
         contentContainerStyle={screenStyles.scrollContent}

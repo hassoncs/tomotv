@@ -2,31 +2,14 @@ import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ActivityIndicator,
-  Dimensions,
-  FlatList,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import { DynamicBackground } from "@/components/DynamicBackground";
 import { FocusableButton } from "@/components/FocusableButton";
 import { SmartGlassView } from "@/components/SmartGlassView";
 import { useBackground } from "@/contexts/BackgroundContext";
 import { useLoading } from "@/contexts/LoadingContext";
-import {
-  fetchVideoDetails,
-  formatDuration,
-  getBackdropUrl,
-  getEpisodes,
-  getSeasons,
-  getPosterUrl,
-} from "@/services/jellyfinApi";
+import { fetchVideoDetails, formatDuration, getBackdropUrl, getEpisodes, getSeasons, getPosterUrl } from "@/services/jellyfinApi";
 import { JellyfinItem, JellyfinVideoItem } from "@/types/jellyfin";
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -55,15 +38,8 @@ function SeasonPill({ season, isSelected, onPress, hasTVPreferredFocus, accentCo
       hasTVPreferredFocus={hasTVPreferredFocus}
       isTVSelectable
       activeOpacity={0.85}
-      style={[
-        styles.seasonPill,
-        isSelected && { borderColor: accentColor ? "rgba(255,255,255,0.6)" : "#FFC312", borderWidth: 2 },
-        (focused || isSelected) && { backgroundColor: tint },
-      ]}
-    >
-      <Text style={[styles.seasonPillText, (isSelected || focused) && styles.seasonPillTextActive]}>
-        {season.Name}
-      </Text>
+      style={[styles.seasonPill, isSelected && { borderColor: accentColor ? "rgba(255,255,255,0.6)" : "#FFC312", borderWidth: 2 }, (focused || isSelected) && { backgroundColor: tint }]}>
+      <Text style={[styles.seasonPillText, (isSelected || focused) && styles.seasonPillTextActive]}>{season.Name}</Text>
     </TouchableOpacity>
   );
 }
@@ -89,26 +65,19 @@ function EpisodeRow({ episode, onPress, accentColor }: EpisodeRowProps) {
       onBlur={() => setFocused(false)}
       isTVSelectable
       activeOpacity={0.85}
-      style={[styles.episodeRow, focused && { backgroundColor: tint }]}
-    >
-      <Image
-        source={{ uri: thumbUrl }}
-        style={styles.episodeThumb}
-        contentFit="cover"
-        cachePolicy="disk"
-      />
+      style={[styles.episodeRow, focused && { backgroundColor: tint }]}>
+      <Image source={{ uri: thumbUrl }} style={styles.episodeThumb} contentFit="cover" cachePolicy="disk" />
       <View style={styles.episodeMeta}>
         <Text style={styles.episodeTitle} numberOfLines={1}>
-          {epNum ? `${epNum} · ` : ""}{episode.Name}
+          {epNum ? `${epNum} · ` : ""}
+          {episode.Name}
         </Text>
         {episode.Overview ? (
           <Text style={styles.episodeOverview} numberOfLines={2}>
             {episode.Overview}
           </Text>
         ) : null}
-        {episode.RunTimeTicks ? (
-          <Text style={styles.episodeDuration}>{formatDuration(episode.RunTimeTicks)}</Text>
-        ) : null}
+        {episode.RunTimeTicks ? <Text style={styles.episodeDuration}>{formatDuration(episode.RunTimeTicks)}</Text> : null}
       </View>
     </TouchableOpacity>
   );
@@ -129,11 +98,7 @@ export default function DetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   const isSeries = item?.Type === "Series";
-  const backdropUrl = item
-    ? item.BackdropImageTags?.length
-      ? getBackdropUrl(item.Id, 1920)
-      : getPosterUrl(item.Id, 1920)
-    : undefined;
+  const backdropUrl = item ? (item.BackdropImageTags?.length ? getBackdropUrl(item.Id, 1920) : getPosterUrl(item.Id, 1920)) : undefined;
 
   // Load item + seasons on mount
   useEffect(() => {
@@ -141,7 +106,10 @@ export default function DetailScreen() {
     setIsLoading(true);
 
     fetchVideoDetails(itemId).then(async (detail) => {
-      if (!detail) { setIsLoading(false); return; }
+      if (!detail) {
+        setIsLoading(false);
+        return;
+      }
       setItem(detail);
 
       if (detail.Type === "Series") {
@@ -167,10 +135,13 @@ export default function DetailScreen() {
     router.push({ pathname: "/player", params: { videoId: item.Id, videoName: item.Name } });
   }, [item, router, showGlobalLoader]);
 
-  const handleEpisodePlay = useCallback((ep: JellyfinItem) => {
-    showGlobalLoader();
-    router.push({ pathname: "/player", params: { videoId: ep.Id, videoName: ep.Name } });
-  }, [router, showGlobalLoader]);
+  const handleEpisodePlay = useCallback(
+    (ep: JellyfinItem) => {
+      showGlobalLoader();
+      router.push({ pathname: "/player", params: { videoId: ep.Id, videoName: ep.Name } });
+    },
+    [router, showGlobalLoader],
+  );
 
   const year = item?.ProductionYear ? String(item.ProductionYear) : null;
   const rating = item?.OfficialRating ?? null;
@@ -178,42 +149,22 @@ export default function DetailScreen() {
   const genres = item?.Genres?.slice(0, 3) ?? [];
   const synopsis = item?.Overview ?? null;
 
-
-
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
     <View style={styles.root}>
       {/* Full-screen backdrop (slightly blurred — cinematic, not fully sharp) */}
-      <DynamicBackground
-        source={backdropUrl ? { uri: backdropUrl } : undefined}
-        blurRadius={6}
-        overlayOpacity={0.35}
-      />
+      <DynamicBackground source={backdropUrl ? { uri: backdropUrl } : undefined} blurRadius={6} overlayOpacity={0.35} />
 
       {/* Gradient that deepens toward the bottom metadata area */}
-      <LinearGradient
-        colors={["transparent", "rgba(10,10,10,0.55)", "rgba(10,10,10,0.92)", "#0A0A0A"]}
-        locations={[0, 0.38, 0.6, 1]}
-        style={styles.gradient}
-        pointerEvents="none"
-      />
+      <LinearGradient colors={["transparent", "rgba(10,10,10,0.55)", "rgba(10,10,10,0.92)", "#0A0A0A"]} locations={[0, 0.38, 0.6, 1]} style={styles.gradient} pointerEvents="none" />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="never"
-      >
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} contentInsetAdjustmentBehavior="never">
         {/* Hero spacer — gives the backdrop room to breathe */}
         <View style={{ height: HERO_HEIGHT * 0.72 }} />
 
         {/* Metadata glass panel */}
-        <SmartGlassView
-          style={styles.metaPanel}
-          effect="regular"
-          tintColor={accentColor}
-        >
+        <SmartGlassView style={styles.metaPanel} effect="regular" tintColor={accentColor}>
           {isLoading ? (
             <View style={styles.loadingContainer}>
               <ActivityIndicator color="#FFC312" size="small" />
@@ -227,9 +178,21 @@ export default function DetailScreen() {
 
               {/* Pills row */}
               <View style={styles.pillsRow}>
-                {year ? <View style={styles.pill}><Text style={styles.pillText}>{year}</Text></View> : null}
-                {rating ? <View style={styles.pill}><Text style={styles.pillText}>{rating}</Text></View> : null}
-                {duration ? <View style={styles.pill}><Text style={styles.pillText}>{duration}</Text></View> : null}
+                {year ? (
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>{year}</Text>
+                  </View>
+                ) : null}
+                {rating ? (
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>{rating}</Text>
+                  </View>
+                ) : null}
+                {duration ? (
+                  <View style={styles.pill}>
+                    <Text style={styles.pillText}>{duration}</Text>
+                  </View>
+                ) : null}
                 {genres.map((g) => (
                   <View key={g} style={[styles.pill, styles.genrePill]}>
                     <Text style={[styles.pillText, styles.genrePillText]}>{g}</Text>
@@ -246,17 +209,8 @@ export default function DetailScreen() {
 
               {/* CTA buttons */}
               <View style={styles.ctaRow}>
-                <FocusableButton
-                  title="▶  Play"
-                  variant="primary"
-                  hasTVPreferredFocus
-                  onPress={handlePlay}
-                />
-                <FocusableButton
-                  title="✕  Close"
-                  variant="secondary"
-                  onPress={() => router.back()}
-                />
+                <FocusableButton title="▶  Play" variant="primary" hasTVPreferredFocus onPress={handlePlay} />
+                <FocusableButton title="✕  Close" variant="secondary" onPress={() => router.back()} />
               </View>
             </>
           )}
@@ -275,13 +229,7 @@ export default function DetailScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.seasonsList}
               renderItem={({ item: season, index }) => (
-                <SeasonPill
-                  season={season}
-                  isSelected={selectedSeasonId === season.Id}
-                  onPress={() => setSelectedSeasonId(season.Id)}
-                  hasTVPreferredFocus={index === 0}
-                  accentColor={accentColor}
-                />
+                <SeasonPill season={season} isSelected={selectedSeasonId === season.Id} onPress={() => setSelectedSeasonId(season.Id)} hasTVPreferredFocus={index === 0} accentColor={accentColor} />
               )}
             />
 

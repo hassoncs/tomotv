@@ -52,7 +52,6 @@
       ],
       "expo-secure-store",
       "./plugins/withMultiAudioResourceLoader",
-      "./plugins/withMetroPort",
     ],
     "experiments": {
       "typedRoutes": true,
