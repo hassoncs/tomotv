@@ -85,8 +85,8 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
           uri={backdropUrl}
           width={SCREEN_WIDTH}
           height={HERO_HEIGHT}
-          fadeStart={0.8}
-          fadeEnd={0.92}
+          fadeStart={0.55}
+          fadeEnd={0.95}
         />
       </Animated.View>
 
