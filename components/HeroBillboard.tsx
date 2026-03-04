@@ -36,12 +36,15 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
   const focusedButtonRef = useRef<"play" | "info" | null>(null);
   const leftSentinelRef = useRef<View>(null);
   const rightSentinelRef = useRef<View>(null);
-  // State to drive hasTVPreferredFocus bounce-back after sentinel fires
-  const [playPreferredFocus, setPlayPreferredFocus] = useState(true);
-  const [infoPreferredFocus, setInfoPreferredFocus] = useState(false);
-  // Node handles for nextFocusLeft/Right — populated after mount
-  const [leftSentinelHandle, setLeftSentinelHandle] = useState<number | null>(null);
-  const [rightSentinelHandle, setRightSentinelHandle] = useState<number | null>(null);
+  const playRef = useRef<View>(null);
+  const infoRef = useRef<View>(null);
+  // One-shot preferred focus: null = no override, 'play'/'info' = grab focus then release
+  const [preferred, setPreferred] = useState<"play" | "info" | null>("play");
+  // Node handles — all four, populated after mount
+  const [handles, setHandles] = useState<{
+    left: number | null; right: number | null;
+    play: number | null; info: number | null;
+  }>({ left: null, right: null, play: null, info: null });
 
   const advance = useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % items.length);
@@ -68,10 +71,20 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
     }
   }, [currentIndex, items, onItemChange]);
 
-  // Populate node handles after sentinels mount so nextFocusLeft/Right work
+  // Populate all four node handles after mount so nextFocus* wiring works
   useEffect(() => {
-    setLeftSentinelHandle(findNodeHandle(leftSentinelRef.current));
-    setRightSentinelHandle(findNodeHandle(rightSentinelRef.current));
+    setHandles({
+      left:  findNodeHandle(leftSentinelRef.current),
+      right: findNodeHandle(rightSentinelRef.current),
+      play:  findNodeHandle(playRef.current),
+      info:  findNodeHandle(infoRef.current),
+    });
+  }, []);
+
+  // One-shot focus bounce: set preferred target, then clear on next tick so it doesn't stick
+  const bounceFocus = useCallback((target: "play" | "info") => {
+    setPreferred(target);
+    setTimeout(() => setPreferred(null), 0);
   }, []);
 
   // Re-sync background when focus returns to the hero area (after browsing shelves)
@@ -117,55 +130,48 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
           </Text>
           {subtitle.length > 0 && <Text style={styles.subtitle}>{subtitle}</Text>}
           <View style={styles.buttonRow}>
-            {/* Left sentinel: invisible, receives focus when user presses left on Play */}
+            {/* Left sentinel: edge detector for Play+left */}
             <Pressable
               ref={leftSentinelRef}
               style={styles.sentinel}
               isTVSelectable
-              onFocus={() => {
-                goBack();
-                setPlayPreferredFocus(true);
-                setInfoPreferredFocus(false);
-              }}
+              accessible={false}
+              onFocus={() => { goBack(); bounceFocus("play"); }}
             />
-            <FocusableButton
-              title="▶ Play"
-              variant="primary"
-              hasTVPreferredFocus={playPreferredFocus}
-              nextFocusLeft={leftSentinelHandle ?? undefined}
-              onPress={() => onPlay(item)}
-              onFocus={() => {
-                focusedButtonRef.current = "play";
-                setPlayPreferredFocus(true);
-                setInfoPreferredFocus(false);
-              }}
-              onBlur={() => { focusedButtonRef.current = null; }}
-            />
-            {onInfo && (
+            {/* Wrapper View gives us a node handle without modifying FocusableButton */}
+            <View ref={playRef} collapsable={false}>
               <FocusableButton
-                title="More Info"
-                variant="secondary"
-                hasTVPreferredFocus={infoPreferredFocus}
-                nextFocusRight={rightSentinelHandle ?? undefined}
-                onPress={() => onInfo(item)}
-                onFocus={() => {
-                  focusedButtonRef.current = "info";
-                  setInfoPreferredFocus(true);
-                  setPlayPreferredFocus(false);
-                }}
+                title="▶ Play"
+                variant="primary"
+                hasTVPreferredFocus={preferred === "play"}
+                nextFocusLeft={handles.left ?? undefined}
+                nextFocusRight={handles.info ?? undefined}
+                onPress={() => onPlay(item)}
+                onFocus={() => { focusedButtonRef.current = "play"; }}
                 onBlur={() => { focusedButtonRef.current = null; }}
               />
+            </View>
+            {onInfo && (
+              <View ref={infoRef} collapsable={false}>
+                <FocusableButton
+                  title="More Info"
+                  variant="secondary"
+                  hasTVPreferredFocus={preferred === "info"}
+                  nextFocusLeft={handles.play ?? undefined}
+                  nextFocusRight={handles.right ?? undefined}
+                  onPress={() => onInfo(item)}
+                  onFocus={() => { focusedButtonRef.current = "info"; }}
+                  onBlur={() => { focusedButtonRef.current = null; }}
+                />
+              </View>
             )}
-            {/* Right sentinel: invisible, receives focus when user presses right on More Info */}
+            {/* Right sentinel: edge detector for MoreInfo+right */}
             <Pressable
               ref={rightSentinelRef}
               style={styles.sentinel}
               isTVSelectable
-              onFocus={() => {
-                advance();
-                setInfoPreferredFocus(true);
-                setPlayPreferredFocus(false);
-              }}
+              accessible={false}
+              onFocus={() => { advance(); bounceFocus(onInfo ? "info" : "play"); }}
             />
           </View>
         </View>
