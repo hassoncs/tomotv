@@ -85,7 +85,7 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
           uri={backdropUrl}
           width={SCREEN_WIDTH}
           height={HERO_HEIGHT}
-          fadeStart={0.55}
+          fadeStart={0.68}
           fadeEnd={0.95}
         />
       </Animated.View>
@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     ...TYPOGRAPHY.heroSubtitle,
-    color: COLORS.textSecondary,
+    color: COLORS.textPrimary,
     marginBottom: 24,
     textShadowColor: "rgba(0, 0, 0, 0.8)",
     textShadowOffset: { width: 0, height: 1 },
