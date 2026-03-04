@@ -19,7 +19,7 @@ interface HeroBillboardProps {
   onItemChange?: (item: JellyfinItem) => void;
   /** Called when focus enters the hero area (e.g. user navigates back from shelves) */
   onHeroFocus?: () => void;
-  /** Animated.Value 0–1: 1 = full height, 0 = collapsed. Drives smooth show/hide. */
+  /** Animated.Value 0–1: 1 = sharp hero image fully visible, 0 = faded out (only blurred bg shows). */
   heroAnim?: Animated.Value;
 }
 
@@ -76,20 +76,19 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
   const subtitle = [year, genre, duration].filter(Boolean).join(" • ");
   const showArrows = items.length > 1;
 
-  const animatedHeight = heroAnim
-    ? heroAnim.interpolate({ inputRange: [0, 1], outputRange: [0, HERO_HEIGHT] })
-    : HERO_HEIGHT;
 
   return (
-    <Animated.View style={[styles.container, { height: animatedHeight, overflow: "hidden" }]} onFocus={handleHeroAreaFocus}>
-      {/* Hero image with shader-based alpha fade to transparent at the bottom */}
-      <SkiaFadingHeroImage
-        uri={backdropUrl}
-        width={SCREEN_WIDTH}
-        height={HERO_HEIGHT}
-        fadeStart={0.8}
-        fadeEnd={0.92}
-      />
+    <View style={styles.container} onFocus={handleHeroAreaFocus}>
+      {/* Sharp hero image — fades out when focus moves to shelves */}
+      <Animated.View style={[StyleSheet.absoluteFill, { opacity: heroAnim ?? 1 }]}>
+        <SkiaFadingHeroImage
+          uri={backdropUrl}
+          width={SCREEN_WIDTH}
+          height={HERO_HEIGHT}
+          fadeStart={0.8}
+          fadeEnd={0.92}
+        />
+      </Animated.View>
 
       <View style={[styles.metadataContainer, { left: SPACING.screenPadding }]}>
         <View style={styles.metadataPanel}>
@@ -146,14 +145,14 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
           )}
         </View>
       </View>
-    </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    // height is driven by Animated.Value when heroAnim is provided
+    height: HERO_HEIGHT,
   },
   metadataContainer: {
     position: "absolute",
