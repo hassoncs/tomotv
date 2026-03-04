@@ -96,9 +96,9 @@ export default function DetailScreen() {
   const [isLoading, setIsLoading] = useState(true);
 
   const isSeries = item?.Type === "Series";
-  // Once item loads use its backdrop; until then fall back to whatever home screen had
-  const backdropUrl = item ? (item.BackdropImageTags?.length ? getBackdropUrl(item.Id, 1920) : getPosterUrl(item.Id, 1920)) : undefined;
-  const backgroundImageUrl = backdropUrl ?? (currentImageSource && typeof currentImageSource !== "number" ? currentImageSource.uri : undefined);
+  // Priority: fetched item backdrop > BackgroundContext (set by home screen before push)
+  const itemBackdropUrl = item ? (item.BackdropImageTags?.length ? getBackdropUrl(item.Id, 1920) : getPosterUrl(item.Id, 1920)) : undefined;
+  const backgroundImageUrl = itemBackdropUrl ?? (currentImageSource && typeof currentImageSource !== "number" ? currentImageSource.uri : undefined);
 
   // Load item + seasons on mount
   useEffect(() => {
@@ -257,6 +257,7 @@ const styles = StyleSheet.create({
     padding: IS_TV ? 40 : 24,
     marginBottom: IS_TV ? 24 : 16,
     backgroundColor: "rgba(10,10,10,0.6)",
+    maxWidth: IS_TV ? 900 : "100%",
   },
   title: {
     fontSize: IS_TV ? 52 : 28,

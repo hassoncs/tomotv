@@ -61,9 +61,12 @@ export default function VideoLibraryScreen() {
 
   const handleMoreInfo = useCallback(
     (item: JellyfinItem) => {
+      // Set backdrop in context BEFORE navigating so detail screen has it immediately
+      const bdUrl = item.BackdropImageTags?.length ? getBackdropUrl(item.Id) : getPosterUrl(item.Id, 1920);
+      setBackdropUrl(bdUrl);
       router.push({ pathname: "/detail" as any, params: { itemId: item.Id, itemName: item.Name } });
     },
-    [router],
+    [router, setBackdropUrl],
   );
   const [isConnectingToDemo, setIsConnectingToDemo] = useState(false);
 
