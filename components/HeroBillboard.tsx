@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Dimensions, Pressable, StyleSheet, Text, View } from "react-native";
 import { SkiaFadingHeroImage } from "@/components/SkiaFadingHeroImage";
 import { FocusableButton } from "@/components/FocusableButton";
 import { COLORS, SPACING, TYPOGRAPHY } from "@/constants/theme";
@@ -19,6 +19,8 @@ interface HeroBillboardProps {
   onItemChange?: (item: JellyfinItem) => void;
   /** Called when focus enters the hero area (e.g. user navigates back from shelves) */
   onHeroFocus?: () => void;
+  /** Animated.Value 0–1: 1 = full height, 0 = collapsed. Drives smooth show/hide. */
+  heroAnim?: Animated.Value;
 }
 
 function formatDurationFromTicks(ticks: number): string {
@@ -29,7 +31,7 @@ function formatDurationFromTicks(ticks: number): string {
   return `${Math.floor(secs / 60)}m`;
 }
 
-export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus }: HeroBillboardProps) {
+export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus, heroAnim }: HeroBillboardProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -74,8 +76,12 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
   const subtitle = [year, genre, duration].filter(Boolean).join(" • ");
   const showArrows = items.length > 1;
 
+  const animatedHeight = heroAnim
+    ? heroAnim.interpolate({ inputRange: [0, 1], outputRange: [0, HERO_HEIGHT] })
+    : HERO_HEIGHT;
+
   return (
-    <View style={styles.container} onFocus={handleHeroAreaFocus}>
+    <Animated.View style={[styles.container, { height: animatedHeight, overflow: "hidden" }]} onFocus={handleHeroAreaFocus}>
       {/* Hero image with shader-based alpha fade to transparent at the bottom */}
       <SkiaFadingHeroImage
         uri={backdropUrl}
@@ -140,14 +146,14 @@ export function HeroBillboard({ items, onPlay, onInfo, onItemChange, onHeroFocus
           )}
         </View>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     width: "100%",
-    height: HERO_HEIGHT,
+    // height is driven by Animated.Value when heroAnim is provided
   },
   metadataContainer: {
     position: "absolute",

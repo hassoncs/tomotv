@@ -16,7 +16,7 @@ import { logger } from "@/utils/logger";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View, useTVEventHandler } from "react-native";
+import { ActivityIndicator, Alert, Animated, BackHandler, Dimensions, FlatList, Platform, ScrollView, StyleSheet, Text, View, useTVEventHandler } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Special marker for the ".." back navigation item
@@ -56,6 +56,8 @@ export default function VideoLibraryScreen() {
   const shelfFocusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // True while the user is focused on a shelf item — carousel auto-rotate should not override backdrop
   const shelfFocusedRef = useRef(false);
+  // Animated value: 1 = hero fully visible, 0 = hero collapsed
+  const heroAnim = useRef(new Animated.Value(1)).current;
 
   const handleMoreInfo = useCallback(
     (item: JellyfinItem) => {
@@ -141,18 +143,20 @@ export default function VideoLibraryScreen() {
     if (heroBackdropUrlRef.current !== undefined) {
       setBackdropUrl(heroBackdropUrlRef.current);
     }
-  }, [setBackdropUrl]);
+    Animated.timing(heroAnim, { toValue: 1, duration: 300, useNativeDriver: false }).start();
+  }, [setBackdropUrl, heroAnim]);
 
   const handleShelfItemFocus = useCallback(
     (item: JellyfinItem) => {
       shelfFocusedRef.current = true;
+      Animated.timing(heroAnim, { toValue: 0, duration: 300, useNativeDriver: false }).start();
       if (shelfFocusTimerRef.current) clearTimeout(shelfFocusTimerRef.current);
       shelfFocusTimerRef.current = setTimeout(() => {
         const url = item.BackdropImageTags && item.BackdropImageTags.length > 0 ? getBackdropUrl(item.Id) : getPosterUrl(item.Id, 1920);
         setBackdropUrl(url);
       }, 150);
     },
-    [setBackdropUrl],
+    [setBackdropUrl, heroAnim],
   );
 
   const handleItemPress = useCallback(
@@ -350,7 +354,7 @@ export default function VideoLibraryScreen() {
           ) : (
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.homeScrollContent}>
               {homeData.recentlyAdded.length > 0 && (
-                <HeroBillboard items={homeData.recentlyAdded.slice(0, 5)} onPlay={handleItemPress} onInfo={handleMoreInfo} onItemChange={handleHeroItemChange} onHeroFocus={handleHeroFocus} />
+                <HeroBillboard items={homeData.recentlyAdded.slice(0, 5)} onPlay={handleItemPress} onInfo={handleMoreInfo} onItemChange={handleHeroItemChange} onHeroFocus={handleHeroFocus} heroAnim={heroAnim} />
               )}
               {homeData.continueWatching.length > 0 && (
                 <VideoShelf title="Continue Watching" items={homeData.continueWatching} onItemPress={handleItemPress} onItemFocus={handleShelfItemFocus} cardStyle="landscape" />
